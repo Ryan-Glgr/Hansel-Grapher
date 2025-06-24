@@ -68,10 +68,8 @@ public class Node {
         Integer[] kValsToMakeNode = new Integer[dimension];
         for(int i = 0; i < dimension; i++)
             kValsToMakeNode[i] = 0;
-        
-        // put our first one in.
-        Nodes.put(Node.hash(kValsToMakeNode), new Node(kValsToMakeNode));
-        
+        kValsToMakeNode[0] = -1;
+
         // iterate through all the digits, and make all the nodes. 
 makingNodes:
         while(true){
@@ -89,11 +87,10 @@ makingNodes:
                 if (attribute >= dimension)
                     break makingNodes;
             }
+            
 
             // increment our attribute
             kValsToMakeNode[attribute]++;
-
-            System.out.println("Putting: " + Arrays.toString(kValsToMakeNode));
 
             // just make a new node and put it in the map.
             Nodes.put(Node.hash(kValsToMakeNode), new Node(kValsToMakeNode));
@@ -102,9 +99,9 @@ makingNodes:
         // re initialize so we can copy paste
         for(int i = 0; i < dimension; i++)
             kValsToMakeNode[i] = 0;
+        // set the first one negative one so no special treatment for first node.
+        kValsToMakeNode[0] = -1;
 
-
-        Nodes.get(hash(kValsToMakeNode)).findExpansions();    
     expanding:
         while(true){
 
