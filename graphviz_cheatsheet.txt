@@ -1,0 +1,92 @@
+GRAPHVIZ DOT CHEAT SHEET
+========================
+
+Basic file skeleton:
+--------------------
+digraph G {
+    // global graph attributes
+    rankdir=LR;            // Left‑to‑Right layout
+    bgcolor=white;
+
+    // global node attributes
+    node [shape=circle, style=filled, fillcolor=lightgrey];
+
+    // global edge attributes
+    edge [color=black, penwidth=1.5];
+
+    // nodes
+    A [label="node A", color=lightblue, fontcolor=black];
+
+    // edges
+    A -> B [label="edge", dir=back, color=red, arrowhead=vee, penwidth=2];
+}
+
+Key Graph Attributes
+--------------------
+rankdir   = TB | LR | BT | RL      // layout direction
+bgcolor   = "name" | "#RRGGBB"     // background color
+layout    = dot | neato | fdp | sfdp | twopi | circo
+nodesep   = 0.25                   // node separation (inches)
+ranksep   = 0.5                    // rank separation
+splines   = true | false | ortho | polyline
+label     = "Graph title"
+labelloc  = t | b | c              // label location (top, bottom, center)
+
+Key Node Attributes
+-------------------
+shape      = box | circle | ellipse | diamond | plaintext | record | ...
+label      = "text"
+color      = "name" | "#RRGGBB"       // outline color
+fillcolor  = "name" | "#RRGGBB"       // interior when style=filled
+fontcolor  = "name"
+fontsize   = 12
+fontname   = "Helvetica"
+style      = filled | dashed | dotted | bold | invis | solid | rounded
+penwidth   = 0.5 ... 5.0              // outline thickness
+width/height = 0.5                    // inches; use fixedsize=true to enforce
+fixedsize  = true | false
+
+Key Edge Attributes
+-------------------
+dir        = forward | back | both | none
+arrowhead  = normal | vee | diamond | dot | none | ...
+arrowtail  = same options as arrowhead
+color      = "name" | "#RRGGBB"
+penwidth   = 0.5 ... 5.0
+style      = solid | dashed | dotted | bold | invis
+weight     = 1                        // influences ranking
+constraint = true | false
+label      = "edge text"
+fontsize   = 10
+fontcolor  = "name"
+fontname   = "Helvetica"
+headlabel  = "label near head"
+taillabel  = "label near tail"
+minlen     = 1                        // minimum ranks between nodes
+
+Common Styles & Examples
+------------------------
+node [shape=record, style="rounded,filled", fillcolor="#E0FFE0"];
+edge [penwidth=2, color="#4040FF", arrowhead=vee];
+
+A -> B [dir=both, arrowhead=dot, arrowtail=inv, penwidth=3, style=dotted];
+
+Colors
+------
+Use X11 color names (e.g., red, lightblue) or hex codes (#RRGGBB).
+For gradients: fillcolor="red:yellow" style=radial
+
+Clusters
+--------
+subgraph cluster_0 {
+    label="Hansel Level 0";
+    style=filled;
+    color=lightgrey;
+    node [style=filled, fillcolor=white];
+    0 1 2;
+}
+
+Rendering Command
+-----------------
+dot -Tpng input.dot -o output.png
+neato -Tsvg input.dot -o output.svg
