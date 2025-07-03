@@ -1,0 +1,52 @@
+digraph G {
+	rankdir = TB;
+	bgcolor = white;
+	0 [label = "[0, 0, 0, 0]", shape = rectangle, style = filled, fillcolor = lightgrey];
+	1 [label = "[1, 0, 0, 0]", shape = rectangle, style = filled, fillcolor = lightgrey];
+	0 -> 1 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	31 [label = "[0, 1, 0, 0]", shape = rectangle, style = filled, fillcolor = lightgrey];
+	0 -> 31 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	961 [label = "[0, 0, 1, 0]", shape = rectangle, style = filled, fillcolor = lightgrey];
+	0 -> 961 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	29791 [label = "[0, 0, 0, 1]", shape = rectangle, style = filled, fillcolor = lightgrey];
+	0 -> 29791 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	32 [label = "[1, 1, 0, 0]", shape = rectangle, style = filled, fillcolor = lightgrey];
+	1 -> 32 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	962 [label = "[1, 0, 1, 0]", shape = rectangle, style = filled, fillcolor = lightgrey];
+	1 -> 962 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	29792 [label = "[1, 0, 0, 1]", shape = rectangle, style = filled, fillcolor = lightgrey];
+	1 -> 29792 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	31 -> 32 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	992 [label = "[0, 1, 1, 0]", shape = rectangle, style = filled, fillcolor = lightgrey];
+	31 -> 992 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	29822 [label = "[0, 1, 0, 1]", shape = rectangle, style = filled, fillcolor = lightgrey];
+	31 -> 29822 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	993 [label = "[1, 1, 1, 0]", shape = rectangle, style = filled, fillcolor = lightgrey];
+	32 -> 993 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	29823 [label = "[1, 1, 0, 1]", shape = rectangle, style = filled, fillcolor = lightgrey];
+	32 -> 29823 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	961 -> 962 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	961 -> 992 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	30752 [label = "[0, 0, 1, 1]", shape = rectangle, style = filled, fillcolor = lightgrey];
+	961 -> 30752 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	962 -> 993 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	30753 [label = "[1, 0, 1, 1]", shape = rectangle, style = filled, fillcolor = lightgrey];
+	962 -> 30753 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	992 -> 993 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	30783 [label = "[0, 1, 1, 1]", shape = rectangle, style = filled, fillcolor = lightgrey];
+	992 -> 30783 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	30784 [label = "[1, 1, 1, 1]", shape = rectangle, style = filled, fillcolor = lightgrey];
+	993 -> 30784 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	29791 -> 29792 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	29791 -> 29822 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	29791 -> 30752 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	29792 -> 29823 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	29792 -> 30753 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	29822 -> 29823 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	29822 -> 30783 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	29823 -> 30784 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	30752 -> 30753 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	30752 -> 30783 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	30753 -> 30784 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	30783 -> 30784 [dir = both, color = black, arrowhead = vee, penwdith = 2]
+	}

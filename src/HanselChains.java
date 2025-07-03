@@ -72,11 +72,15 @@ public class HanselChains{
         
             // now our final step, starting from the second chain, we go through, and give our last element to the previous chain which has the same length as the loser chain.
             for(int c = originalNumChains; c < hanselChainSet.size(); c++){
-
                 ArrayList<Node> loserChain = hanselChainSet.get(c);
                 ArrayList<Node> chainToAddTo = hanselChainSet.get(c - originalNumChains);
                 chainToAddTo.add(loserChain.remove(loserChain.size() - 1));
+            }
 
+            // now delete empty chains.
+            for(int c = hanselChainSet.size() - 1; c >= 0; c--){
+                if (hanselChainSet.get(c).size() == 0)
+                    hanselChainSet.remove(c);
             }
 
         

@@ -6,7 +6,7 @@ import java.util.HashMap;
 
 public class Main {
 
-    public static Integer[] kValues = {2, 2, 2};
+    public static Integer[] kValues = {2, 2, 2, 2};
 
     public static void main(String[] args) {
 
