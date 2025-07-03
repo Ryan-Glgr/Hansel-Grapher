@@ -6,7 +6,7 @@ import java.util.HashMap;
 
 public class Main {
 
-    public static Integer[] kValues = {4, 4, 4, 4, 4};
+    public static Integer[] kValues = {2, 2, 2};
 
     public static void main(String[] args) {
 
@@ -14,6 +14,7 @@ public class Main {
 
         try{
             makeExpansionsDOT();
+            HanselChains.generateHanselChainSet(kValues, Node.Nodes);
         }
         catch (Exception e){
             e.printStackTrace();

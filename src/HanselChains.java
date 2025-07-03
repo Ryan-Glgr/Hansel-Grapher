@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 
@@ -7,7 +8,7 @@ import java.util.HashMap;
 public class HanselChains{
 
     // our set of HC's. an individual chain is an arraylist, and we have a bunch of them.
-    public static ArrayList<ArrayList<Node>> HanselChainSet;
+    public static ArrayList<ArrayList<Node>> hanselChainSet;
 
     // function to create our chains
     public static void generateHanselChainSet(Integer[] kValues, HashMap<Integer, Node> nodes){
@@ -15,7 +16,7 @@ public class HanselChains{
 
         // for each attribute, we do this. consider an arraylist with just the first attribute to start as our "list of chains".
         // append all the different values of each attribute to each chain we have so far
-        HanselChainSet = new ArrayList<ArrayList<Node>>();
+        hanselChainSet = new ArrayList<ArrayList<Node>>();
 
         // now we go through each attribute, and for each of it's "legal" k values, we append all of those, one to each of the existing chains.
         // then we go back through, and just move the last thing in each chain into the one previous.
@@ -25,16 +26,18 @@ public class HanselChains{
         for(int i = 0; i < valsForChains.length; i++)
             valsForChains[i] = 0;
 
+        ArrayList<Node> thisChain = new ArrayList<Node>();
         for(int firstDigitVal = 0; firstDigitVal < kValues[0]; firstDigitVal++){
-
+            
             // make a new "hansel chain" which is really just our one point which would be like [0,0,0,0], then [0,0,0,1], then [0,0,0,2] for k = 3
-            ArrayList<Node> thisChain = new ArrayList<Node>();
             valsForChains[0] = firstDigitVal;
+            
             thisChain.add(nodes.get(Node.hash(valsForChains)));
+            
         }
+        hanselChainSet.add(thisChain);
 
         // now we have our first digit set up. in regular boolean chains, we would've just made (0), (1). padded with 0's of course.
-
         // now we iterate through each digit, doing the hansel chain making process.
         // for each digit, we basically make a copy of all the existing hansel chains, and append all our possible values to it.
         for(int digit = 1; digit < kValues.length; digit++){
@@ -46,14 +49,50 @@ public class HanselChains{
             for(int digitVal = 1; digitVal < kValues[digit]; digitVal++){
 
                 // if we are appending digit 0, we actually already have that. since our method of appending is just changing the padded 0's to whatever value.
-                
+                // now, iterate through all the chains we currently have, and we are going to make a copy of each, and change whichever digit index we are at, to digitVal in each of the copies.
+                for(ArrayList<Node> chain : hanselChainSet){
+
+                    // copying "chain" but changing the value of "digit" to digitVal. mimicking the recursive step where you copy each chain but change the front value.
+                    ArrayList<Node> copyChain = new ArrayList<Node>();
+                    for(Node t : chain){
+                        Node temp = new Node(t.values);
+                        temp.values[digit] = digitVal;
+                        copyChain.add(temp);
+                        System.out.println("Just made a copy of ");
+                    }
+                    newChains.add(copyChain);
+                }
+            }
+
+            // original number of chains is useful, because now we need to do some moving around.
+            int originalNumChains = hanselChainSet.size();
+
+            // now that we are done making new chains, we go through and add all the copied and changed ones.
+            hanselChainSet.addAll(newChains);
+        
+            // now our final step, starting from the second chain, we go through, and give our last element to the previous chain which has the same length as the loser chain.
+            for(int c = originalNumChains; c < hanselChainSet.size(); c++){
+
+                ArrayList<Node> loserChain = hanselChainSet.get(c);
+                ArrayList<Node> chainToAddTo = hanselChainSet.get(c - originalNumChains);
+                chainToAddTo.add(loserChain.remove(loserChain.size() - 1));
 
             }
 
+        
         }
 
-    }
 
+    
+        // print the values and hope they look right.
+        for(ArrayList<Node> chain : hanselChainSet){
+            System.out.println("CHAIN:\t");
+            for(Node t : chain){
+                System.out.print(Arrays.toString(t.values) + " -> ");
+            }
+            System.out.println();
+        }
+    }
 
 
 
