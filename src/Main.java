@@ -7,7 +7,7 @@ import java.util.ArrayList;
 
 public class Main {
 
-    public static Integer[] kValues = {3, 3, 3};
+    public static Integer[] kValues = {2, 2, 2, 2};
 
     public static void main(String[] args) {
 
@@ -17,6 +17,10 @@ public class Main {
             makeExpansionsDOT();
             HanselChains.generateHanselChainSet(kValues, Node.Nodes);
             makeHanselChainDOT();
+
+            // our scripting to make the pictures.
+            ProcessBuilder p = new ProcessBuilder("./makePNG.sh");
+            p.start();
         }
         catch (Exception e){
             e.printStackTrace();
@@ -35,7 +39,7 @@ public class Main {
         HashMap<Integer, Node> usedNodes = new HashMap<>();    
         File DOTfile = new File("Expansions.dot");
         FileWriter fw = new FileWriter(DOTfile);
-        fw.write("digraph G {\n\trankdir = TB;\n\tbgcolor = white;\n\t");
+        fw.write("digraph G {\n\trankdir = BT;\n\tbgcolor = white;\n\t");
 
     writingLoop:
         while(true){

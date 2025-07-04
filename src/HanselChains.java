@@ -28,12 +28,9 @@ public class HanselChains{
 
         ArrayList<Node> thisChain = new ArrayList<Node>();
         for(int firstDigitVal = 0; firstDigitVal < kValues[0]; firstDigitVal++){
-            
             // make a new "hansel chain" which is really just our one point which would be like [0,0,0,0], then [0,0,0,1], then [0,0,0,2] for k = 3
             valsForChains[0] = firstDigitVal;
-            
             thisChain.add(nodes.get(Node.hash(valsForChains)));
-            
         }
         hanselChainSet.add(thisChain);
 
@@ -55,10 +52,14 @@ public class HanselChains{
                     // copying "chain" but changing the value of "digit" to digitVal. mimicking the recursive step where you copy each chain but change the front value.
                     ArrayList<Node> copyChain = new ArrayList<Node>();
                     for(Node t : chain){
-                        Node temp = new Node(t.values);
-                        temp.values[digit] = digitVal;
+
+                        // make a copy of the values
+                        Integer[] newVals = Arrays.copyOf(t.values, t.values.length);
+                        newVals[digit] = digitVal;
+
+                        // get the node with this value from the hashmap of nodes.
+                        Node temp = Node.Nodes.get(Node.hash(newVals));
                         copyChain.add(temp);
-                        System.out.println("Just made a copy of ");
                     }
                     newChains.add(copyChain);
                 }
@@ -84,17 +85,6 @@ public class HanselChains{
             }
 
         
-        }
-
-
-    
-        // print the values and hope they look right.
-        for(ArrayList<Node> chain : hanselChainSet){
-            System.out.println("CHAIN:\t");
-            for(Node t : chain){
-                System.out.print(Arrays.toString(t.values) + " -> ");
-            }
-            System.out.println();
         }
 
         // sort our chains
