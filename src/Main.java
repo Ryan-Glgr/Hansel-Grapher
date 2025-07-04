@@ -7,7 +7,7 @@ import java.util.ArrayList;
 
 public class Main {
 
-    public static Integer[] kValues = {3, 3};
+    public static Integer[] kValues = {3, 3, 3};
 
     public static void main(String[] args) {
 
@@ -62,7 +62,7 @@ public class Main {
             
             // if we haven't used temp yet, it has to go into the file.
             if (usedNodes.get(Node.hash(temp.values)) == null){
-                String nodeName = Arrays.toString(temp.values);
+                String nodeName = temp.toString();
                 fw.write(Node.hash(temp.values) + " [label = \"" + nodeName + "\", shape = rectangle, style = filled, fillcolor = lightgrey];\n\t");
             }
 
@@ -77,7 +77,7 @@ public class Main {
                     usedNodes.put(Node.hash(ex.values), ex);
                     
                     // write our node into the DOT file now.
-                    String nodeName = Arrays.toString(ex.values);
+                    String nodeName = ex.toString();
                     
                     // writing the expanded value into the file before we try to make the edge to it.
                     fw.write(Node.hash(ex.values) + " [label = \"" + nodeName + "\", shape = rectangle, style = filled, fillcolor = lightgrey];\n\t");
@@ -104,7 +104,7 @@ public class Main {
 
             // iterate through the chain. write the node, then the one on top. 
             for(Node temp : chain){
-                String nodeName = Arrays.toString(temp.values);
+                String nodeName = temp.toString();
                 fw.write(Node.hash(temp.values) + " [label = \"" + nodeName + "\", shape = rectangle, style = filled, fillcolor = lightgrey];\n\t");
             }
 

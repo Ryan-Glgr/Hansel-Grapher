@@ -96,9 +96,33 @@ public class HanselChains{
             }
             System.out.println();
         }
+
+        // sort our chains
+        hanselChainSet.sort((ArrayList<Node> a, ArrayList<Node> b) -> {
+            return b.size() - a.size();
+        });
+
+        // now give them the diamond shape.
+        ArrayList<ArrayList<Node>> newOrdering = new ArrayList<ArrayList<Node>>();
+        for(int i = 0; i < hanselChainSet.size(); i++){
+            // if even, put it in the front, if odd, the back. that is how we will alternate and get that shape.
+            if (i % 2 == 0){
+                newOrdering.add(hanselChainSet.get(i));
+            }
+            else{
+                newOrdering.addFirst(hanselChainSet.get(i));
+            }
+        }
+        // change the pointer to hanselChainSet to the reordered ones.
+        hanselChainSet = newOrdering;
+
+
+        }
+
+    // sorts the chains so that the biggest one is in the middle and it makes that nice diamond shape.
+    public static void sortForVisualization(){
+
+
     }
-
-
-
 
 }

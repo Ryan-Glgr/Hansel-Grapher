@@ -23,13 +23,13 @@ public class Node {
         
         // set classification to -1.
         classification = -1;
+
+        upExpansions = new Node[dimension];
+        downExpansions = new Node[dimension];
     }
 
     // finds our up and down expansions. Since we know that the values of the expansions are just our point +- 1 in some attribute, we can just look it up.
     public void findExpansions(){
-
-        upExpansions = new Node[dimension];
-        downExpansions = new Node[dimension];
 
         // loop through our attributes, and find all the points which are our up and down neighbors.
         Integer[] key = Arrays.copyOf(values, values.length);
