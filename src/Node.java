@@ -3,6 +3,8 @@ import java.util.HashMap;
 
 public class Node {
 
+    public static boolean DEBUG_PRINTING = false;
+
     // big list of nodes
     public static HashMap<Integer, Node> Nodes = new HashMap<Integer, Node>();
     
@@ -206,22 +208,24 @@ makingNodes:
 
         s.append("CLASSIFICATION:\t" + classification + "\n");
 
-        s.append("UP EXPANSIONS:\n");
-        for(Node t : upExpansions){
-            if (t == null)
-                s.append("\tNULL\n");
-            
-            else
-                s.append("\t").append(Arrays.toString(t.values)).append("\n");
-        }
+        if (DEBUG_PRINTING){
+            s.append("UP EXPANSIONS:\n");
+            for(Node t : upExpansions){
+                if (t == null)
+                    s.append("\tNULL\n");
+                
+                else
+                    s.append("\t").append(Arrays.toString(t.values)).append("\n");
+            }
 
-        s.append("DOWN EXPANSIONS:\n");
-        for(Node t : downExpansions){
-            if (t == null)
-                s.append("\tNULL\n");
-            
-            else
-                s.append("\t").append(Arrays.toString(t.values)).append("\n");
+            s.append("DOWN EXPANSIONS:\n");
+            for(Node t : downExpansions){
+                if (t == null)
+                    s.append("\tNULL\n");
+                
+                else
+                    s.append("\t").append(Arrays.toString(t.values)).append("\n");
+            }
         }
 
         return s.toString();
