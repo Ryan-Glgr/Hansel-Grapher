@@ -3,10 +3,11 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.ArrayList;
 
 public class Main {
 
-    public static Integer[] kValues = {2, 2, 2, 2};
+    public static Integer[] kValues = {3, 3};
 
     public static void main(String[] args) {
 
@@ -15,6 +16,7 @@ public class Main {
         try{
             makeExpansionsDOT();
             HanselChains.generateHanselChainSet(kValues, Node.Nodes);
+            makeHanselChainDOT();
         }
         catch (Exception e){
             e.printStackTrace();
@@ -61,7 +63,7 @@ public class Main {
             // if we haven't used temp yet, it has to go into the file.
             if (usedNodes.get(Node.hash(temp.values)) == null){
                 String nodeName = Arrays.toString(temp.values);
-                fw.write(Node.hash(temp.values) + " [label = \"" + Arrays.toString(temp.values) + "\", shape = rectangle, style = filled, fillcolor = lightgrey];\n\t");
+                fw.write(Node.hash(temp.values) + " [label = \"" + nodeName + "\", shape = rectangle, style = filled, fillcolor = lightgrey];\n\t");
             }
 
 
@@ -89,6 +91,40 @@ public class Main {
         fw.close();
     }
 
+    // takes our already created nodes, and calls our HC generation function. then makes a simple visualization just like we had for the expansions.
+    public static void makeHanselChainDOT() throws IOException{
+        
+        File DOTfile = new File("HanselChains.dot");
+        FileWriter fw = new FileWriter(DOTfile);
+        fw.write("digraph G {\n\trankdir = BT;\n\tbgcolor = white;\n\t");
 
+        // iterate each hansel chain. we know that each point SHOULD appear exactly once. so no need for a used map.
+        // we just write the node, then the target to the next one if there is one.
+        for(ArrayList<Node> chain : HanselChains.hanselChainSet){
+
+            // iterate through the chain. write the node, then the one on top. 
+            for(Node temp : chain){
+                String nodeName = Arrays.toString(temp.values);
+                fw.write(Node.hash(temp.values) + " [label = \"" + nodeName + "\", shape = rectangle, style = filled, fillcolor = lightgrey];\n\t");
+            }
+
+            // iterate through and add the guy on top for each one.
+            for(int c = 0; c < chain.size() - 1; c++){
+
+                Node temp = chain.get(c);
+                Node ex = chain.get(c + 1);
+
+                // now we make the edge between temp and the next one in the chain.
+                fw.write(Node.hash(temp.values) + " -> " + Node.hash(ex.values) + " [dir = both, color = black, arrowhead = vee, penwdith = 2]\n\t");
+            }
+
+        }
+
+        fw.write("}");
+        fw.close();
+    
+ 
+    
+    }
 
 }
