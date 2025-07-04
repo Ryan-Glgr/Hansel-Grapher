@@ -86,7 +86,9 @@ public class HanselChains{
 
         
         }
+    }
 
+    public static void sortChainsForVisualization(){
         // sort our chains
         hanselChainSet.sort((ArrayList<Node> a, ArrayList<Node> b) -> {
             return b.size() - a.size();
@@ -105,13 +107,6 @@ public class HanselChains{
         }
         // change the pointer to hanselChainSet to the reordered ones.
         hanselChainSet = newOrdering;
-
-
-        }
-
-    // sorts the chains so that the biggest one is in the middle and it makes that nice diamond shape.
-    public static void sortForVisualization(){
-
 
     }
 

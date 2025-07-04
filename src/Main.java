@@ -1,26 +1,37 @@
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.ArrayList;
 
 public class Main {
 
-    public static Integer[] kValues = {2, 2, 2, 2};
+    public static Integer[] kValues = {4, 3, 3, 2, 2, 2, 2};
 
     public static void main(String[] args) {
 
-        Node.makeNodes(kValues);
 
         try{
-            makeExpansionsDOT();
+            
+            // make all our nodes.
+            Node.makeNodes(kValues);
+            
+            // make the chains
             HanselChains.generateHanselChainSet(kValues, Node.Nodes);
+
+            // classify all our data
+            Interview.conductInterview(Node.Nodes, 0);
+
+            // visualize our results
             makeHanselChainDOT();
+
+            // make the expansions picture
+            makeExpansionsDOT();
 
             // our scripting to make the pictures.
             ProcessBuilder p = new ProcessBuilder("./makePNG.sh");
             p.start();
+        
         }
         catch (Exception e){
             e.printStackTrace();
@@ -98,6 +109,8 @@ public class Main {
     // takes our already created nodes, and calls our HC generation function. then makes a simple visualization just like we had for the expansions.
     public static void makeHanselChainDOT() throws IOException{
         
+        HanselChains.sortChainsForVisualization();
+
         File DOTfile = new File("HanselChains.dot");
         FileWriter fw = new FileWriter(DOTfile);
         fw.write("digraph G {\n\trankdir = BT;\n\tbgcolor = white;\n\t");
