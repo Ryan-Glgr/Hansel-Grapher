@@ -1,5 +1,7 @@
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.concurrent.*;
+import java.util.stream.IntStream;
 
 public class Node {
 
@@ -7,6 +9,10 @@ public class Node {
 
     // big list of nodes
     public static HashMap<Integer, Node> Nodes = new HashMap<Integer, Node>();
+    
+    // Thread pool for parallel operations
+    private static final int THREAD_COUNT = Runtime.getRuntime().availableProcessors();
+    private static final ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT);
     
     // list of max possible value of each attribute
     public static Integer[] kValues;
@@ -129,15 +135,21 @@ makingNodes:
         // set the first one negative one so no special treatment for first node.
         kValsToMakeNode[0] = -1;
 
+        // Use parallel processing for finding expansions
+        Integer[] finalKValsToMakeNode = kValsToMakeNode;
+        
+        // Collect all nodes that need expansion processing
+        java.util.List<Node> nodesToProcess = new java.util.ArrayList<>();
+        
     expanding:
         while(true){
 
             int attribute = 0;
 
             // incrementing logic to go through all digits, all k vals.
-            while (kValsToMakeNode[attribute] + 1 >= kValues[attribute]){
+            while (finalKValsToMakeNode[attribute] + 1 >= kValues[attribute]){
              
-                kValsToMakeNode[attribute] = 0;
+                finalKValsToMakeNode[attribute] = 0;
                 attribute++;
 
                 // break once we've incremented all the way around.
@@ -146,46 +158,55 @@ makingNodes:
             }
 
             // increment our attribute
-            kValsToMakeNode[attribute]++;
+            finalKValsToMakeNode[attribute]++;
 
-            Node temp = Nodes.get(hash(kValsToMakeNode));
-            temp.findExpansions();
+            Node temp = Nodes.get(hash(finalKValsToMakeNode));
+            nodesToProcess.add(temp);
         }
+        
+        // Process all nodes in parallel
+        nodesToProcess.parallelStream().forEach(Node::findExpansions);
     
 
     }
 
     // our expansion victim just got his value assigned. now, what he does is update all his up neighbors to be at least his new value.
-    // recursive.
+    // recursive with parallel processing.
     // if the node above already had that value or greater, we can skip the recursive step.
     public void expandUp(){
 
-        for(Node upstairsNeighbor : upExpansions){
-            
-            // if empty continue of course. if their classificiation is greater or equal we can skip the permeation
-            if (upstairsNeighbor == null || upstairsNeighbor.classification >= this.classification){
-                continue;
-            }
-            // if we get here then his value was less. meaning now we have to set his value and continue the cycle of violence.
-            upstairsNeighbor.classification = this.classification;
-            upstairsNeighbor.expandUp();
-        }
-
+        // Use parallel processing for upstairs neighbors
+        Arrays.stream(upExpansions)
+                .parallel()
+                .filter(upstairsNeighbor -> upstairsNeighbor != null && upstairsNeighbor.classification < this.classification)
+                .forEach(upstairsNeighbor -> {
+                    synchronized(upstairsNeighbor) {
+                        // Double-check condition after acquiring lock
+                        if (upstairsNeighbor.classification < this.classification) {
+                            upstairsNeighbor.classification = this.classification;
+                            upstairsNeighbor.expandUp();
+                        }
+                    }
+                });
 
     }
 
     // we also now understand that everyone under me must be same or lower. so we change the upper bound of our downstairs neighbors.
     // uses this upperbound parameter so that we don't have to set the classification every single time.
     public void expandDown(int upperBound){
-        for (Node downstairsNeighbor : downExpansions){
-            if (downstairsNeighbor == null || downstairsNeighbor.maxPossibleValue <= upperBound){
-                continue;
-            }
-            else{
-                downstairsNeighbor.maxPossibleValue = upperBound;
-                downstairsNeighbor.expandDown(upperBound);
-            }
-        }
+        // Use parallel processing for downstairs neighbors
+        Arrays.stream(downExpansions)
+                .parallel()
+                .filter(downstairsNeighbor -> downstairsNeighbor != null && downstairsNeighbor.maxPossibleValue > upperBound)
+                .forEach(downstairsNeighbor -> {
+                    synchronized(downstairsNeighbor) {
+                        // Double-check condition after acquiring lock
+                        if (downstairsNeighbor.maxPossibleValue > upperBound) {
+                            downstairsNeighbor.maxPossibleValue = upperBound;
+                            downstairsNeighbor.expandDown(upperBound);
+                        }
+                    }
+                });
     }
 
     // each node gets this new classification
@@ -229,6 +250,18 @@ makingNodes:
         }
 
         return s.toString();
+    }
+    
+    // Clean up thread pool when done
+    public static void shutdown() {
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+        }
     }
 
 }

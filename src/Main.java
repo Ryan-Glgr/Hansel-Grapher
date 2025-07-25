@@ -6,7 +6,7 @@ import java.util.ArrayList;
 
 public class Main {
 
-    public static Integer[] kValues = {4, 3, 3, 2, 2, 2, 2};
+    public static Integer[] kValues = {4, 4, 4, 3, 5, 6, 8};
 
     public static void main(String[] args) {
 
@@ -28,9 +28,13 @@ public class Main {
             // make the expansions picture
             makeExpansionsDOT();
 
-            // our scripting to make the pictures.
-            ProcessBuilder p = new ProcessBuilder("./makePNG.sh");
-            p.start();
+            // our scripting to make the pictures - start and continue
+            ProcessBuilder pb = new ProcessBuilder("./makePNG.sh");
+            pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+            pb.start();
+
+            System.exit(0);
         
         }
         catch (Exception e){
