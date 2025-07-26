@@ -18,6 +18,8 @@ public class Interview {
 
     - a node is a low unit if we are expanding down and the one below is a lower class.
     - a node is a high unit if we are going up and the next guy is a higher class obviously.
+    - we can count the number of "nodes under each umbrella." not just the number of expansions. that will be more effective most likely in determining the most powerful nodes for classification
+        - then we can re sort after each question.
 
     */
     

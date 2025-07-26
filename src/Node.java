@@ -90,6 +90,38 @@ public class Node {
         return sum;
     }
 
+    // Helper method to increment a counter array based on kValues bounds
+    // Returns true if increment was successful, false if we've wrapped around completely
+    public static boolean incrementCounter(Integer[] counter) {
+        int attribute = 0;
+        
+        // incrementing logic to go through all digits, all k vals.
+        while (counter[attribute] + 1 >= kValues[attribute]) {
+            counter[attribute] = 0;
+            attribute++;
+            
+            // return false if we've incremented all the way around
+            if (attribute >= kValues.length) {
+                return false;
+            }
+        }
+        
+        // increment our attribute
+        counter[attribute]++;
+        return true;
+    }
+
+    // Helper method to create a properly initialized counter array for use with incrementCounter
+    // Returns array filled with 0s except first element is -1, so first increment gives [0,0,0,...]
+    public static Integer[] counterInitializer() {
+        Integer[] counter = new Integer[kValues.length];
+        for(int i = 0; i < counter.length; i++) {
+            counter[i] = 0;
+        }
+        counter[0] = -1;
+        return counter;
+    }
+
     // makes all our nodes and populates the map
     public static void makeNodes(Integer[] kVals){
 
@@ -98,68 +130,21 @@ public class Node {
         // set the dimension we are going to use all over
         dimension = kValues.length;
 
-        Integer[] kValsToMakeNode = new Integer[dimension];
-        for(int i = 0; i < dimension; i++)
-            kValsToMakeNode[i] = 0;
-        kValsToMakeNode[0] = -1;
+        Integer[] kValsToMakeNode = counterInitializer();
 
         // iterate through all the digits, and make all the nodes. 
-makingNodes:
-        while(true){
-
-            // if we have wrapped around, reset to 0. and continue.
-            int attribute = 0;
-
-            // incrementing logic to go through all digits, all k vals.
-            while (kValsToMakeNode[attribute] + 1 >= kValues[attribute]){
-             
-                kValsToMakeNode[attribute] = 0;
-                attribute++;
-
-                // break once we've incremented all the way around.
-                if (attribute >= dimension)
-                    break makingNodes;
-            }
-            
-
-            // increment our attribute
-            kValsToMakeNode[attribute]++;
-
+        while(incrementCounter(kValsToMakeNode)){
             // just make a new node and put it in the map.
             Nodes.put(Node.hash(kValsToMakeNode), new Node(kValsToMakeNode));
         }
     
         // re initialize so we can copy paste
-        for(int i = 0; i < dimension; i++)
-            kValsToMakeNode[i] = 0;
-        // set the first one negative one so no special treatment for first node.
-        kValsToMakeNode[0] = -1;
-
-        // Use parallel processing for finding expansions
-        Integer[] finalKValsToMakeNode = kValsToMakeNode;
+        Integer[] finalKValsToMakeNode = counterInitializer();
         
         // Collect all nodes that need expansion processing
         java.util.List<Node> nodesToProcess = new java.util.ArrayList<>();
         
-    expanding:
-        while(true){
-
-            int attribute = 0;
-
-            // incrementing logic to go through all digits, all k vals.
-            while (finalKValsToMakeNode[attribute] + 1 >= kValues[attribute]){
-             
-                finalKValsToMakeNode[attribute] = 0;
-                attribute++;
-
-                // break once we've incremented all the way around.
-                if (attribute >= dimension)
-                    break expanding;
-            }
-
-            // increment our attribute
-            finalKValsToMakeNode[attribute]++;
-
+        while(incrementCounter(finalKValsToMakeNode)){
             Node temp = Nodes.get(hash(finalKValsToMakeNode));
             nodesToProcess.add(temp);
         }
@@ -221,6 +206,19 @@ makingNodes:
         expandDown(this.classification);
 
     }   
+
+    @Override
+    public int hashCode() {
+        return hash(this.values);
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Node node = (Node) obj;
+        return Arrays.equals(values, node.values);
+    }
 
     public String toString(){
         StringBuilder s = new StringBuilder();
