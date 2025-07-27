@@ -5,5 +5,8 @@
 ### Mac OS ###
 .DS_Store
 
+src/*.pdf
 src/*.png
 src/*.dot
+debug
+src/*.class

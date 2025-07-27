@@ -3,13 +3,32 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.awt.Color;
 
 public class Main {
 
-    public static Integer[] kValues = {3, 3, 3, 3};
+    public static Integer[] kValues = {4, 4, 2, 4, 3, 2, 3};
+    
+    // Calculate the highest possible classification at compile time
+    // This uses the same logic as questionExpert: sum of max values / dimension
+    public static Integer highestPossibleClassification;
+    
+    static {
+        int maxSum = 0;
+        for (int k : kValues) {
+            maxSum += (k - 1); // max value for each dimension is k-1
+        }
+        highestPossibleClassification = maxSum / kValues.length; // same as sum / dimension
+    }
 
     public static void main(String[] args) {
 
+        // Check if debug mode is enabled
+        boolean debugMode = args.length > 0 && args[0].equals("debug");
+        
+        // Set debug flags in all classes
+        Node.DEBUG_PRINTING = debugMode;
+        Interview.DEBUG = debugMode;
 
         try{
             
@@ -20,7 +39,8 @@ public class Main {
             HanselChains.generateHanselChainSet(kValues, Node.Nodes);
 
             // classify all our data
-            Interview.conductInterview(Node.Nodes, 0);
+            boolean umbrellaBased = true;
+            Interview.conductInterview(Node.Nodes, 0, umbrellaBased);
 
             // visualize our results
             makeHanselChainDOT();
@@ -29,7 +49,7 @@ public class Main {
             makeExpansionsDOT();
 
             // our scripting to make the pictures - start and continue
-            ProcessBuilder pb = new ProcessBuilder("./makePNG.sh");
+            ProcessBuilder pb = new ProcessBuilder("./makeGraphs.sh");
             pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
             pb.redirectError(ProcessBuilder.Redirect.DISCARD);
             pb.start();
@@ -61,7 +81,8 @@ public class Main {
             // if we haven't used temp yet, it has to go into the file.
             if (usedNodes.get(temp) == null){
                 String nodeName = temp.toString();
-                fw.write(temp.hashCode() + " [label = \"" + nodeName + "\", shape = rectangle, style = filled, fillcolor = lightgrey];\n\t");
+                String nodeColor = getColorForClass(temp.classification);
+                fw.write(temp.hashCode() + " [label = \"" + nodeName + "\", shape = rectangle, style = filled, fillcolor = \"" + nodeColor + "\"];\n\t");
             }
 
 
@@ -76,9 +97,10 @@ public class Main {
                     
                     // write our node into the DOT file now.
                     String nodeName = ex.toString();
+                    String nodeColor = getColorForClass(ex.classification);
                     
                     // writing the expanded value into the file before we try to make the edge to it.
-                    fw.write(ex.hashCode() + " [label = \"" + nodeName + "\", shape = rectangle, style = filled, fillcolor = lightgrey];\n\t");
+                    fw.write(ex.hashCode() + " [label = \"" + nodeName + "\", shape = rectangle, style = filled, fillcolor = \"" + nodeColor + "\"];\n\t");
                 }
 
                 // now we make the edge between temp and ex.
@@ -87,6 +109,26 @@ public class Main {
         }
         fw.write("}");
         fw.close();
+    }
+
+    // Generate a color for a given classification using HSV color space
+    private static String getColorForClass(int classification) {
+        // Use golden ratio to space out hues nicely
+        float goldenRatio = 0.618033988749895f;
+        
+        // Generate hue by spacing classifications evenly and offsetting by golden ratio
+        float hue = (classification * goldenRatio) % 1.0f;
+        
+        // Keep saturation and value high for vibrant, distinct colors
+        float saturation = 0.7f;
+        float value = 0.95f;
+        
+        // Convert HSV to RGB
+        int rgb = Color.HSBtoRGB(hue, saturation, value);
+        Color color = new Color(rgb);
+        
+        // Convert to hex format for DOT
+        return String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue());
     }
 
     // takes our already created nodes, and calls our HC generation function. then makes a simple visualization just like we had for the expansions.
@@ -105,7 +147,8 @@ public class Main {
             // iterate through the chain. write the node, then the one on top. 
             for(Node temp : chain){
                 String nodeName = temp.toString();
-                fw.write(temp.hashCode() + " [label = \"" + nodeName + "\", shape = rectangle, style = filled, fillcolor = lightgrey];\n\t");
+                String nodeColor = getColorForClass(temp.classification);
+                fw.write(temp.hashCode() + " [label = \"" + nodeName + "\", shape = rectangle, style = filled, fillcolor = \"" + nodeColor + "\"];\n\t");
             }
 
             // iterate through and add the guy on top for each one.
