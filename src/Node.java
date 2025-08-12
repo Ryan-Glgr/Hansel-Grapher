@@ -1,8 +1,6 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.IntStream;
 import java.util.stream.IntStream;
 
 public class Node {
@@ -90,9 +88,6 @@ public class Node {
             // decrement by 2 to find the one with -1 in this attribute.
             key[attribute] -= 2;
             downExpansions[attribute] = Nodes.get(hash(key));
-
-            // reset back to normal so we can find the other nodes with the right key.
-            key[attribute]++;
         });
 
         // Count possible expansions (sequential since it's fast)
@@ -178,6 +173,7 @@ public class Node {
 
     // BFS-based expansion to set floor (classification) for nodes above
     public void expandUp(int lowerBound){
+        
         if (DEBUG_PRINTING) {
             System.out.println("=== EXPAND UP CALLED ===");
             System.out.println("Starting node: " + Arrays.toString(this.values) + " with lowerBound: " + lowerBound);
@@ -201,13 +197,16 @@ public class Node {
             
             // Skip if current node is already confirmed - we've already processed its implications
             if (current.classificationConfirmed) {
+                
                 if (DEBUG_PRINTING) {
                     System.out.println("  Skipping - already confirmed");
                 }
+                
                 continue;
             }
             
             for (Node upstairsNeighbor : current.upExpansions) {
+                
                 if (DEBUG_PRINTING && upstairsNeighbor != null) {
                     System.out.println("  Checking upstairs neighbor: " + Arrays.toString(upstairsNeighbor.values) + 
                         " (classification=" + upstairsNeighbor.classification + 
@@ -226,7 +225,9 @@ public class Node {
                     upstairsNeighbor.classification = lowerBound;
                     queue.add(upstairsNeighbor);
                     visited.add(upstairsNeighbor);
-                } else if (DEBUG_PRINTING && upstairsNeighbor != null) {
+                } 
+
+                else if (DEBUG_PRINTING && upstairsNeighbor != null) {
                     System.out.println("\tSKIPPING because:");
                     if (upstairsNeighbor.classification >= lowerBound) {
                         System.out.println("\t\tclassification (" + upstairsNeighbor.classification + ") >= lowerBound (" + lowerBound + ")");
@@ -257,13 +258,18 @@ public class Node {
             }
             
             if (node.classification == node.maxPossibleValue && node != this) {
+                
                 if (DEBUG_PRINTING) 
                     System.out.println("\u001B[31mCONFIRMING NODE: " + node + "\u001B[0m");
-                node.classificationConfirmed = true;
-            } else if (DEBUG_PRINTING) {
+                
+                    node.classificationConfirmed = true;
+            } 
+            
+            else if (DEBUG_PRINTING) {    
                 System.out.println("  NOT confirming - " + 
                     (node.classification != node.maxPossibleValue ? "values don't match" : "node is this"));
             }
+            
         }
         
         if (DEBUG_PRINTING) {

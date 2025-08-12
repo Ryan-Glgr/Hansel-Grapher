@@ -1,11 +1,8 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.*;
-import java.util.stream.IntStream;
-
-
-
 
 public class HanselChains{
 
@@ -15,6 +12,9 @@ public class HanselChains{
     // Thread pool for parallel operations
     private static final int THREAD_COUNT = Runtime.getRuntime().availableProcessors();
     private static final ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT);
+
+    // uses the ryan method, to move in a cascading manner, instead of moving just the last case
+    public static final boolean CASCADING_ADJUSTMENT = true;
 
     // function to create our chains
     public static void generateHanselChainSet(Integer[] kValues, HashMap<Integer, Node> nodes){
@@ -34,7 +34,7 @@ public class HanselChains{
 
         ArrayList<Node> thisChain = new ArrayList<Node>();
         for(int firstDigitVal = 0; firstDigitVal < kValues[0]; firstDigitVal++){
-            // make a new "hansel chain" which is really just our one point which would be like [0,0,0,0], then [0,0,0,1], then [0,0,0,2] for k = 3
+            // make a new hansel chain which is really just our one point which would be like [0,0,0,0], then [0,0,0,1], then [0,0,0,2] for k = 3
             valsForChains[0] = firstDigitVal;
             thisChain.add(nodes.get(Node.hash(valsForChains)));
         }
@@ -54,27 +54,14 @@ public class HanselChains{
                 // if we are appending digit 0, we actually already have that. since our method of appending is just changing the padded 0's to whatever value.
                 // now, iterate through all the chains we currently have, and we are going to make a copy of each, and change whichever digit index we are at, to digitVal in each of the copies.
                 
-                // Use parallel processing for chain copying
+                // our chains which we are copying from the existing chains
                 ArrayList<Future<ArrayList<Node>>> futures = new ArrayList<>();
                 final int currentDigit = digit;
                 final int currentDigitVal = digitVal;
-                
-                for(ArrayList<Node> chain : hanselChainSet){
-                    Future<ArrayList<Node>> future = executor.submit(() -> {
-                        // copying "chain" but changing the value of "digit" to digitVal. mimicking the recursive step where you copy each chain but change the front value.
-                        ArrayList<Node> copyChain = new ArrayList<Node>();
-                        for(Node t : chain){
-                            // make a copy of the values
-                            Integer[] newVals = Arrays.copyOf(t.values, t.values.length);
-                            newVals[currentDigit] = currentDigitVal;
 
-                            // get the node with this value from the hashmap of nodes.
-                            Node temp = Node.Nodes.get(Node.hash(newVals));
-                            copyChain.add(temp);
-                        }
-                        return copyChain;
-                    });
-                    futures.add(future);
+                // copy each existing chain, and we are going to do this for each digit value > 0 until k
+                for (ArrayList<Node> chain : hanselChainSet) {
+                    futures.add(executor.submit(() -> copyChainWithDigitValue(chain, currentDigit, currentDigitVal)));
                 }
                 
                 // Collect results from all threads
@@ -82,19 +69,10 @@ public class HanselChains{
                     for(Future<ArrayList<Node>> future : futures) {
                         newChains.add(future.get());
                     }
-                } catch (InterruptedException | ExecutionException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
-                    // Fallback to sequential processing if threading fails
-                    for(ArrayList<Node> chain : hanselChainSet){
-                        ArrayList<Node> copyChain = new ArrayList<Node>();
-                        for(Node t : chain){
-                            Integer[] newVals = Arrays.copyOf(t.values, t.values.length);
-                            newVals[currentDigit] = currentDigitVal;
-                            Node temp = Node.Nodes.get(Node.hash(newVals));
-                            copyChain.add(temp);
-                        }
-                        newChains.add(copyChain);
-                    }
+                    System.out.println("WE'RE BONED");
+                    System.exit(0);
                 }
             }
 
@@ -104,23 +82,14 @@ public class HanselChains{
             // now that we are done making new chains, we go through and add all the copied and changed ones.
             hanselChainSet.addAll(newChains);
         
-            // now our final step, starting from the second chain, we go through, and give our last element to the previous chain which has the same length as the loser chain.
-            // Use parallel processing for chain element moving
-            IntStream.range(originalNumChains, hanselChainSet.size())
-                    .parallel()
-                    .forEach(c -> {
-                        ArrayList<Node> loserChain = hanselChainSet.get(c);
-                        ArrayList<Node> chainToAddTo = hanselChainSet.get(c - originalNumChains);
-                        
-                        // Synchronize access to prevent race conditions
-                        synchronized(chainToAddTo) {
-                            synchronized(loserChain) {
-                                if (!loserChain.isEmpty()) {
-                                    chainToAddTo.add(loserChain.remove(loserChain.size() - 1));
-                                }
-                            }
-                        }
-                    });
+            // now the import adjustment step, where we take the end of one chain, and move it to the one before, so that we get the diamond shape.
+            
+            // Ryan's way. which makes the chains sort in cascading fashion.
+            if (CASCADING_ADJUSTMENT)
+                cascadingIsomorphicAdjustment(hanselChainSet, originalNumChains, kValues[digit]);
+            // harlow's way. which leads to a jump of more than hamming distance + 1 in many cases.
+            else
+                adjustEndsOfIsomorphicChainsStep(hanselChainSet, originalNumChains);
 
             // now delete empty chains.
             for(int c = hanselChainSet.size() - 1; c >= 0; c--){
@@ -128,7 +97,53 @@ public class HanselChains{
                     hanselChainSet.remove(c);
             }
 
-        
+        }
+    
+        for (ArrayList<Node> chain : hanselChainSet) {
+            if (!checkChain(chain)) System.out.println("ERROR: Chain is broken: " + chain.toString()); //checkChain(chain);
+        }
+    
+    }
+
+    private static ArrayList<Node> copyChainWithDigitValue(ArrayList<Node> chainToCopy, int currentDigit, int currentDigitVal) {
+
+        ArrayList<Node> newChain = new ArrayList<>(chainToCopy.size());
+        for (Node t : chainToCopy) {
+            Integer[] newVals = Arrays.copyOf(t.values, t.values.length);
+            newVals[currentDigit] = currentDigitVal;
+            Node temp = Node.Nodes.get(Node.hash(newVals));
+            newChain.add(temp);
+        }
+        return newChain;
+    }
+
+    public static void adjustEndsOfIsomorphicChainsStep(ArrayList<ArrayList<Node>> hanselChains, int originalNumChains){
+
+        // now our final step, starting from the second chain, we go through, and give our last element to the previous chain which has the same length as the loser chain.
+        for (int c = originalNumChains; c < hanselChains.size(); c++) {
+            ArrayList<Node> loserChain = hanselChains.get(c);
+            ArrayList<Node> chainToAddTo = hanselChains.get(c - originalNumChains);
+
+            if (!loserChain.isEmpty()) {
+                // Remove last element from loser and append to winner
+                chainToAddTo.add(loserChain.remove(loserChain.size() - 1));
+            }
+        }
+    }
+
+    public static void cascadingIsomorphicAdjustment(ArrayList<ArrayList<Node>> hanselChains, int originalNumChains, int kValue) {
+
+        for (int digitVal = 1; digitVal < kValue; digitVal++) {
+            int fromStart = digitVal * originalNumChains;
+
+            for (int i = 0; i < originalNumChains; i++) {
+                List<Node> fromChain = hanselChains.get(fromStart + i);
+                List<Node> toChain = hanselChains.get(i);
+
+                if (!fromChain.isEmpty()) {
+                    toChain.add(fromChain.remove(fromChain.size() - 1));
+                }
+            }
         }
     }
 
@@ -161,6 +176,15 @@ public class HanselChains{
         // change the pointer to hanselChainSet to the reordered ones.
         hanselChainSet = newOrdering;
 
+    }
+
+    public static Boolean checkChain(ArrayList<Node> chain){
+        for(int i = 0; i < chain.size() - 1; i++){
+            if (chain.get(i).sumUpDataPoint() != chain.get(i + 1).sumUpDataPoint() + 1){
+                return false;
+            }
+        }
+        return true;
     }
 
     // Clean up thread pool when done

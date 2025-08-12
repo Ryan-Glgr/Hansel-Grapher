@@ -7,7 +7,7 @@ import java.awt.Color;
 
 public class Main {
 
-    public static Integer[] kValues = {4, 4, 2, 4, 3, 2, 3};
+    public static Integer[] kValues = {3, 3, 4, 4};
     
     // Calculate the highest possible classification at compile time
     // This uses the same logic as questionExpert: sum of max values / dimension
