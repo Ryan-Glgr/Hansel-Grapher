@@ -100,7 +100,7 @@ public class HanselChains{
         }
     
         for (ArrayList<Node> chain : hanselChainSet) {
-            if (!checkChain(chain)) System.out.println("ERROR: Chain is broken: " + chain.toString()); //checkChain(chain);
+            if (!checkChain(chain)) System.out.println("ERROR: Chain is broken: " + chain.toString());
         }
     
     }
@@ -180,7 +180,7 @@ public class HanselChains{
 
     public static Boolean checkChain(ArrayList<Node> chain){
         for(int i = 0; i < chain.size() - 1; i++){
-            if (chain.get(i).sumUpDataPoint() != chain.get(i + 1).sumUpDataPoint() + 1){
+            if (chain.get(i).sumUpDataPoint() + 1 != chain.get(i + 1).sumUpDataPoint()){
                 return false;
             }
         }
