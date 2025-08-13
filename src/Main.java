@@ -7,7 +7,7 @@ import java.awt.Color;
 
 public class Main {
 
-    public static Integer[] kValues = {3, 3, 4, 4};
+    public static Integer[] kValues = {2, 3, 5, 4};
     
     // Calculate the highest possible classification at compile time
     // This uses the same logic as questionExpert: sum of max values / dimension
@@ -40,7 +40,8 @@ public class Main {
 
             // classify all our data
             boolean umbrellaBased = true;
-            Interview.conductInterview(Node.Nodes, 0, umbrellaBased);
+            int interviewMode = 0;
+            Interview.conductInterview(Node.Nodes, interviewMode, umbrellaBased);
 
             // visualize our results
             makeHanselChainDOT();

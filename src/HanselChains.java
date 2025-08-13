@@ -13,9 +13,6 @@ public class HanselChains{
     private static final int THREAD_COUNT = Runtime.getRuntime().availableProcessors();
     private static final ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT);
 
-    // uses the ryan method, to move in a cascading manner, instead of moving just the last case
-    public static final boolean CASCADING_ADJUSTMENT = true;
-
     // function to create our chains
     public static void generateHanselChainSet(Integer[] kValues, HashMap<Integer, Node> nodes){
 
@@ -53,7 +50,6 @@ public class HanselChains{
 
                 // if we are appending digit 0, we actually already have that. since our method of appending is just changing the padded 0's to whatever value.
                 // now, iterate through all the chains we currently have, and we are going to make a copy of each, and change whichever digit index we are at, to digitVal in each of the copies.
-                
                 // our chains which we are copying from the existing chains
                 ArrayList<Future<ArrayList<Node>>> futures = new ArrayList<>();
                 final int currentDigit = digit;
@@ -82,21 +78,10 @@ public class HanselChains{
             // now that we are done making new chains, we go through and add all the copied and changed ones.
             hanselChainSet.addAll(newChains);
         
-            // now the import adjustment step, where we take the end of one chain, and move it to the one before, so that we get the diamond shape.
-            
-            // Ryan's way. which makes the chains sort in cascading fashion.
-            if (CASCADING_ADJUSTMENT)
-                cascadingIsomorphicAdjustment(hanselChainSet, originalNumChains, kValues[digit]);
-            // harlow's way. which leads to a jump of more than hamming distance + 1 in many cases.
-            else
-                adjustEndsOfIsomorphicChainsStep(hanselChainSet, originalNumChains);
+            // now the important adjustment step, where we take the end of one chain, and move it to the one before, so that we get the diamond shape.
+            adjustEndsOfIsomorphicChainsStep(hanselChainSet, originalNumChains, kValues[digit]);
 
-            // now delete empty chains.
-            for(int c = hanselChainSet.size() - 1; c >= 0; c--){
-                if (hanselChainSet.get(c).size() == 0)
-                    hanselChainSet.remove(c);
-            }
-
+            hanselChainSet.removeIf(List::isEmpty);
         }
     
         for (ArrayList<Node> chain : hanselChainSet) {
@@ -117,21 +102,7 @@ public class HanselChains{
         return newChain;
     }
 
-    public static void adjustEndsOfIsomorphicChainsStep(ArrayList<ArrayList<Node>> hanselChains, int originalNumChains){
-
-        // now our final step, starting from the second chain, we go through, and give our last element to the previous chain which has the same length as the loser chain.
-        for (int c = originalNumChains; c < hanselChains.size(); c++) {
-            ArrayList<Node> loserChain = hanselChains.get(c);
-            ArrayList<Node> chainToAddTo = hanselChains.get(c - originalNumChains);
-
-            if (!loserChain.isEmpty()) {
-                // Remove last element from loser and append to winner
-                chainToAddTo.add(loserChain.remove(loserChain.size() - 1));
-            }
-        }
-    }
-
-    public static void cascadingIsomorphicAdjustment(ArrayList<ArrayList<Node>> hanselChains, int originalNumChains, int kValue) {
+    public static void adjustEndsOfIsomorphicChainsStep(ArrayList<ArrayList<Node>> hanselChains, int originalNumChains, int kValue){
 
         for (int digitVal = 1; digitVal < kValue; digitVal++) {
             int fromStart = digitVal * originalNumChains;
