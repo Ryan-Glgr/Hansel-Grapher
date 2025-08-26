@@ -6,3 +6,8 @@ We still need many things implemented.
 - Heuristics for different sorting methods. For example performing a binary search on the longest chain(s) first would be very effective most likely.
 - An interactive Interview implementation, and a ML interview implementation.
 - A way to make the outputs interactive. This can be quite simple actually. just don't end the program after making the pdf's. Then you look at them, and call some function which updates the nodes you want to update, by looking them up in the map, and then on said node, we call the permeate classification method.
+
+## RUNNING ##
+- To run the program, cd to the src directory, and simply ./run.sh. you may need to give it the old chmod +x.
+- Running in debug gives you more logging, and more info in the pictures as well. to do this './run.sh debug'
+- To view logs, 'cat debug' after a run
