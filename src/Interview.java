@@ -1,5 +1,8 @@
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.stream.Collectors;
 
@@ -13,8 +16,10 @@ public class Interview {
 
     public enum InterviewMode {
         UMBRELLA_SORT,
-        LONGEST_CHUNKS_FIRST,
-        SHORTEST_CHUNKS_FIRST
+        LONGEST_CHUNKS_FIRST_BFS,
+        SHORTEST_CHUNKS_FIRST_BFS,
+        LONGEST_CHUNKS_FIRST_DFS,
+        SHORTEST_CHUNKS_FIRST_DFS
     }
 
     // Enum for umbrella sorting strategies
@@ -25,6 +30,9 @@ public class Interview {
         SMALLEST_DIFFERENCE
     }
 
+    private static final Comparator<ArrayList<Node>> longestFirst = (a, b) -> Integer.compare(b.size(), a.size());
+    private static final Comparator<ArrayList<Node>> shortestFirst = (a, b) -> Integer.compare(a.size(), b.size());
+
 
     /* 
     IDEAS:
@@ -32,7 +40,7 @@ public class Interview {
     - we can also sort the Nodes by how many possible expansions each one has. this way we can just take the one with most possible expansions at a time.
     - we can count the number of "nodes under each umbrella." not just the number of expansions. that will be more effective most likely in determining the most powerful nodes for classification
         - then we can re sort after each question.
-    - MAKE REGULAR INTERVIEW TECHNIQUES WHERE WE SEARCH ONE HC AT A TIME!
+    - MAKE REGULAR INTERVIEW TECHNIQUES WHERE WE SEARCH ONE HC AT A
 
     NOTES:
     - a node is a low unit if we are expanding down and the one below is a lower class.
@@ -53,12 +61,17 @@ public class Interview {
             case InterviewMode.UMBRELLA_SORT:
                 umbrellaSortInterview(allNodes, UmbrellaSortStrategy.SMALLEST_DIFFERENCE);
                 break;
-            case InterviewMode.LONGEST_CHUNKS_FIRST:
-                cutMiddleOfChainInterview(HanselChains.hanselChainSet, InterviewMode.LONGEST_CHUNKS_FIRST);
+            case InterviewMode.LONGEST_CHUNKS_FIRST_BFS:
+                cutMiddleOfChainInterviewBFS(HanselChains.hanselChainSet, InterviewMode.LONGEST_CHUNKS_FIRST_BFS);
                 break;
-            case InterviewMode.SHORTEST_CHUNKS_FIRST:
-                cutMiddleOfChainInterview(HanselChains.hanselChainSet, InterviewMode.SHORTEST_CHUNKS_FIRST);
+            case InterviewMode.SHORTEST_CHUNKS_FIRST_BFS:
+                cutMiddleOfChainInterviewBFS(HanselChains.hanselChainSet, InterviewMode.SHORTEST_CHUNKS_FIRST_BFS);
                 break;
+            case InterviewMode.LONGEST_CHUNKS_FIRST_DFS:
+                cutMiddleOfChainInterviewDFS(HanselChains.hanselChainSet, InterviewMode.LONGEST_CHUNKS_FIRST_DFS);
+                break;
+            case InterviewMode.SHORTEST_CHUNKS_FIRST_DFS:
+                cutMiddleOfChainInterviewDFS(HanselChains.hanselChainSet, InterviewMode.SHORTEST_CHUNKS_FIRST_DFS);
             default:
                 break;
         }
@@ -172,7 +185,7 @@ public class Interview {
     }
 
     // function where we search through chains, which get recursively split into chunks.
-    private static void cutMiddleOfChainInterview(ArrayList<ArrayList<Node>> hanselChainSet, InterviewMode sortDirection){
+    private static void cutMiddleOfChainInterviewBFS(ArrayList<ArrayList<Node>> hanselChainSet, InterviewMode sortDirection){
 
         // we have to keep a list of chunks of the chain which are not confirmed. basically we chop the chain
         // each time that we confirm a node. we could confirm a whole bunch with one question, and we have to investigate all the 
@@ -187,23 +200,16 @@ public class Interview {
         int questionsAsked = 0;
         while (chunks.size() > 0){
 
-            if (sortDirection == InterviewMode.LONGEST_CHUNKS_FIRST){
-                // sort our list of chains by size. this way we use the largest chunks first.
-                chunks = chunks.parallelStream()
-                    .sorted((ArrayList<Node> a, ArrayList<Node> b) -> {
-                    return b.size() - a.size();
-                })
-                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
-            }
-            else {
-                // sort our list of chains by size. this way we use the smallest chunks first.
-                chunks = chunks.parallelStream()
-                    .sorted((ArrayList<Node> a, ArrayList<Node> b) -> {
-                    return a.size() - b.size();
-                })
-                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
-            }
+            // sort our list of chains by size. this way we use the largest chunks first.
+            chunks = chunks.parallelStream()
+                .sorted((ArrayList<Node> a, ArrayList<Node> b) -> {
+                return (sortDirection == InterviewMode.LONGEST_CHUNKS_FIRST_BFS) ? 
+                    longestFirst.compare(a, b) : 
+                    shortestFirst.compare(a, b);
+            })
+            .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 
+            // get the first chunk
             ArrayList<Node> chunkToQuestion = chunks.get(0);
             // get the middle node
             Node middleNode = chunkToQuestion.get(chunkToQuestion.size() / 2);
@@ -220,9 +226,73 @@ public class Interview {
 
         System.out.println("QUESTIONS ASKED:\t" + questionsAsked);
         System.out.println("TOTAL NODES:\t" + totalNodes);
-    
-
     }
+
+
+    private static void cutMiddleOfChainInterviewDFS(ArrayList<ArrayList<Node>> hanselChainSet, InterviewMode sortDirection) {
+
+        // Global pool all unprocessed chunks
+        ArrayList<ArrayList<Node>> globalChunks = new ArrayList<>(hanselChainSet);
+
+        // Operating queue (sub-queue where we "finish what we started")
+        Deque<ArrayList<Node>> operatingQueue = new ArrayDeque<>();
+
+        int totalNodes = globalChunks.stream().mapToInt(ArrayList::size).sum();
+        int questionsAsked = 0;
+
+        while (!operatingQueue.isEmpty() || !globalChunks.isEmpty()) {
+
+            // If no chunks left in current chain, pull the next chunk from the global pool
+            if (operatingQueue.isEmpty()) {
+                // Chop up all global chunks into true active pieces
+                globalChunks = globalChunks.stream()
+                    .flatMap(chunk -> splitChunkIntoPiecesHelper(chunk).stream())
+                    .filter(c -> !c.isEmpty())
+                    .collect(Collectors.toCollection(ArrayList::new));
+
+                if (globalChunks.isEmpty()) break;
+
+                // Sort global pool
+                if (sortDirection == InterviewMode.LONGEST_CHUNKS_FIRST_DFS) {
+                    globalChunks.sort(longestFirst);
+                } else {
+                    globalChunks.sort(shortestFirst);
+                }
+
+                // Move one chain into the operating queue
+                ArrayList<Node> next = globalChunks.remove(0);
+                if (!next.isEmpty()) {
+                    operatingQueue.push(next);
+                }
+                continue;
+            }
+
+            // Take the active chunk
+            ArrayList<Node> chunk = operatingQueue.pop();
+            if (chunk == null || chunk.isEmpty()) 
+                continue;
+
+            // Ask about the middle node
+            Node middleNode = chunk.get(chunk.size() / 2);
+            middleNode.classification = (EXPERT_MODE) ? questionExpert(middleNode) : questionML(middleNode);
+            middleNode.permeateClassification();
+            questionsAsked++;
+
+            // Split this chunk into pieces
+            ArrayList<ArrayList<Node>> newPieces = splitChunkIntoPiecesHelper(chunk);
+
+            // DFS: push the new subchunks immediately onto the operating queue so that we can finish this chain.
+            for (int i = newPieces.size() - 1; i >= 0; i--) {
+                ArrayList<Node> p = newPieces.get(i);
+                if (!p.isEmpty()) operatingQueue.push(p);
+            }
+        }
+
+        System.out.println("QUESTIONS ASKED:\t" + questionsAsked);
+        System.out.println("TOTAL NODES:\t" + totalNodes);
+    }
+
+
 
     // splits a list of nodes (part or whole hansel chain) on nodes which are confirmed
     private static ArrayList<ArrayList<Node>> splitChunkIntoPiecesHelper(ArrayList<Node> chunk) {

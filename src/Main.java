@@ -39,7 +39,7 @@ public class Main {
             HanselChains.generateHanselChainSet(kValues, Node.Nodes);
 
             // classify all our data
-            Interview.InterviewMode mode = Interview.InterviewMode.SHORTEST_CHUNKS_FIRST;
+            Interview.InterviewMode mode = Interview.InterviewMode.LONGEST_CHUNKS_FIRST_DFS;
             Interview.conductInterview(Node.Nodes, mode);
 
             // visualize our results
