@@ -32,8 +32,7 @@ public class Interview {
     - we can also sort the Nodes by how many possible expansions each one has. this way we can just take the one with most possible expansions at a time.
     - we can count the number of "nodes under each umbrella." not just the number of expansions. that will be more effective most likely in determining the most powerful nodes for classification
         - then we can re sort after each question.
-    - We can use some kind of algorithm to try and guess which nodes are going to most useful. That being, most above, most below, most total, etc. at a given time.
-    - We can use the hansel chains to accomplish some better results interview wise as well. 
+    - MAKE REGULAR INTERVIEW TECHNIQUES WHERE WE SEARCH ONE HC AT A TIME!
 
     NOTES:
     - a node is a low unit if we are expanding down and the one below is a lower class.
@@ -55,10 +54,10 @@ public class Interview {
                 umbrellaSortInterview(allNodes, UmbrellaSortStrategy.SMALLEST_DIFFERENCE);
                 break;
             case InterviewMode.LONGEST_CHUNKS_FIRST:
-                binarySearchChainInterview(HanselChains.hanselChainSet, InterviewMode.LONGEST_CHUNKS_FIRST);
+                cutMiddleOfChainInterview(HanselChains.hanselChainSet, InterviewMode.LONGEST_CHUNKS_FIRST);
                 break;
             case InterviewMode.SHORTEST_CHUNKS_FIRST:
-                binarySearchChainInterview(HanselChains.hanselChainSet, InterviewMode.SHORTEST_CHUNKS_FIRST);
+                cutMiddleOfChainInterview(HanselChains.hanselChainSet, InterviewMode.SHORTEST_CHUNKS_FIRST);
                 break;
             default:
                 break;
@@ -67,7 +66,7 @@ public class Interview {
 
     // asks the "expert" what the classification of this datapoint is.
     private static int questionExpert(Node datapoint){
-        // for now, we will just say if the sum of digits is greater than dimension, it's one.
+        // for now, we will just say classification is sum of digits / dimension to keep it simple.
         return datapoint.sum / Node.dimension;
     }
     
@@ -77,6 +76,9 @@ public class Interview {
 
 
     // Sort nodes based on umbrella strategy
+    // umbrella strategy considers how many nodes COULD be confirmed underneath/above a given node. for example:
+    // if there are 30 unclassified nodes under a given node, it's underneath umbrella is 30. this just gives us an idea
+    // of how powerful this node can be in classification.
     private static void umbrellaSortInterview(ArrayList<Node> allNodes, UmbrellaSortStrategy strategy) {
         
         int totalNodes = allNodes.size();
@@ -118,6 +120,9 @@ public class Interview {
         System.out.println("TOTAL NODES:\t" + totalNodes);
     }
 
+    // just sorts our nodes in order of how we should ask them based on which interview technique we are trying.
+    // smallest difference seems to be the best. taking that with the smallest difference between above and below, with
+    // tiebreaker going to the greatest total size. That way the middle nodes ones go first.
     private static void umbrellaSortInterviewSortingHelper(ArrayList<Node> allNodes, UmbrellaSortStrategy strategy){
                 
         // Convert to array for parallel sorting
@@ -167,7 +172,7 @@ public class Interview {
     }
 
     // function where we search through chains, which get recursively split into chunks.
-    private static void binarySearchChainInterview(ArrayList<ArrayList<Node>> hanselChainSet, InterviewMode sortDirection){
+    private static void cutMiddleOfChainInterview(ArrayList<ArrayList<Node>> hanselChainSet, InterviewMode sortDirection){
 
         // we have to keep a list of chunks of the chain which are not confirmed. basically we chop the chain
         // each time that we confirm a node. we could confirm a whole bunch with one question, and we have to investigate all the 

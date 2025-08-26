@@ -90,6 +90,7 @@ public class HanselChains{
     
     }
 
+    // the recursive step. you copy all the values of a chain, but append your given digit to the front of each node.
     private static ArrayList<Node> copyChainWithDigitValue(ArrayList<Node> chainToCopy, int currentDigit, int currentDigitVal) {
 
         ArrayList<Node> newChain = new ArrayList<>(chainToCopy.size());
@@ -102,6 +103,7 @@ public class HanselChains{
         return newChain;
     }
 
+    // takes the end of one isomorphic chain, and moves it to the end of the next isomorphic chain. for example [0,0] - [0,1] gets [1,1] from the chain [1,0] - [1,1].
     public static void adjustEndsOfIsomorphicChainsStep(ArrayList<ArrayList<Node>> hanselChains, int originalNumChains, int kValue){
 
         for (int digitVal = 1; digitVal < kValue; digitVal++) {
@@ -149,6 +151,7 @@ public class HanselChains{
 
     }
 
+    // just a simple helper to make sure that a chain hasn't been built wrong.
     public static Boolean checkChain(ArrayList<Node> chain){
         for(int i = 0; i < chain.size() - 1; i++){
             if (chain.get(i).sumUpDataPoint() + 1 != chain.get(i + 1).sumUpDataPoint()){
