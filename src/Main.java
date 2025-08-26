@@ -39,9 +39,8 @@ public class Main {
             HanselChains.generateHanselChainSet(kValues, Node.Nodes);
 
             // classify all our data
-            boolean umbrellaBased = true;
-            int interviewMode = 0;
-            Interview.conductInterview(Node.Nodes, interviewMode, umbrellaBased);
+            Interview.InterviewMode mode = Interview.InterviewMode.SHORTEST_CHUNKS_FIRST;
+            Interview.conductInterview(Node.Nodes, mode);
 
             // visualize our results
             makeHanselChainDOT();
