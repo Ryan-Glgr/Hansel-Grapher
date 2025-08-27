@@ -33,14 +33,14 @@ public class Main {
         try{
             
             // make all our nodes.
-            Node.makeNodes(kValues);
+            Node.makeNodes(kValues, highestPossibleClassification + 1);
             
             // make the chains
             HanselChains.generateHanselChainSet(kValues, Node.Nodes);
 
             // classify all our data
-            Interview.InterviewMode mode = Interview.InterviewMode.LONGEST_CHUNKS_FIRST_DFS;
-            Interview.conductInterview(Node.Nodes, mode);
+            Interview.InterviewMode mode = Interview.InterviewMode.BEST_MINIMUM_CONFIRMED;
+            Interview.conductInterview(Node.Nodes, mode, highestPossibleClassification + 1);
 
             // visualize our results
             makeHanselChainDOT();

@@ -15,11 +15,9 @@ public class Interview {
     public static boolean EXPERT_MODE = true;
 
     public enum InterviewMode {
-        UMBRELLA_SORT,
-        LONGEST_CHUNKS_FIRST_BFS,
-        SHORTEST_CHUNKS_FIRST_BFS,
-        LONGEST_CHUNKS_FIRST_DFS,
-        SHORTEST_CHUNKS_FIRST_DFS
+        UMBRELLA_SORT,          // method where we sort nodes by how many nodes are unconfirmed above.below. submethods for prioritizing above/below/tiebreakers.
+        BINARY_SEARCH_CHAINS,   // method where we just query midpoint of the chain each time. thus chopping each chain in half. we work on the longest chain at a time.
+        BEST_MINIMUM_CONFIRMED  // method where we check all nodes, and determine which has the best min bound. meaning of all k classes, confirming this one as a particular class, how many nodes get confirmed. The node with the best lower bound is used each iteration.
     }
 
     // Enum for umbrella sorting strategies
@@ -31,8 +29,6 @@ public class Interview {
     }
 
     private static final Comparator<ArrayList<Node>> longestFirst = (a, b) -> Integer.compare(b.size(), a.size());
-    private static final Comparator<ArrayList<Node>> shortestFirst = (a, b) -> Integer.compare(a.size(), b.size());
-
 
     /* 
     IDEAS:
@@ -40,7 +36,7 @@ public class Interview {
     - we can also sort the Nodes by how many possible expansions each one has. this way we can just take the one with most possible expansions at a time.
     - we can count the number of "nodes under each umbrella." not just the number of expansions. that will be more effective most likely in determining the most powerful nodes for classification
         - then we can re sort after each question.
-    - MAKE REGULAR INTERVIEW TECHNIQUES WHERE WE SEARCH ONE HC AT A
+    - MAKE REGULAR INTERVIEW TECHNIQUES WHERE WE SEARCH ONE HC AT A TIME.
 
     NOTES:
     - a node is a low unit if we are expanding down and the one below is a lower class.
@@ -51,7 +47,7 @@ public class Interview {
 
     // mega function which determines how we are going to ask questions.
     // mode determines the question asking heuristics. umbrellaBased determines if we sort by umbrella metrics.
-    public static void conductInterview(HashMap<Integer, Node> data, InterviewMode mode){
+    public static void conductInterview(HashMap<Integer, Node> data, InterviewMode mode, int numClasses) {
 
         ArrayList<Node> allNodes = new ArrayList<>();
         // for each node, we are going to put in that node, and it's number of expansions as a pair.
@@ -59,20 +55,13 @@ public class Interview {
 
         switch (mode){
             case InterviewMode.UMBRELLA_SORT:
-                umbrellaSortInterview(allNodes, UmbrellaSortStrategy.SMALLEST_DIFFERENCE);
+                umbrellaSortInterview(allNodes, UmbrellaSortStrategy.SMALLEST_DIFFERENCE, numClasses);
                 break;
-            case InterviewMode.LONGEST_CHUNKS_FIRST_BFS:
-                cutMiddleOfChainInterviewBFS(HanselChains.hanselChainSet, InterviewMode.LONGEST_CHUNKS_FIRST_BFS);
+            case InterviewMode.BINARY_SEARCH_CHAINS:
+                cutMiddleOfChainInterview(HanselChains.hanselChainSet);
                 break;
-            case InterviewMode.SHORTEST_CHUNKS_FIRST_BFS:
-                cutMiddleOfChainInterviewBFS(HanselChains.hanselChainSet, InterviewMode.SHORTEST_CHUNKS_FIRST_BFS);
-                break;
-            case InterviewMode.LONGEST_CHUNKS_FIRST_DFS:
-                cutMiddleOfChainInterviewDFS(HanselChains.hanselChainSet, InterviewMode.LONGEST_CHUNKS_FIRST_DFS);
-                break;
-            case InterviewMode.SHORTEST_CHUNKS_FIRST_DFS:
-                cutMiddleOfChainInterviewDFS(HanselChains.hanselChainSet, InterviewMode.SHORTEST_CHUNKS_FIRST_DFS);
-            default:
+            case InterviewMode.BEST_MINIMUM_CONFIRMED:
+                bestMinConfirmedInterview(allNodes, numClasses);
                 break;
         }
     }
@@ -87,28 +76,30 @@ public class Interview {
         return -1;
     }
 
-
     // Sort nodes based on umbrella strategy
     // umbrella strategy considers how many nodes COULD be confirmed underneath/above a given node. for example:
     // if there are 30 unclassified nodes under a given node, it's underneath umbrella is 30. this just gives us an idea
     // of how powerful this node can be in classification.
-    private static void umbrellaSortInterview(ArrayList<Node> allNodes, UmbrellaSortStrategy strategy) {
+    private static void umbrellaSortInterview(ArrayList<Node> allNodes, UmbrellaSortStrategy strategy, int numClasses) {
         
         int totalNodes = allNodes.size();
 
+        ArrayList<Node> nodesToAsk = new ArrayList<>();
+        nodesToAsk.addAll(allNodes);
+
         int questionsAsked = 0;
-        while(allNodes.size() != 0){
+        while(nodesToAsk.size() != 0){
 
             // if we are sorting by umbrella metrics, sort using our strategy.
             // this is useful if we want to find which node may impact the most other nodes at a given time.
             // go through all the nodes, and update their umbrella sizes.
-            Node.updateUmbrellaSizes(allNodes);
+            Node.updateNodeRankings(allNodes, numClasses);
 
             // sort based on our umbrella strategy
-            umbrellaSortInterviewSortingHelper(allNodes, strategy);
+            umbrellaSortInterviewSortingHelper(nodesToAsk, strategy);
             
             // remove the front guy
-            Node n = allNodes.remove(0);
+            Node n = nodesToAsk.remove(0);
 
             // no need to ask about a confirmed node.
             if (n.classificationConfirmed)
@@ -125,7 +116,7 @@ public class Interview {
                 System.out.println("ASKED ABOUT NODE:\n" + n);
             }
 
-            allNodes = allNodes.parallelStream()
+            nodesToAsk = nodesToAsk.parallelStream()
             .filter(node -> !node.classificationConfirmed) // keep only unconfirmed nodes
             .collect(Collectors.toCollection(ArrayList::new));
         }
@@ -185,7 +176,7 @@ public class Interview {
     }
 
     // function where we search through chains, which get recursively split into chunks.
-    private static void cutMiddleOfChainInterviewBFS(ArrayList<ArrayList<Node>> hanselChainSet, InterviewMode sortDirection){
+    private static void cutMiddleOfChainInterview(ArrayList<ArrayList<Node>> hanselChainSet){
 
         // we have to keep a list of chunks of the chain which are not confirmed. basically we chop the chain
         // each time that we confirm a node. we could confirm a whole bunch with one question, and we have to investigate all the 
@@ -194,8 +185,8 @@ public class Interview {
         chunks.addAll(hanselChainSet);
 
         int totalNodes = chunks.parallelStream()
-        .mapToInt(ArrayList::size) // or chunk -> chunk.size()
-        .sum();
+            .mapToInt(ArrayList::size) // or chunk -> chunk.size()
+            .sum();
     
         int questionsAsked = 0;
         while (chunks.size() > 0){
@@ -203,9 +194,7 @@ public class Interview {
             // sort our list of chains by size. this way we use the largest chunks first.
             chunks = chunks.parallelStream()
                 .sorted((ArrayList<Node> a, ArrayList<Node> b) -> {
-                return (sortDirection == InterviewMode.LONGEST_CHUNKS_FIRST_BFS) ? 
-                    longestFirst.compare(a, b) : 
-                    shortestFirst.compare(a, b);
+                return longestFirst.compare(a, b);
             })
             .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 
@@ -227,71 +216,6 @@ public class Interview {
         System.out.println("QUESTIONS ASKED:\t" + questionsAsked);
         System.out.println("TOTAL NODES:\t" + totalNodes);
     }
-
-
-    private static void cutMiddleOfChainInterviewDFS(ArrayList<ArrayList<Node>> hanselChainSet, InterviewMode sortDirection) {
-
-        // Global pool all unprocessed chunks
-        ArrayList<ArrayList<Node>> globalChunks = new ArrayList<>(hanselChainSet);
-
-        // Operating queue (sub-queue where we "finish what we started")
-        Deque<ArrayList<Node>> operatingQueue = new ArrayDeque<>();
-
-        int totalNodes = globalChunks.stream().mapToInt(ArrayList::size).sum();
-        int questionsAsked = 0;
-
-        while (!operatingQueue.isEmpty() || !globalChunks.isEmpty()) {
-
-            // If no chunks left in current chain, pull the next chunk from the global pool
-            if (operatingQueue.isEmpty()) {
-                // Chop up all global chunks into true active pieces
-                globalChunks = globalChunks.stream()
-                    .flatMap(chunk -> splitChunkIntoPiecesHelper(chunk).stream())
-                    .filter(c -> !c.isEmpty())
-                    .collect(Collectors.toCollection(ArrayList::new));
-
-                if (globalChunks.isEmpty()) break;
-
-                // Sort global pool
-                if (sortDirection == InterviewMode.LONGEST_CHUNKS_FIRST_DFS) {
-                    globalChunks.sort(longestFirst);
-                } else {
-                    globalChunks.sort(shortestFirst);
-                }
-
-                // Move one chain into the operating queue
-                ArrayList<Node> next = globalChunks.remove(0);
-                if (!next.isEmpty()) {
-                    operatingQueue.push(next);
-                }
-                continue;
-            }
-
-            // Take the active chunk
-            ArrayList<Node> chunk = operatingQueue.pop();
-            if (chunk == null || chunk.isEmpty()) 
-                continue;
-
-            // Ask about the middle node
-            Node middleNode = chunk.get(chunk.size() / 2);
-            middleNode.classification = (EXPERT_MODE) ? questionExpert(middleNode) : questionML(middleNode);
-            middleNode.permeateClassification();
-            questionsAsked++;
-
-            // Split this chunk into pieces
-            ArrayList<ArrayList<Node>> newPieces = splitChunkIntoPiecesHelper(chunk);
-
-            // DFS: push the new subchunks immediately onto the operating queue so that we can finish this chain.
-            for (int i = newPieces.size() - 1; i >= 0; i--) {
-                ArrayList<Node> p = newPieces.get(i);
-                if (!p.isEmpty()) operatingQueue.push(p);
-            }
-        }
-
-        System.out.println("QUESTIONS ASKED:\t" + questionsAsked);
-        System.out.println("TOTAL NODES:\t" + totalNodes);
-    }
-
 
 
     // splits a list of nodes (part or whole hansel chain) on nodes which are confirmed
@@ -321,5 +245,66 @@ public class Interview {
     
         return newChunks;
     }
+
+
+
+    // TODO: determine why we are asking one more question on the binary search interview.
+    // determine why we are asking LESS questions somehow on the umbrella sort interview. (could be due to double counting issue getting resolved?)
+
+    /*
+     * General outline is this:
+     *      get all nodes.
+     *      track how many nodes would be confirmed for each node, if it was assigned each class.
+     *      in a three class problem, we would use the minimum number of confirmed nodes, if a given class of the three were assigned.
+     *      thus we take that node which had the largest number of confirmations (using the worst case)
+     */
+    private static void bestMinConfirmedInterview(ArrayList<Node> allNodes, int numClasses){
+        
+        int totalNodes = allNodes.size();
+
+        ArrayList<Node> nodesToAsk = new ArrayList<>();
+        nodesToAsk.addAll(allNodes);
+
+        int questionsAsked = 0;
+        while(nodesToAsk.size() != 0){
+
+            Node.updateNodeRankings(allNodes, numClasses);
+
+            // sort based on our umbrella strategy
+            umbrellaSortInterviewSortingHelper(nodesToAsk, UmbrellaSortStrategy.SMALLEST_DIFFERENCE);
+
+            // now sort decreasing, using our strategy. we sort descending, by a nodes minimum guaranteed classifications.
+            // that is, of it's classes, whichever is the worst, we choose the one with the best floor. we are guaranteed to confirm that many.
+            nodesToAsk.sort((Node x, Node y) -> {
+                return Integer.compare(y.minClassifications(), x.minClassifications());
+            });
+
+            // remove the front guy
+            Node n = nodesToAsk.remove(0);
+
+            // no need to ask about a confirmed node.
+            if (n.classificationConfirmed)
+                continue;
+
+            // get our value either from expert or ML
+            n.classification = (EXPERT_MODE) ? questionExpert(n) : questionML(n);
+
+            // this sets all the upper bounds below, and all the lower bounds above.
+            n.permeateClassification();
+            questionsAsked++;
+
+            if (DEBUG){
+                System.out.println("ASKED ABOUT NODE:\n" + n);
+            }
+
+            nodesToAsk = nodesToAsk.parallelStream()
+            .filter(node -> !node.classificationConfirmed) // keep only unconfirmed nodes
+            .collect(Collectors.toCollection(ArrayList::new));
+        }
+        System.out.println("QUESTIONS ASKED:\t" + questionsAsked);
+        System.out.println("TOTAL NODES:\t" + totalNodes);
+    }
+
+
 
 }

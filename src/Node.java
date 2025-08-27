@@ -48,9 +48,10 @@ public class Node {
     public int underneathUmbrellaCases;
     public int aboveUmbrellaCases;
 
+    public int[] possibleConfirmationsByClass;
 
     // takes in a datapoint, and makes a copy of that and stores that as our "point"
-    public Node(Integer[] datapoint){
+    public Node(Integer[] datapoint, int numClasses){
         // copy the passed in datapoint to this node's point.
         values = Arrays.copyOf(datapoint, datapoint.length);
         
@@ -65,17 +66,18 @@ public class Node {
         downExpansions = new Node[dimension];
 
         // Set the maximum possible classification value from Main
-        maxPossibleValue = Main.highestPossibleClassification;
+        maxPossibleValue = numClasses;
         possibleExpansions = 0;
 
         totalUmbrellaCases = 0;
         underneathUmbrellaCases = 0;
         aboveUmbrellaCases = 0;
 
+        possibleConfirmationsByClass = new int[numClasses];
     }
 
     // finds our up and down expansions. Since we know that the values of the expansions are just our point +- 1 in some attribute, we can just look it up.
-    public void findExpansions(){
+    private void findExpansions(){
 
         // Parallel computation of expansions for each attribute
         IntStream.range(0, dimension).parallel().forEach(attribute -> {
@@ -144,7 +146,7 @@ public class Node {
     }
 
     // makes all our nodes and populates the map
-    public static void makeNodes(Integer[] kVals){
+    public static void makeNodes(Integer[] kVals, int numClasses) {
 
         Node.kValues = kVals;
 
@@ -156,7 +158,7 @@ public class Node {
         // iterate through all the digits, and make all the nodes. 
         while(incrementCounter(kValsToMakeNode)){
             // just make a new node and put it in the map.
-            Nodes.put(Node.hash(kValsToMakeNode), new Node(kValsToMakeNode));
+            Nodes.put(Node.hash(kValsToMakeNode), new Node(kValsToMakeNode, numClasses));
         }
     
         // re initialize so we can copy paste
@@ -172,7 +174,7 @@ public class Node {
     }
 
     // BFS-based expansion to set floor (classification) for nodes above
-    public void expandUp(int lowerBound){
+    private void expandUp(int lowerBound){
         
         if (DEBUG_PRINTING) {
             System.out.println("=== EXPAND UP CALLED ===");
@@ -278,7 +280,7 @@ public class Node {
     }
 
     // BFS-based expansion to set ceiling (maxPossibleValue) for nodes below
-    public void expandDown(int upperBound){
+    private void expandDown(int upperBound){
         if (DEBUG_PRINTING) {
             System.out.println("=== EXPAND DOWN CALLED ===");
             System.out.println("Starting node: " + Arrays.toString(this.values) + " with upperBound: " + upperBound);
@@ -401,8 +403,31 @@ public class Node {
         return sum;
     }
 
+    public static void updateNodeRankings(ArrayList<Node> allNodes, int numClasses) {
+
+        // first pass is our downward umbrellas, and our confirmations which we can get by setting upper bounds on nodes.
+        allNodes.sort((a, b) -> Integer.compare(a.sum, b.sum));
+        
+        for(Node n : allNodes) {
+            n.aboveUmbrellaCases = 0;
+            n.underneathUmbrellaCases = 0;
+            n.totalUmbrellaCases = 0;
+            Arrays.fill(n.possibleConfirmationsByClass, 0);
+        }
+        
+        for (Node n : allNodes) {
+            n.updateNodeUmbrellaSizeAndConfirmationCounts(true, numClasses);
+        }
+
+        for (int i = allNodes.size() - 1; i >= 0; i--) {
+            Node n = allNodes.get(i);
+            n.updateNodeUmbrellaSizeAndConfirmationCounts(false, numClasses);
+            n.totalUmbrellaCases = n.aboveUmbrellaCases + n.underneathUmbrellaCases;
+        }
+    }
+
     // Calculate umbrella size using proper graph traversal to avoid double counting
-    public int calculateUmbrellaSize(boolean countUp) {
+    private void updateNodeUmbrellaSizeAndConfirmationCounts(boolean countUpwards, int numClasses) {
         java.util.Set<Node> visited = new java.util.HashSet<>();
         java.util.Queue<Node> queue = new java.util.LinkedList<>();
         
@@ -411,47 +436,56 @@ public class Node {
         
         while (!queue.isEmpty()) {
             Node current = queue.poll();
-            Node[] neighbors = countUp ? current.upExpansions : current.downExpansions;
+            Node[] neighbors = countUpwards ? current.upExpansions : current.downExpansions;
             
             for (Node neighbor : neighbors) {
                 if (neighbor != null && !neighbor.classificationConfirmed && !visited.contains(neighbor)) {
                     visited.add(neighbor);
                     queue.add(neighbor);
+
+                    // if "this" node were assigned a hypothetical class how does that affect neighbor.
+                    for(int hypotheticalClass = 0; hypotheticalClass < numClasses; hypotheticalClass++){
+                        if (neighbor.wouldBeConfirmedForClass(hypotheticalClass, countUpwards)) {
+                            this.possibleConfirmationsByClass[hypotheticalClass]++;
+                        }
+                    }
                 }
             }
         }
         
-        return visited.size() - 1; // subtract self from count
+        if (countUpwards) {
+            this.aboveUmbrellaCases = visited.size();
+        } else {
+            this.underneathUmbrellaCases = visited.size();
+        }
     }
 
-    // iterates through all the nodes.
-    // Uses proper graph traversal to calculate umbrella sizes without double counting
-    public static void updateUmbrellaSizes(ArrayList<Node> nodesToUpdate){
-
-        // sort the nodes by their sum, increasing
-        nodesToUpdate.sort((Node x, Node y) -> {
-            return Integer.compare(x.sum, y.sum);
-        });
-
-        // Calculate underneath umbrella sizes using BFS traversal
-        for (Node n : nodesToUpdate) {
-            n.underneathUmbrellaCases = n.calculateUmbrellaSize(false); // false = count down
+    // determines if a neighbor would get confirmed if it's upstairs or downstairs neighbor were given "hypotheticalClass"
+    private boolean wouldBeConfirmedForClass(int hypotheticalClass, boolean countingUpwards) {
+        // return false if we're already confirmed.
+        if (this.classificationConfirmed){
+            return false;
         }
 
-        // sort decreasing now
-        nodesToUpdate.sort((Node x, Node y) -> {
-            return Integer.compare(y.sum, x.sum);
-        });
-
-        // Calculate above umbrella sizes using BFS traversal
-        for (Node n : nodesToUpdate) {
-            n.aboveUmbrellaCases = n.calculateUmbrellaSize(true); // true = count up
-            n.totalUmbrellaCases = n.aboveUmbrellaCases + n.underneathUmbrellaCases;
+        // if we are counting upwards. this is an upstairs neighbor from the node which called this on us.
+        if (countingUpwards){
+            // if the neighbor got confirmed as hypothetical class, we would be confirmed, if that was already our max possible value.
+            // in the above case.
+            return this.maxPossibleValue == hypotheticalClass;
         }
-
+        // if we are counting downwards. this is a downstairs neighbor. our classification is already set as the lowerbound. so if our lowerbound is the same as the node above, then we are confirmed.
+        else {
+            return this.classification == hypotheticalClass;
+        }
     }
 
-
+    public int minClassifications(){
+        int min = Integer.MAX_VALUE;
+        for(int i = 0; i < this.possibleConfirmationsByClass.length; i++){
+            min = Math.min(min, this.possibleConfirmationsByClass[i]);
+        }
+        return min;
+    }
 
     @Override
     public int hashCode() {
@@ -499,6 +533,12 @@ public class Node {
             s.append("TOTAL UMBRELLA SIZE:\t" + totalUmbrellaCases + "\n");
             s.append("UNDER UMBRELLA SIZE:\t" + underneathUmbrellaCases + "\n");
             s.append("ABOVE UMBRELLA SIZE:\t" + aboveUmbrellaCases + "\n");
+
+            s.append("POSSIBLE CONFIRMATIONS:\n");
+            for(int i = 0; i < possibleConfirmationsByClass.length; i++){
+                s.append("\tClass: " + i + ": " + possibleConfirmationsByClass[i] + "\n");
+            }
+
         }
         return s.toString();
     }
