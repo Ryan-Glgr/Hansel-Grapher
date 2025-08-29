@@ -1,5 +1,6 @@
 #!/bin/bash
 rm debug
+rm *.class
 javac *.java
 
 # Check if debug argument is passed

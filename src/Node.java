@@ -51,7 +51,7 @@ public class Node {
     public int[] possibleConfirmationsByClass;
 
     // takes in a datapoint, and makes a copy of that and stores that as our "point"
-    public Node(Integer[] datapoint, int numClasses){
+    public Node(Integer[] datapoint, int highestPossibleClassification){
         // copy the passed in datapoint to this node's point.
         values = Arrays.copyOf(datapoint, datapoint.length);
         
@@ -66,14 +66,14 @@ public class Node {
         downExpansions = new Node[dimension];
 
         // Set the maximum possible classification value from Main
-        maxPossibleValue = numClasses;
+        maxPossibleValue = highestPossibleClassification;
         possibleExpansions = 0;
 
         totalUmbrellaCases = 0;
         underneathUmbrellaCases = 0;
         aboveUmbrellaCases = 0;
 
-        possibleConfirmationsByClass = new int[numClasses];
+        possibleConfirmationsByClass = new int[highestPossibleClassification + 1];
     }
 
     // finds our up and down expansions. Since we know that the values of the expansions are just our point +- 1 in some attribute, we can just look it up.
@@ -405,24 +405,25 @@ public class Node {
 
     public static void updateNodeRankings(ArrayList<Node> allNodes, int numClasses) {
 
-        // first pass is our downward umbrellas, and our confirmations which we can get by setting upper bounds on nodes.
-        allNodes.sort((a, b) -> Integer.compare(a.sum, b.sum));
-        
         for(Node n : allNodes) {
             n.aboveUmbrellaCases = 0;
             n.underneathUmbrellaCases = 0;
             n.totalUmbrellaCases = 0;
             Arrays.fill(n.possibleConfirmationsByClass, 0);
         }
+
+        // first pass is our downward umbrellas, and our confirmations which we can get by setting upper bounds on nodes.
+        allNodes.sort((a, b) -> Integer.compare(a.sum, b.sum));
         
         for (Node n : allNodes) {
-            n.updateNodeUmbrellaSizeAndConfirmationCounts(true, numClasses);
+            n.updateNodeUmbrellaSizeAndConfirmationCounts(false, numClasses);
         }
 
-        for (int i = allNodes.size() - 1; i >= 0; i--) {
-            Node n = allNodes.get(i);
-            n.updateNodeUmbrellaSizeAndConfirmationCounts(false, numClasses);
-            n.totalUmbrellaCases = n.aboveUmbrellaCases + n.underneathUmbrellaCases;
+        // second pass is our upward umbrellas
+        allNodes.sort((a, b) -> Integer.compare(b.sum, a.sum));
+
+        for(Node n : allNodes) {
+            n.updateNodeUmbrellaSizeAndConfirmationCounts(true, numClasses);
         }
     }
 
@@ -454,9 +455,9 @@ public class Node {
         }
         
         if (countUpwards) {
-            this.aboveUmbrellaCases = visited.size();
+            this.aboveUmbrellaCases = visited.size() - 1;
         } else {
-            this.underneathUmbrellaCases = visited.size();
+            this.underneathUmbrellaCases = visited.size() - 1;
         }
     }
 
@@ -479,6 +480,14 @@ public class Node {
         }
     }
 
+    public int averageClassifications(){
+        int totalClassifications = 0;
+        for(int i = 0; i < this.possibleConfirmationsByClass.length; i++){
+            totalClassifications += this.possibleConfirmationsByClass[i];
+        }
+        return totalClassifications / this.possibleConfirmationsByClass.length;
+    }
+
     public int minClassifications(){
         int min = Integer.MAX_VALUE;
         for(int i = 0; i < this.possibleConfirmationsByClass.length; i++){
@@ -486,6 +495,7 @@ public class Node {
         }
         return min;
     }
+
 
     @Override
     public int hashCode() {
