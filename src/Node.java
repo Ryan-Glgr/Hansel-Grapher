@@ -414,17 +414,12 @@ public class Node {
 
         // first pass is our downward umbrellas, and our confirmations which we can get by setting upper bounds on nodes.
         allNodes.sort((a, b) -> Integer.compare(a.sum, b.sum));
-        
-        for (Node n : allNodes) {
-            n.updateNodeUmbrellaSizeAndConfirmationCounts(false, numClasses);
-        }
+        allNodes.parallelStream().forEach(n -> n.updateNodeUmbrellaSizeAndConfirmationCounts(false, numClasses));
 
         // second pass is our upward umbrellas
         allNodes.sort((a, b) -> Integer.compare(b.sum, a.sum));
+        allNodes.parallelStream().forEach(n -> n.updateNodeUmbrellaSizeAndConfirmationCounts(true, numClasses));
 
-        for(Node n : allNodes) {
-            n.updateNodeUmbrellaSizeAndConfirmationCounts(true, numClasses);
-        }
     }
 
     // Calculate umbrella size using proper graph traversal to avoid double counting

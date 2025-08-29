@@ -28,21 +28,6 @@ public class Interview {
 
     private static final Comparator<ArrayList<Node>> longestFirst = (a, b) -> Integer.compare(b.size(), a.size());
 
-    /* 
-    IDEAS:
-    - we can binary search each chain of expansions, instead of each HC. since a hansel chain can have more possible expansions which aren't in the chain.
-    - we can also sort the Nodes by how many possible expansions each one has. this way we can just take the one with most possible expansions at a time.
-    - we can count the number of "nodes under each umbrella." not just the number of expansions. that will be more effective most likely in determining the most powerful nodes for classification
-        - then we can re sort after each question.
-    - MAKE REGULAR INTERVIEW TECHNIQUES WHERE WE SEARCH ONE HC AT A TIME.
-
-    NOTES:
-    - a node is a low unit if we are expanding down and the one below is a lower class.
-    - a node is a high unit if we are going up and the next guy is a higher class obviously.
-
-    */
-
-
     // mega function which determines how we are going to ask questions.
     // mode determines the question asking heuristics. umbrellaBased determines if we sort by umbrella metrics.
     public static void conductInterview(HashMap<Integer, Node> data, ArrayList<ArrayList<Node>> hanselChains, InterviewMode mode, int numClasses) {
