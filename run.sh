@@ -1,4 +1,5 @@
 #!/bin/bash
+cd src/
 rm debug
 rm *.class
 javac *.java
@@ -11,3 +12,6 @@ else
 fi
 
 rm *.class
+mv debug ..
+cd ..
+open *.pdf

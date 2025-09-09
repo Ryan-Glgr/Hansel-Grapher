@@ -2,7 +2,7 @@ import java.util.ArrayList;
 
 public class Main {
 
-    public static Integer[] kValues = {4, 3, 5, 4, 2};
+    public static Integer[] kValues = {2, 3, 2, 2, 3, 2, 2, 2};
     
     // Calculate the highest possible classification at compile time
     // This uses the same logic as questionExpert: sum of max values / dimension
@@ -14,6 +14,8 @@ public class Main {
             maxSum += (k - 1); // max value for each dimension is k-1
         }
         highestPossibleClassification = maxSum / kValues.length; // same as sum / dimension
+
+        Node.dimension = kValues.length;
     }
 
     public static void main(String[] args) {
@@ -34,7 +36,7 @@ public class Main {
             ArrayList<ArrayList<Node>> hanselChains = HanselChains.generateHanselChainSet(kValues, Node.Nodes);
 
             // classify all our data
-            Interview.InterviewMode mode = Interview.InterviewMode.BEST_MINIMUM_CONFIRMED;
+            Interview.InterviewMode mode = Interview.InterviewMode.BINARY_SEARCH_CHAINS;
             Interview.conductInterview(Node.Nodes, hanselChains, mode, highestPossibleClassification + 1);
 
             // visualize our results

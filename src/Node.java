@@ -28,16 +28,13 @@ public class Node {
     public boolean classificationConfirmed;
 
     // highest possible class this node can have
-    public Integer maxPossibleValue; // comes from above
+    public Integer maxPossibleValue; // comes from above during interview
     
     // the direct neighbors that are up by one in each attribute. null if it is not valid to increase the attribute at that index by one
     public Node[] upExpansions;
 
     // direct neighbors downwards
     public Node[] downExpansions;
-
-    // count of possible expansions, so that we can choose whichever node has the most possible expansions.
-    public int possibleExpansions;
 
     // used to calculate how far we think a classification can permeate. 
     // For example, if i have 3 down expansions, each with 3 unique down expansions, we have 12 in our umbrella. we could update 12 nodes with one question.
@@ -48,15 +45,18 @@ public class Node {
     public int underneathUmbrellaCases;
     public int aboveUmbrellaCases;
 
+    // stores the number of possible confirmations by class in this way.
+    // hypothetically compute how many confirmations we would get by assigning this node to each class. and store them respectively.
     public int[] possibleConfirmationsByClass;
 
+    // used as a different measure of how "good" an umbrella is. basically, we want a node which has a lot of nodes in umbrella, and they're balanced.
+    // so we take the ratio with the total number / the difference in above and below cases. 
+    public float balanceRatio;
+
     // takes in a datapoint, and makes a copy of that and stores that as our "point"
-    public Node(Integer[] datapoint, int highestPossibleClassification){
+    public Node(Integer[] datapoint, int numClasses){
         // copy the passed in datapoint to this node's point.
         values = Arrays.copyOf(datapoint, datapoint.length);
-        
-        // cache the sum for efficient sorting
-        sum = sumUpDataPoint();
         
         // set classification to 0.
         classification = 0;
@@ -66,14 +66,16 @@ public class Node {
         downExpansions = new Node[dimension];
 
         // Set the maximum possible classification value from Main
-        maxPossibleValue = highestPossibleClassification;
-        possibleExpansions = 0;
+        maxPossibleValue = numClasses - 1;
 
         totalUmbrellaCases = 0;
         underneathUmbrellaCases = 0;
         aboveUmbrellaCases = 0;
 
-        possibleConfirmationsByClass = new int[highestPossibleClassification + 1];
+        possibleConfirmationsByClass = new int[numClasses];
+        balanceRatio = 0.0f;
+
+        sum = sumUpDataPoint();
     }
 
     // finds our up and down expansions. Since we know that the values of the expansions are just our point +- 1 in some attribute, we can just look it up.
@@ -91,26 +93,15 @@ public class Node {
             key[attribute] -= 2;
             downExpansions[attribute] = Nodes.get(hash(key));
         });
-
-        // Count possible expansions (sequential since it's fast)
-        for (Node n : upExpansions)
-            if (n != null)
-                possibleExpansions++;
-
-        for (Node n : downExpansions)
-            if (n != null)
-                possibleExpansions++;
-
     }
 
     // hash function is easy. k value [i] * point val [i] as a running sum and then vals [0] gets added.
     public static Integer hash(Integer[] keyVal){
-
-        int sum = 0;
+        long sum = 0;
         for(int i = 0; i < keyVal.length; i++){
-            sum += (int)Math.pow(31, i) * keyVal[i];
+            sum += (long)Math.pow(31, i) * keyVal[i];
         }
-        return sum;
+        return (int)(sum % Integer.MAX_VALUE);
     }
 
     // Helper method to increment a counter array based on kValues bounds
@@ -163,24 +154,15 @@ public class Node {
     
         // re initialize so we can copy paste
         Integer[] finalKValsToMakeNode = counterInitializer();
-        
-        // Process all nodes sequentially to avoid any race conditions
         while(incrementCounter(finalKValsToMakeNode)){
             Node temp = Nodes.get(hash(finalKValsToMakeNode));
             temp.findExpansions();
         }
-    
-
     }
 
     // BFS-based expansion to set floor (classification) for nodes above
     private void expandUp(int lowerBound){
         
-        if (DEBUG_PRINTING) {
-            System.out.println("=== EXPAND UP CALLED ===");
-            System.out.println("Starting node: " + Arrays.toString(this.values) + " with lowerBound: " + lowerBound);
-        }
-        
         java.util.Queue<Node> queue = new java.util.LinkedList<>();
         java.util.Set<Node> visited = new java.util.HashSet<>();
         
@@ -189,102 +171,34 @@ public class Node {
         
         while (!queue.isEmpty()) {
             Node current = queue.poll();
-            
-            if (DEBUG_PRINTING) {
-                System.out.println("Processing node: " + Arrays.toString(current.values) + 
-                    " (classification=" + current.classification + 
-                    ", maxPossibleValue=" + current.maxPossibleValue + 
-                    ", confirmed=" + current.classificationConfirmed + ")");
-            }
-            
             // Skip if current node is already confirmed - we've already processed its implications
-            if (current.classificationConfirmed) {
-                
-                if (DEBUG_PRINTING) {
-                    System.out.println("  Skipping - already confirmed");
-                }
-                
+            if (current.classificationConfirmed) {    
                 continue;
             }
             
             for (Node upstairsNeighbor : current.upExpansions) {
-                
-                if (DEBUG_PRINTING && upstairsNeighbor != null) {
-                    System.out.println("  Checking upstairs neighbor: " + Arrays.toString(upstairsNeighbor.values) + 
-                        " (classification=" + upstairsNeighbor.classification + 
-                        ", maxPossibleValue=" + upstairsNeighbor.maxPossibleValue + 
-                        ", confirmed=" + upstairsNeighbor.classificationConfirmed + ")");
-                }
-
                 // if we have a neighbor, who needs their floor raised, where we haven't been, and importantly, WHO IS NOT CONFIRMED.
                 if (upstairsNeighbor != null && upstairsNeighbor.classification < lowerBound && !visited.contains(upstairsNeighbor) && upstairsNeighbor.classificationConfirmed == false) {
                     
-                    if (DEBUG_PRINTING) {
-                        System.out.println("    UPDATING: Setting classification from " + upstairsNeighbor.classification + " to " + lowerBound);
-                    }
-                    
                     // Update the floor (classification) of upstairs neighbor
                     upstairsNeighbor.classification = lowerBound;
+                    
                     queue.add(upstairsNeighbor);
                     visited.add(upstairsNeighbor);
-                } 
-
-                else if (DEBUG_PRINTING && upstairsNeighbor != null) {
-                    System.out.println("\tSKIPPING because:");
-                    if (upstairsNeighbor.classification >= lowerBound) {
-                        System.out.println("\t\tclassification (" + upstairsNeighbor.classification + ") >= lowerBound (" + lowerBound + ")");
-                    }
-                    if (visited.contains(upstairsNeighbor)) {
-                        System.out.println("\t\talready visited");
-                    }
-                    if (upstairsNeighbor.classificationConfirmed) {
-                        System.out.println("\t\talready confirmed");
-                    }
                 }
             }
         }
         
-        if (DEBUG_PRINTING) {
-            System.out.println("=== CONFIRMATION CHECK PHASE ===");
-            System.out.println("Checking " + visited.size() + " visited nodes for confirmation");
-        }
-        
         // Confirm nodes after propagation - check if floor equals ceiling
-        // Sequential confirmation to avoid race conditions
         for (Node node : visited) {
-            if (DEBUG_PRINTING) {
-                System.out.println("Checking node " + Arrays.toString(node.values) + 
-                    " for confirmation: classification=" + node.classification + 
-                    ", maxPossibleValue=" + node.maxPossibleValue + 
-                    ", node != this: " + (node != this));
-            }
-            
             if (node.classification == node.maxPossibleValue && node != this) {
-                
-                if (DEBUG_PRINTING) 
-                    System.out.println("\u001B[31mCONFIRMING NODE: " + node + "\u001B[0m");
-                
-                    node.classificationConfirmed = true;
-            } 
-            
-            else if (DEBUG_PRINTING) {    
-                System.out.println("  NOT confirming - " + 
-                    (node.classification != node.maxPossibleValue ? "values don't match" : "node is this"));
+                node.classificationConfirmed = true;
             }
-            
-        }
-        
-        if (DEBUG_PRINTING) {
-            System.out.println("=== EXPAND UP COMPLETE ===\n");
         }
     }
 
     // BFS-based expansion to set ceiling (maxPossibleValue) for nodes below
     private void expandDown(int upperBound){
-        if (DEBUG_PRINTING) {
-            System.out.println("=== EXPAND DOWN CALLED ===");
-            System.out.println("Starting node: " + Arrays.toString(this.values) + " with upperBound: " + upperBound);
-        }
         
         java.util.Queue<Node> queue = new java.util.LinkedList<>();
         java.util.Set<Node> visited = new java.util.HashSet<>();
@@ -295,90 +209,34 @@ public class Node {
         while (!queue.isEmpty()) {
             Node current = queue.poll();
             
-            if (DEBUG_PRINTING) {
-                System.out.println("Processing node: " + Arrays.toString(current.values) + 
-                    " (classification=" + current.classification + 
-                    ", maxPossibleValue=" + current.maxPossibleValue + 
-                    ", confirmed=" + current.classificationConfirmed + ")");
-            }
-            
             // Skip if current node is already confirmed - we've already processed its implications
             if (current.classificationConfirmed) {
-                if (DEBUG_PRINTING) {
-                    System.out.println("  Skipping - already confirmed");
-                }
                 continue;
             }
             
             for (Node downstairsNeighbor : current.downExpansions) {
                 
-                // DEBUG ONLY
-                if (DEBUG_PRINTING && downstairsNeighbor != null) {
-                    System.out.println("  Checking downstairs neighbor: " + Arrays.toString(downstairsNeighbor.values) + 
-                        " (classification=" + downstairsNeighbor.classification + 
-                        ", maxPossibleValue=" + downstairsNeighbor.maxPossibleValue + 
-                        ", confirmed=" + downstairsNeighbor.classificationConfirmed + ")");
-                }
-                
                 // if we have a neighbor, who needs their ceiling lowered, where we haven't been, and importantly, WHO IS NOT CONFIRMED.
                 if (downstairsNeighbor != null && downstairsNeighbor.maxPossibleValue > upperBound && !visited.contains(downstairsNeighbor) && downstairsNeighbor.classificationConfirmed == false) {
                     
-                    if (DEBUG_PRINTING) {
-                        System.out.println("    UPDATING: Setting maxPossibleValue from " + downstairsNeighbor.maxPossibleValue + " to " + upperBound);
-                    }
-                    
                     // lower the ceiling (maxPossibleValue) of downstairs neighbor
                     downstairsNeighbor.maxPossibleValue = upperBound;
+                    
                     queue.add(downstairsNeighbor);
                     visited.add(downstairsNeighbor);
-
-                // just for debugging
-                } else if (DEBUG_PRINTING && downstairsNeighbor != null) {
-                    System.out.println("    SKIPPING because:");
-                    if (downstairsNeighbor.maxPossibleValue <= upperBound) {
-                        System.out.println("      maxPossibleValue (" + downstairsNeighbor.maxPossibleValue + ") <= upperBound (" + upperBound + ")");
-                    }
-                    if (visited.contains(downstairsNeighbor)) {
-                        System.out.println("      already visited");
-                    }
-                    if (downstairsNeighbor.classificationConfirmed) {
-                        System.out.println("      already confirmed");
-                    }
                 }
             }
         }
-        
-        if (DEBUG_PRINTING) {
-            System.out.println("=== CONFIRMATION CHECK PHASE ===");
-            System.out.println("Checking " + visited.size() + " visited nodes for confirmation");
-        }
-        
+
         // Confirm nodes after propagation - check if floor equals ceiling
-        // Sequential confirmation to avoid race conditions
         for (Node node : visited) {
-            if (DEBUG_PRINTING) {
-                System.out.println("Checking node " + Arrays.toString(node.values) + 
-                    " for confirmation: classification=" + node.classification + 
-                    ", maxPossibleValue=" + node.maxPossibleValue + 
-                    ", node != this: " + (node != this));
-            }
-            
             if (node.classification == node.maxPossibleValue && node != this) {
-                if (DEBUG_PRINTING) 
-                    System.out.println("\u001B[31mCONFIRMING NODE: " + node + "\u001B[0m");
                 node.classificationConfirmed = true;
-            } else if (DEBUG_PRINTING) {
-                System.out.println("  NOT confirming - " + 
-                    (node.classification != node.maxPossibleValue ? "values don't match" : "node is this"));
             }
-        }
-        
-        if (DEBUG_PRINTING) {
-            System.out.println("=== EXPAND DOWN COMPLETE ===\n");
         }
     }
 
-    // each node gets this new classification
+    // each node gets this new classification. it sends the effects of the classification up and down. (not just within one HC, but to all expansions up and down.)
     public void permeateClassification(){
     
         // update our max here, so that know it is confirmed.
@@ -411,19 +269,18 @@ public class Node {
             n.totalUmbrellaCases = 0;
             Arrays.fill(n.possibleConfirmationsByClass, 0);
         }
-
-        // first pass is our downward umbrellas, and our confirmations which we can get by setting upper bounds on nodes.
-        allNodes.sort((a, b) -> Integer.compare(a.sum, b.sum));
-        allNodes.parallelStream().forEach(n -> n.updateNodeUmbrellaSizeAndConfirmationCounts(false, numClasses));
-
-        // second pass is our upward umbrellas
-        allNodes.sort((a, b) -> Integer.compare(b.sum, a.sum));
-        allNodes.parallelStream().forEach(n -> n.updateNodeUmbrellaSizeAndConfirmationCounts(true, numClasses));
-
+        // update the node stats for above and below cases.
+        allNodes.parallelStream().forEach(n -> n.updateNodeStatistics(false, numClasses));
+        allNodes.parallelStream().forEach(n -> n.updateNodeStatistics(true, numClasses));
+        
+        allNodes.parallelStream().forEach(n -> n.totalUmbrellaCases = n.aboveUmbrellaCases + n.underneathUmbrellaCases);
+        
+        // compute the new balance ratio for each node. this is defined as the total umbrella size, divided by the difference in up/down size.
+        allNodes.parallelStream().forEach(n -> n.setBalanceFactor());
     }
 
     // Calculate umbrella size using proper graph traversal to avoid double counting
-    private void updateNodeUmbrellaSizeAndConfirmationCounts(boolean countUpwards, int numClasses) {
+    private void updateNodeStatistics(boolean countUpwards, int numClasses) {
         java.util.Set<Node> visited = new java.util.HashSet<>();
         java.util.Queue<Node> queue = new java.util.LinkedList<>();
         
@@ -475,22 +332,35 @@ public class Node {
         }
     }
 
-    public int averageClassifications(){
-        int totalClassifications = 0;
-        for(int i = 0; i < this.possibleConfirmationsByClass.length; i++){
-            totalClassifications += this.possibleConfirmationsByClass[i];
+    // compares two nodes by their minimum number of confirmations. Then by the second lowest, third and so on. If a total tie, we go by the balanceRatio.
+    // returns negative when THIS node should be after.
+    public int compareMinClassifications(Node other) {
+        int[] thisNodeMins = Arrays.copyOf(this.possibleConfirmationsByClass, this.possibleConfirmationsByClass.length);
+        int[] otherNodeMins = Arrays.copyOf(other.possibleConfirmationsByClass, other.possibleConfirmationsByClass.length);
+
+        Arrays.sort(thisNodeMins);  // ascending
+        Arrays.sort(otherNodeMins); // ascending
+
+        for (int i = 0; i < thisNodeMins.length; i++) {
+            if (thisNodeMins[i] != otherNodeMins[i]) {
+                // Larger minimum comes first
+                return Integer.compare(otherNodeMins[i], thisNodeMins[i]);
+            }
         }
-        return totalClassifications / this.possibleConfirmationsByClass.length;
+
+        // tie-breaker: smaller balanceRatio first
+        return Float.compare(other.balanceRatio, this.balanceRatio);
     }
 
-    public int minClassifications(){
-        int min = Integer.MAX_VALUE;
-        for(int i = 0; i < this.possibleConfirmationsByClass.length; i++){
-            min = Math.min(min, this.possibleConfirmationsByClass[i]);
+    // compute the "balance factor" for a node.
+    private void setBalanceFactor() {
+        if (totalUmbrellaCases == 0) {
+            this.balanceRatio = 0.0f;
+            return;
         }
-        return min;
+        float imbalance = (float)Math.abs(this.aboveUmbrellaCases - this.underneathUmbrellaCases) / totalUmbrellaCases;
+        this.balanceRatio = totalUmbrellaCases * (1.0f - imbalance);
     }
-
 
     @Override
     public int hashCode() {

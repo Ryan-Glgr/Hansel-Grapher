@@ -1,6 +1,5 @@
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.stream.Collectors;
 
@@ -11,22 +10,22 @@ public class Interview {
     // if we set this false, we are going to call upon some ML interviewer instead.
     public static boolean EXPERT_MODE = true;
 
+    public static UmbrellaSortStrategy UMBRELLA_SORTING_STRATEGY = UmbrellaSortStrategy.BEST_BALANCE_RATIO;
+
     public enum InterviewMode {
         UMBRELLA_SORT,          // method where we sort nodes by how many nodes are unconfirmed above.below. submethods for prioritizing above/below/tiebreakers.
         BINARY_SEARCH_CHAINS,   // method where we just query midpoint of the chain each time. thus chopping each chain in half. we work on the longest chain at a time.
         BEST_MINIMUM_CONFIRMED, // method where we check all nodes, and determine which has the best min bound. meaning of all k classes, confirming this one as a particular class, how many nodes get confirmed. The node with the best lower bound is used each iteration.
-        BEST_AVERAGE_CONFIRMED
     }
 
     // Enum for umbrella sorting strategies
     public enum UmbrellaSortStrategy {
-        HIGHEST_TOTAL_UMBRELLA,
+        HIGHEST_TOTAL_UMBRELLA,     // sort by just the total amount in the umbrella. This means we find the node who's classification affects the most other nodes.
         MOST_ABOVE,
-        MOST_BELOW,
-        SMALLEST_DIFFERENCE
+        MOST_BELOW,                 
+        SMALLEST_DIFFERENCE,        // sort our nodes by the smallest difference above/below. this way we find balanced nodes first
+        BEST_BALANCE_RATIO,         // sort our nodes by their balance ratios.
     }
-
-    private static final Comparator<ArrayList<Node>> longestFirst = (a, b) -> Integer.compare(b.size(), a.size());
 
     // mega function which determines how we are going to ask questions.
     // mode determines the question asking heuristics. umbrellaBased determines if we sort by umbrella metrics.
@@ -38,16 +37,13 @@ public class Interview {
 
         switch (mode){
             case InterviewMode.UMBRELLA_SORT:
-                umbrellaSortInterview(allNodes, UmbrellaSortStrategy.SMALLEST_DIFFERENCE, numClasses);
+                umbrellaSortInterview(allNodes, UMBRELLA_SORTING_STRATEGY, numClasses);
                 break;
             case InterviewMode.BINARY_SEARCH_CHAINS:
                 cutMiddleOfChainInterview(hanselChains);
                 break;
             case InterviewMode.BEST_MINIMUM_CONFIRMED:
                 bestMinConfirmedInterview(allNodes, numClasses);
-                break;
-            case InterviewMode.BEST_AVERAGE_CONFIRMED:
-                bestAverageConfirmedInterview(allNodes, numClasses);
                 break;
         }
     }
@@ -98,10 +94,6 @@ public class Interview {
             n.permeateClassification();
             questionsAsked++;
 
-            if (DEBUG){
-                System.out.println("ASKED ABOUT NODE:\n" + n);
-            }
-
             nodesToAsk = nodesToAsk.parallelStream()
             .filter(node -> !node.classificationConfirmed) // keep only unconfirmed nodes
             .collect(Collectors.toCollection(ArrayList::new));
@@ -151,6 +143,11 @@ public class Interview {
                     return Integer.compare(diffX, diffY);
                 });
                 break;
+            case BEST_BALANCE_RATIO:
+                Arrays.parallelSort(nodeArray, (Node x, Node y) -> {
+                    return Float.compare(y.balanceRatio, x.balanceRatio);
+                });
+                break;
                 
             default:
                 // Default to highest total umbrella
@@ -170,6 +167,7 @@ public class Interview {
         ArrayList<ArrayList<Node>> chunks = new ArrayList<>();
         chunks.addAll(hanselChainSet);
 
+        // just get the total number of nodes.
         int totalNodes = chunks.parallelStream()
             .mapToInt(ArrayList::size) // or chunk -> chunk.size()
             .sum();
@@ -180,9 +178,9 @@ public class Interview {
             // sort our list of chains by size. this way we use the largest chunks first.
             chunks = chunks.parallelStream()
                 .sorted((ArrayList<Node> a, ArrayList<Node> b) -> {
-                return longestFirst.compare(a, b);
-            })
-            .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+                    return (Integer.compare(b.size(), a.size()));
+                })
+                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 
             // get the first chunk
             ArrayList<Node> chunkToQuestion = chunks.get(0);
@@ -232,11 +230,6 @@ public class Interview {
         return newChunks;
     }
 
-
-
-    // TODO: determine why we are asking one more question on the binary search interview.
-    // determine why we are asking LESS questions somehow on the umbrella sort interview. (could be due to double counting issue getting resolved?)
-
     /*
      * General outline is this:
      *      get all nodes.
@@ -254,12 +247,11 @@ public class Interview {
         int questionsAsked = 0;
         while(nodesToAsk.size() != 0){
 
-            Node.updateNodeRankings(allNodes, numClasses);
-
             // now sort decreasing, using our strategy. we sort descending, by a nodes minimum guaranteed classifications.
-            // that is, of it's classes, whichever is the worst, we choose the one with the best floor. we are guaranteed to confirm that many.
+            // that is, of it's classes, whichever is the worst, we choose the one with the best floor. we are guaranteed to confirm that many at least.
+            Node.updateNodeRankings(allNodes, numClasses);            
             nodesToAsk.sort((Node x, Node y) -> {
-                return Integer.compare(y.minClassifications(), x.minClassifications());
+                return x.compareMinClassifications(y);
             });
 
             // remove the front guy
@@ -276,61 +268,12 @@ public class Interview {
             n.permeateClassification();
             questionsAsked++;
 
-            if (DEBUG){
-                System.out.println("ASKED ABOUT NODE:\n" + n);
-            }
-
             nodesToAsk = nodesToAsk.parallelStream()
-            .filter(node -> !node.classificationConfirmed) // keep only unconfirmed nodes
-            .collect(Collectors.toCollection(ArrayList::new));
+                .filter(node -> !node.classificationConfirmed) // keep only unconfirmed nodes
+                .collect(Collectors.toCollection(ArrayList::new));
         }
         System.out.println("QUESTIONS ASKED:\t" + questionsAsked);
         System.out.println("TOTAL NODES:\t" + totalNodes);
     }
-
-    private static void bestAverageConfirmedInterview(ArrayList<Node> allNodes, int numClasses){
-        
-        int totalNodes = allNodes.size();
-
-        ArrayList<Node> nodesToAsk = new ArrayList<>();
-        nodesToAsk.addAll(allNodes);
-
-        int questionsAsked = 0;
-        while(nodesToAsk.size() != 0){
-
-            Node.updateNodeRankings(allNodes, numClasses);
-
-            // now sort decreasing, using our strategy. we sort descending, by a nodes minimum guaranteed classifications.
-            // that is, of it's classes, whichever is the worst, we choose the one with the best floor. we are guaranteed to confirm that many.
-            nodesToAsk.sort((Node x, Node y) -> {
-                return Integer.compare(y.averageClassifications(), x.averageClassifications());
-            });
-
-            // remove the front guy
-            Node n = nodesToAsk.remove(0);
-
-            // no need to ask about a confirmed node.
-            if (n.classificationConfirmed)
-                continue;
-
-            // get our value either from expert or ML
-            n.classification = (EXPERT_MODE) ? questionExpert(n) : questionML(n);
-
-            // this sets all the upper bounds below, and all the lower bounds above.
-            n.permeateClassification();
-            questionsAsked++;
-
-            if (DEBUG){
-                System.out.println("ASKED ABOUT NODE:\n" + n);
-            }
-
-            nodesToAsk = nodesToAsk.parallelStream()
-            .filter(node -> !node.classificationConfirmed) // keep only unconfirmed nodes
-            .collect(Collectors.toCollection(ArrayList::new));
-        }
-        System.out.println("QUESTIONS ASKED:\t" + questionsAsked);
-        System.out.println("TOTAL NODES:\t" + totalNodes);
-    }
-
 
 }
