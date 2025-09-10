@@ -3,6 +3,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 public class HanselChains{
     
@@ -10,81 +11,74 @@ public class HanselChains{
     private static final int THREAD_COUNT = Runtime.getRuntime().availableProcessors();
     private static final ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT);
 
+    // true for ryan version, false for harlow version.
+    // difference is this:
+    //      harlow version takes the ends of each chain which was copied from an original, and puts them at the end of the original.
+    //      ryan version does that, but then continues, and the 3rd chain puts its next end on the 2nd chain, and so on.
+
     // function to create our chains
-    public static ArrayList<ArrayList<Node>> generateHanselChainSet(Integer[] kValues, HashMap<Integer, Node> nodes){
+    public static ArrayList<ArrayList<Node>> generateHanselChainSet(
+            Integer[] kValues, HashMap<Integer, Node> nodes, boolean cascadingIsomorphicAdjustment) {
 
-        // for each attribute, we do this. consider an arraylist with just the first attribute to start as our "list of chains".
-        // append all the different values of each attribute to each chain we have so far
-        ArrayList<ArrayList<Node>> hanselChainSet = new ArrayList<ArrayList<Node>>();
+        ArrayList<ArrayList<Node>> hanselChainSet = new ArrayList<>();
 
-        // now we go through each attribute, and for each of it's "legal" k values, we append all of those, one to each of the existing chains.
-        // then we go back through, and just move the last thing in each chain into the one previous.
-        
-        // make a new array of integers we can use to look up our points fast.
+        // initialize valsForChains with zeros
         Integer[] valsForChains = new Integer[kValues.length];
-        for(int i = 0; i < valsForChains.length; i++)
-            valsForChains[i] = 0;
+        Arrays.fill(valsForChains, 0);
 
-        ArrayList<Node> thisChain = new ArrayList<Node>();
-        for(int firstDigitVal = 0; firstDigitVal < kValues[0]; firstDigitVal++){
-            // make a new hansel chain which is really just our one point which would be like [0,0,0,0], then [0,0,0,1], then [0,0,0,2] for k = 3
+        // create the first chain (varying only the first digit)
+        ArrayList<Node> baseChain = new ArrayList<>();
+        for (int firstDigitVal = 0; firstDigitVal < kValues[0]; firstDigitVal++) {
             valsForChains[0] = firstDigitVal;
-            thisChain.add(nodes.get(Node.hash(valsForChains)));
+            baseChain.add(nodes.get(Node.hash(valsForChains)));
         }
-        hanselChainSet.add(thisChain);
+        hanselChainSet.add(baseChain);
 
-        // now we have our first digit set up. in regular boolean chains, we would've just made (0), (1). padded with 0's of course.
-        // now we iterate through each digit, doing the hansel chain making process.
-        // for each digit, we basically make a copy of all the existing hansel chains, and append all our possible values to it.
-        for(int digitPosition = 1; digitPosition < kValues.length; digitPosition++){
-
-            // our new set of chains, we don't want to work over the top of the existing ones.
-            ArrayList<ArrayList<Node>> newChains = new ArrayList<ArrayList<Node>>();
-
-            // now we need to copy the existing chains to append all our different values. for example, if we had a k value of three, we make three sets of the existing chains, and append 0, 1, or 2 to all those points.
-            for(int digitVal = 1; digitVal < kValues[digitPosition]; digitVal++){
-
-                // if we are appending digit 0, we actually already have that. since our method of appending is just changing the padded 0's to whatever value.
-                // now, iterate through all the chains we currently have, and we are going to make a copy of each, and change whichever digit index we are at, to digitVal in each of the copies.
-                // our chains which we are copying from the existing chains
-                ArrayList<Future<ArrayList<Node>>> futures = new ArrayList<>();
-                final int currentDigit = digitPosition;
-                final int currentDigitVal = digitVal;
-
-                // copy each existing chain, and we are going to do this for each digit value > 0 until k
-                for (ArrayList<Node> chain : hanselChainSet) {
-                    futures.add(executor.submit(() -> copyChainWithDigitValue(nodes, chain, currentDigit, currentDigitVal)));
-                }
-                
-                // Collect results from all threads
-                try {
-                    for(Future<ArrayList<Node>> future : futures) {
-                        newChains.add(future.get());
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    System.out.println("WE'RE BONED");
-                    System.exit(0);
-                }
-            }
-
-            // original number of chains is useful, because now we need to do some moving around.
-            int originalNumChains = hanselChainSet.size();
-
-            // now that we are done making new chains, we go through and add all the copied and changed ones.
-            hanselChainSet.addAll(newChains);
-        
-            // now the important adjustment step, where we take the end of one chain, and move it to the one before, so that we get the diamond shape.
-            // adjustEndsOfIsomorphicChainsStep(hanselChainSet, originalNumChains, kValues[digitPosition]);
-            adjustEndsOfIsomorphicChainsPyramid(hanselChainSet, originalNumChains, kValues[digitPosition]);
-            hanselChainSet.removeIf(List::isEmpty);
+        // expand dimension by dimension
+        for (int digit = 1; digit < kValues.length; digit++) {
+            final int digitFinalBecauseJavaSucks = digit;
+            hanselChainSet = hanselChainSet
+                .parallelStream()
+                .flatMap(chain -> copyChainAndAdjustCopies(nodes, 
+                    chain, 
+                    digitFinalBecauseJavaSucks, 
+                    kValues[digitFinalBecauseJavaSucks], 
+                    cascadingIsomorphicAdjustment)
+                .stream())
+                .collect(Collectors.toCollection(ArrayList::new));
         }
-    
+
+        // final validation
         for (ArrayList<Node> chain : hanselChainSet) {
-            if (!checkChain(chain)) System.out.println("ERROR: Chain is broken: " + chain.toString());
+            if (!checkValidChain(chain)) {
+                System.out.println("ERROR: Chain is broken: " + chain.toString());
+            }
         }
-    
+
         return hanselChainSet;
+    }
+
+    private static ArrayList<ArrayList<Node>> copyChainAndAdjustCopies(HashMap<Integer, Node> nodes, ArrayList<Node> original, int digit, int kValue, boolean cascadingIsomorphicAdjustment) {
+
+        ArrayList<ArrayList<Node>> group = new ArrayList<>();
+
+        // add the original chain (already has digit=0 case)
+        group.add(original);
+
+        // make copies for values 1..kValue-1
+        for (int val = 1; val < kValue; val++) {
+            ArrayList<Node> copy = copyChainWithDigitValue(nodes, original, digit, val);
+            group.add(copy);
+        }
+
+        // adjust group locally
+        if (cascadingIsomorphicAdjustment) {
+            adjustEndsOfIsomorphicChainsCascading(group);
+        } else {
+            adjustEndsOfIsomorphicChainsStepNotCascading(group);
+        }
+
+        return group;
     }
 
     // the recursive step. you copy all the values of a chain, but append your given digit to the front of each node.
@@ -100,69 +94,60 @@ public class HanselChains{
         return newChain;
     }
 
-    // takes the end of one isomorphic chain, and moves it to the end of the next isomorphic chain. for example [0,0] - [0,1] gets [1,1] from the chain [1,0] - [1,1].
-    private static void adjustEndsOfIsomorphicChainsStep(ArrayList<ArrayList<Node>> hanselChains, int originalNumChains, int kValue){
+    // takes the end of one isomorphic chain, and moves it to the end of the next isomorphic chain. for example [0,0] - [0,1] gets [1,1] from the chain [1,0] - [1,1]..
+    private static void adjustEndsOfIsomorphicChainsCascading(ArrayList<ArrayList<Node>> group) {
+        int n = group.size();
+        if (n < 2) return;
 
-        for (int digitVal = 1; digitVal < kValue; digitVal++) {
-            int fromStart = digitVal * originalNumChains;
-
-            for (int i = 0; i < originalNumChains; i++) {
-                List<Node> fromChain = hanselChains.get(fromStart + i);
-                List<Node> toChain = hanselChains.get(i);
-
-                if (!fromChain.isEmpty()) {
-                    toChain.add(fromChain.remove(fromChain.size() - 1));
+        // For each chain, take the top nodes from all chains after it and add them to this chain
+        for (int i = 0; i < n - 1; i++) {
+            ArrayList<Node> receivingChain = group.get(i);
+            for (int j = i + 1; j < n; j++) {
+                ArrayList<Node> donatingChain = group.get(j);
+                if (!donatingChain.isEmpty()) {
+                    Node topNode = donatingChain.remove(donatingChain.size() - 1);
+                    receivingChain.add(topNode);
                 }
             }
         }
+
+        // Remove any chains that became empty
+        group.removeIf(List::isEmpty);
     }
 
-    private static void adjustEndsOfIsomorphicChainsPyramid(ArrayList<ArrayList<Node>> hanselChains, int originalNumChains, int kValue) {
+    // step adjustment: only chain2 → chain1, stop
+    private static void adjustEndsOfIsomorphicChainsStepNotCascading(ArrayList<ArrayList<Node>> group) {
+        if (group.size() < 2) return;
 
-        for (int i = 0; i < originalNumChains; i++) {
-            // For base chain C0, C1, ..., C_{originalNumChains-1}
-            ArrayList<Node> baseChain = hanselChains.get(i);
-
-            // Step 1: donate from all higher chains into base
-            for (int donor = 1; donor < kValue; donor++) {
-                int fromIdx = donor * originalNumChains + i;
-                ArrayList<Node> fromChain = hanselChains.get(fromIdx);
-                if (!fromChain.isEmpty()) {
-                    baseChain.add(fromChain.remove(fromChain.size() - 1));
-                }
-            }
-
-            // Step 2+: cascading pyramid
-            for (int level = 1; level < kValue - 1; level++) {
-                // Chains that donate to this level
-                for (int donor = level + 1; donor < kValue; donor++) {
-                    int fromIdx = donor * originalNumChains + i;
-                    int toIdx   = level * originalNumChains + i;
-
-                    ArrayList<Node> fromChain = hanselChains.get(fromIdx);
-                    ArrayList<Node> toChain   = hanselChains.get(toIdx);
-
-                    if (!fromChain.isEmpty()) {
-                        toChain.add(fromChain.remove(fromChain.size() - 1));
-                    }
-                }
+        ArrayList<Node> recipient = group.get(0);
+        for (int i = 1; i < group.size(); i++) {
+            ArrayList<Node> donor = group.get(i);
+            if (!donor.isEmpty()) {
+                Node moved = donor.remove(donor.size() - 1);
+                recipient.add(moved);
             }
         }
+
+        // Remove any chains that became empty
+        group.removeIf(List::isEmpty);
     }
 
 
+    // simple helper which checks that all the nodes of a chain have a hamming distance of + 1 from the next.
+    private static boolean checkValidChain(ArrayList<Node> chain) {
 
+        for (int lowerNode = 0; lowerNode < chain.size() - 1; lowerNode++) {
+            int upperNode = lowerNode + 1;
 
-    // just a simple helper to make sure that a chain hasn't been built wrong.
-    public static Boolean checkChain(ArrayList<Node> chain){
-        for(int i = 0; i < chain.size() - 1; i++){
-            if (chain.get(i).sumUpDataPoint() + 1 != chain.get(i + 1).sumUpDataPoint()){
+            // Use the Node instance method to compute the Hamming distance
+            int hammingDistance = chain.get(lowerNode).computeHammingDistance(chain.get(upperNode));
+            
+            if (hammingDistance != 1) 
                 return false;
-            }
         }
         return true;
     }
-
+    
     // Clean up thread pool when done
     public static void shutdown() {
         executor.shutdown();

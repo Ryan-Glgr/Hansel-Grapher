@@ -10,21 +10,14 @@ public class Interview {
     // if we set this false, we are going to call upon some ML interviewer instead.
     public static boolean EXPERT_MODE = true;
 
-    public static UmbrellaSortStrategy UMBRELLA_SORTING_STRATEGY = UmbrellaSortStrategy.BEST_BALANCE_RATIO;
-
     public enum InterviewMode {
-        UMBRELLA_SORT,          // method where we sort nodes by how many nodes are unconfirmed above.below. submethods for prioritizing above/below/tiebreakers.
-        BINARY_SEARCH_CHAINS,   // method where we just query midpoint of the chain each time. thus chopping each chain in half. we work on the longest chain at a time.
-        BEST_MINIMUM_CONFIRMED, // method where we check all nodes, and determine which has the best min bound. meaning of all k classes, confirming this one as a particular class, how many nodes get confirmed. The node with the best lower bound is used each iteration.
-    }
-
-    // Enum for umbrella sorting strategies
-    public enum UmbrellaSortStrategy {
-        HIGHEST_TOTAL_UMBRELLA,     // sort by just the total amount in the umbrella. This means we find the node who's classification affects the most other nodes.
-        MOST_ABOVE,
-        MOST_BELOW,                 
-        SMALLEST_DIFFERENCE,        // sort our nodes by the smallest difference above/below. this way we find balanced nodes first
-        BEST_BALANCE_RATIO,         // sort our nodes by their balance ratios.
+        BINARY_SEARCH_CHAINS,                       // method where we just query midpoint of the chain each time. thus chopping each chain in half. we work on the longest chain at a time.
+        BEST_MINIMUM_CONFIRMED,                     // method where we check all nodes, and determine which has the best min bound. meaning of all k classes, confirming this one as a particular class, how many nodes get confirmed. The node with the best lower bound is used each iteration.
+        HIGHEST_TOTAL_UMBRELLA_SORT,                // sort by just the total amount in the umbrella. This means we find the node who's classification affects the most other nodes.
+        MOST_ABOVE_UMBRELLA_SORT,
+        MOST_BELOW_UMBRELLA_SORT,                 
+        SMALLEST_DIFFERENCE_UMBRELLA_SORT,          // sort our nodes by the smallest difference above/below. this way we find balanced nodes first
+        BEST_BALANCE_RATIO_UMBRELLA_SORT,           // sort our nodes by their balance ratios.
     }
 
     // mega function which determines how we are going to ask questions.
@@ -36,8 +29,12 @@ public class Interview {
         allNodes.addAll(data.values());
 
         switch (mode){
-            case InterviewMode.UMBRELLA_SORT:
-                umbrellaSortInterview(allNodes, UMBRELLA_SORTING_STRATEGY, numClasses);
+            case InterviewMode.HIGHEST_TOTAL_UMBRELLA_SORT:
+            case InterviewMode.MOST_ABOVE_UMBRELLA_SORT:
+            case InterviewMode.MOST_BELOW_UMBRELLA_SORT:
+            case InterviewMode.SMALLEST_DIFFERENCE_UMBRELLA_SORT:
+            case InterviewMode.BEST_BALANCE_RATIO_UMBRELLA_SORT:
+                umbrellaSortInterview(allNodes, mode, numClasses);
                 break;
             case InterviewMode.BINARY_SEARCH_CHAINS:
                 cutMiddleOfChainInterview(hanselChains);
@@ -62,7 +59,7 @@ public class Interview {
     // umbrella strategy considers how many nodes COULD be confirmed underneath/above a given node. for example:
     // if there are 30 unclassified nodes under a given node, it's underneath umbrella is 30. this just gives us an idea
     // of how powerful this node can be in classification.
-    private static void umbrellaSortInterview(ArrayList<Node> allNodes, UmbrellaSortStrategy strategy, int numClasses) {
+    private static void umbrellaSortInterview(ArrayList<Node> allNodes, InterviewMode umbrellaSortingStrategy, int numClasses) {
         
         int totalNodes = allNodes.size();
 
@@ -78,7 +75,7 @@ public class Interview {
             Node.updateNodeRankings(allNodes, numClasses);
 
             // sort based on our umbrella strategy
-            umbrellaSortInterviewSortingHelper(nodesToAsk, strategy);
+            umbrellaSortInterviewSortingHelper(nodesToAsk, umbrellaSortingStrategy);
             
             // remove the front guy
             Node n = nodesToAsk.remove(0);
@@ -105,31 +102,36 @@ public class Interview {
     // just sorts our nodes in order of how we should ask them based on which interview technique we are trying.
     // smallest difference seems to be the best. taking that with the smallest difference between above and below, with
     // tiebreaker going to the greatest total size. That way the middle nodes ones go first.
-    private static void umbrellaSortInterviewSortingHelper(ArrayList<Node> allNodes, UmbrellaSortStrategy strategy){
+    private static void umbrellaSortInterviewSortingHelper(ArrayList<Node> allNodes, InterviewMode umbrellaSortingStrategy){
                 
         // Convert to array for parallel sorting
         Node[] nodeArray = allNodes.toArray(new Node[0]);
 
-        switch (strategy) {
-            case HIGHEST_TOTAL_UMBRELLA:
+        switch (umbrellaSortingStrategy) {
+            case HIGHEST_TOTAL_UMBRELLA_SORT:
                 Arrays.parallelSort(nodeArray, (Node x, Node y) -> {
                     return Integer.compare(y.totalUmbrellaCases, x.totalUmbrellaCases);
                 });
                 break;
                 
-            case MOST_ABOVE:
+            case MOST_ABOVE_UMBRELLA_SORT:
                 Arrays.parallelSort(nodeArray, (Node x, Node y) -> {
                     return Integer.compare(y.aboveUmbrellaCases, x.aboveUmbrellaCases);
                 });
                 break;
                 
-            case MOST_BELOW:
+            case MOST_BELOW_UMBRELLA_SORT:
                 Arrays.parallelSort(nodeArray, (Node x, Node y) -> {
                     return Integer.compare(y.underneathUmbrellaCases, x.underneathUmbrellaCases);
                 });
                 break;
-                
-            case SMALLEST_DIFFERENCE:
+            case BEST_BALANCE_RATIO_UMBRELLA_SORT:
+                Arrays.parallelSort(nodeArray, (Node x, Node y) -> {
+                    return Float.compare(y.balanceRatio, x.balanceRatio);
+                });
+                break;
+                            case SMALLEST_DIFFERENCE_UMBRELLA_SORT:
+            default:
                 Arrays.parallelSort(nodeArray, (Node x, Node y) -> {
                     // Calculate the absolute difference between above and below for each node
                     int diffX = Math.abs(x.aboveUmbrellaCases - x.underneathUmbrellaCases);
@@ -141,18 +143,6 @@ public class Interview {
                         return Integer.compare(y.totalUmbrellaCases, x.totalUmbrellaCases);
                     }
                     return Integer.compare(diffX, diffY);
-                });
-                break;
-            case BEST_BALANCE_RATIO:
-                Arrays.parallelSort(nodeArray, (Node x, Node y) -> {
-                    return Float.compare(y.balanceRatio, x.balanceRatio);
-                });
-                break;
-                
-            default:
-                // Default to highest total umbrella
-                Arrays.parallelSort(nodeArray, (Node x, Node y) -> {
-                    return Integer.compare(y.totalUmbrellaCases, x.totalUmbrellaCases);
                 });
                 break;
         }

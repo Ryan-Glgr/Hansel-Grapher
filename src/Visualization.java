@@ -43,7 +43,6 @@ public class Visualization {
         FileWriter fw = new FileWriter(DOTfile);
         fw.write("digraph G {\n\trankdir = BT;\n\tbgcolor = white;\n\t");
 
-    writingLoop:
         while(Node.incrementCounter(kValsToMakeNode)){
             // get the node which corresponds to this combination of digits
             Node temp = allNodes.get(Node.hash(kValsToMakeNode));
@@ -54,7 +53,6 @@ public class Visualization {
                 String nodeColor = getColorForClass(temp.classification);
                 fw.write(temp.hashCode() + " [label = \"" + nodeName + "\", shape = rectangle, style = filled, fillcolor = \"" + nodeColor + "\"];\n\t");
             }
-
 
             // put all the neighbors into the pile if they are not used yet.
             for(Node ex : temp.upExpansions){
@@ -139,7 +137,7 @@ public static void makeHanselChainDOT(ArrayList<ArrayList<Node>> chains) throws 
         }
     }
 
-    // NEW: enforce middle elements to share the same rank
+    // enforce middle elements to share the same rank
     fw.write("{ rank = same; ");
     for(Node mid : middleNodes){
         fw.write(mid.hashCode() + " ");

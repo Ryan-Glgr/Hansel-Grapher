@@ -6,9 +6,6 @@ import java.util.stream.IntStream;
 public class Node {
 
     public static boolean DEBUG_PRINTING = false;
-
-    // big list of all the nodes.
-    public static HashMap<Integer, Node> Nodes = new HashMap<Integer, Node>();
     
     // list of max possible value of each attribute
     public static Integer[] kValues;
@@ -78,8 +75,7 @@ public class Node {
         sum = sumUpDataPoint();
     }
 
-    // finds our up and down expansions. Since we know that the values of the expansions are just our point +- 1 in some attribute, we can just look it up.
-    private void findExpansions(){
+    private void findExpansions(HashMap<Integer, Node> nodes){
 
         // Parallel computation of expansions for each attribute
         IntStream.range(0, dimension).parallel().forEach(attribute -> {
@@ -87,11 +83,11 @@ public class Node {
             
             // increment the value of key at this attribute, so we can find the one with + 1 in this digit.
             key[attribute]++;
-            upExpansions[attribute] = Nodes.get(hash(key));
+            upExpansions[attribute] = nodes.get(hash(key));
 
             // decrement by 2 to find the one with -1 in this attribute.
             key[attribute] -= 2;
-            downExpansions[attribute] = Nodes.get(hash(key));
+            downExpansions[attribute] = nodes.get(hash(key));
         });
     }
 
@@ -137,7 +133,9 @@ public class Node {
     }
 
     // makes all our nodes and populates the map
-    public static void makeNodes(Integer[] kVals, int numClasses) {
+    public static HashMap<Integer, Node> makeNodes(Integer[] kVals, int numClasses) {
+    
+        HashMap<Integer, Node> nodes = new HashMap<Integer, Node>();
 
         Node.kValues = kVals;
 
@@ -149,15 +147,16 @@ public class Node {
         // iterate through all the digits, and make all the nodes. 
         while(incrementCounter(kValsToMakeNode)){
             // just make a new node and put it in the map.
-            Nodes.put(Node.hash(kValsToMakeNode), new Node(kValsToMakeNode, numClasses));
+            nodes.put(Node.hash(kValsToMakeNode), new Node(kValsToMakeNode, numClasses));
         }
     
         // re initialize so we can copy paste
         Integer[] finalKValsToMakeNode = counterInitializer();
         while(incrementCounter(finalKValsToMakeNode)){
-            Node temp = Nodes.get(hash(finalKValsToMakeNode));
-            temp.findExpansions();
+            Node temp = nodes.get(hash(finalKValsToMakeNode));
+            temp.findExpansions(nodes);
         }
+        return nodes;
     }
 
     // BFS-based expansion to set floor (classification) for nodes above
@@ -351,6 +350,15 @@ public class Node {
         // tie-breaker: smaller balanceRatio first
         return Float.compare(other.balanceRatio, this.balanceRatio);
     }
+
+    public int computeHammingDistance(Node other) {
+        int distance = 0;
+        for (int i = 0; i < this.values.length; i++) {
+            distance += Math.abs(this.values[i] - other.values[i]);
+        }
+        return distance;
+    }
+
 
     // compute the "balance factor" for a node.
     private void setBalanceFactor() {
