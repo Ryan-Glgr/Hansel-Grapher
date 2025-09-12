@@ -3,7 +3,7 @@ import java.util.HashMap;
 
 public class Main {
 
-    public static Integer[] kValues = {3, 7, 5, 5, 4};
+    public static Integer[] kValues = {3, 3, 4, 3, 4};
     
     // Calculate the highest possible classification at compile time
     // This uses the same logic as questionExpert: sum of max values / dimension
@@ -23,11 +23,9 @@ public class Main {
 
         // TODO: DETERMINE WHICH WAY MOEKA WORKS. THEN DEBATE WITH DR K WHICH WAY MAKES SENSE.
         boolean isomorphicAdjustmentCascadingStyle = true;
-        
-        makeClassifyAndSaveNodes(Interview.InterviewMode.BINARY_SEARCH_CHAINS, isomorphicAdjustmentCascadingStyle);
+        makeClassifyAndSaveNodes(Interview.InterviewMode.BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS, isomorphicAdjustmentCascadingStyle);
 
         System.exit(0);
-
     }
 
     // TODO
@@ -40,7 +38,6 @@ public class Main {
             
             // make all our nodes.
             HashMap<Integer, Node> nodes = Node.makeNodes(kValues, highestPossibleClassification + 1);
-            
             // make the chains
             ArrayList<ArrayList<Node>> hanselChains = HanselChains.generateHanselChainSet(kValues, nodes, isomorphicAdjustmentCascadingStyle);
 
@@ -49,8 +46,7 @@ public class Main {
             System.out.println("ISOMORPHIC ADJUSTMENT MODE CASCADING?:\t" + isomorphicAdjustmentCascadingStyle);
 
             // classify all our data
-            Interview.InterviewMode mode = Interview.InterviewMode.BEST_MINIMUM_CONFIRMED;
-            Interview.conductInterview(nodes, hanselChains, mode, highestPossibleClassification + 1);
+            Interview.conductInterview(nodes, hanselChains, interviewMode, highestPossibleClassification + 1);
 
             // visualize our results
             Visualization.makeHanselChainDOT(hanselChains);

@@ -1,6 +1,10 @@
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.List;
 import java.util.stream.Collectors;
 
 // this class is where we are going to handle anything classification related.
@@ -12,6 +16,7 @@ public class Interview {
 
     public enum InterviewMode {
         BINARY_SEARCH_CHAINS,                       // method where we just query midpoint of the chain each time. thus chopping each chain in half. we work on the longest chain at a time.
+        BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS, // basically finds the longest expansion chain, + 1 in some attribute, as far as we can go, and binary searches that chain at each step.
         BEST_MINIMUM_CONFIRMED,                     // method where we check all nodes, and determine which has the best min bound. meaning of all k classes, confirming this one as a particular class, how many nodes get confirmed. The node with the best lower bound is used each iteration.
         HIGHEST_TOTAL_UMBRELLA_SORT,                // sort by just the total amount in the umbrella. This means we find the node who's classification affects the most other nodes.
         MOST_ABOVE_UMBRELLA_SORT,
@@ -22,13 +27,17 @@ public class Interview {
 
     // mega function which determines how we are going to ask questions.
     // mode determines the question asking heuristics. umbrellaBased determines if we sort by umbrella metrics.
-    public static void conductInterview(HashMap<Integer, Node> data, ArrayList<ArrayList<Node>> hanselChains, InterviewMode mode, int numClasses) {
+    public static void conductInterview(HashMap<Integer, Node> data, 
+                                        ArrayList<ArrayList<Node>> hanselChains, 
+                                        InterviewMode mode, 
+                                        int numClasses) {
 
         ArrayList<Node> allNodes = new ArrayList<>();
         // for each node, we are going to put in that node, and it's number of expansions as a pair.
         allNodes.addAll(data.values());
 
         switch (mode){
+            // all these go to umbrella sort, since it's the same interview, just different sorting technique.
             case InterviewMode.HIGHEST_TOTAL_UMBRELLA_SORT:
             case InterviewMode.MOST_ABOVE_UMBRELLA_SORT:
             case InterviewMode.MOST_BELOW_UMBRELLA_SORT:
@@ -36,9 +45,17 @@ public class Interview {
             case InterviewMode.BEST_BALANCE_RATIO_UMBRELLA_SORT:
                 umbrellaSortInterview(allNodes, mode, numClasses);
                 break;
+            
             case InterviewMode.BINARY_SEARCH_CHAINS:
                 cutMiddleOfChainInterview(hanselChains);
                 break;
+            
+            case InterviewMode.BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS:
+                // our root node is easy to find. it's the node with [0,0,...,0] since our hash function
+                // is that value, we can just know that we look up 0 to find it.
+                binarySearchStringOfExpansionsInterview(allNodes, data.get(0));
+                break;
+            
             case InterviewMode.BEST_MINIMUM_CONFIRMED:
                 bestMinConfirmedInterview(allNodes, numClasses);
                 break;
@@ -191,6 +208,88 @@ public class Interview {
         System.out.println("TOTAL NODES:\t" + totalNodes);
     }
 
+    private static void binarySearchStringOfExpansionsInterview(ArrayList<Node> allNodes, Node rootNode) {
+        int totalNodes = (int) allNodes.stream()
+            .count();
+        int questionsAsked = 0;
+
+        while (true) {
+            // Collect still alive nodes
+            List<Node> aliveNodes = allNodes.parallelStream()
+                .filter(n -> !n.classificationConfirmed)
+                .collect(Collectors.toList());
+
+            if (aliveNodes.isEmpty()) 
+                break;
+
+            // Find the longest chain among alive nodes.
+            // NOT a hansel chain necessarily. Thought it could be technically a hansel chain?
+            // but just a string of Nodes which are all + 1 in some attribute from another.
+            // just the longest string of dominoes.
+            ArrayList<Node> longestChain = findLongestStringOfExpansionsHelper(rootNode);
+
+            if (longestChain.isEmpty()) 
+                break; // safety
+
+            // Take the middle node of the longest chain
+            Node middleNode = longestChain.get(longestChain.size() / 2);
+
+            // Query expert or ML
+            middleNode.classification = (EXPERT_MODE)
+                ? questionExpert(middleNode)
+                : questionML(middleNode);
+
+            // Permeate classification
+            middleNode.permeateClassification();
+            questionsAsked++;
+        }
+        System.out.println("QUESTIONS ASKED:\t" + questionsAsked);
+        System.out.println("TOTAL NODES:\t" + totalNodes);
+    }
+
+    // Helper method. what this does is simple. It does a DFS from this node, returning the longest path before a dead end.
+    // could be the end, the top node, or it could just be a node where all it's neighbors are confirmed. we are returning the longest
+    // dfs, of STILL UNCONFIRMED nodes. This is useful so that we can use all of these lists, and binary search whichever is longest.
+    // could most likely be made more efficient with some kind of dynamic programming version if time becomes an issue!
+    private static ArrayList<Node> findLongestStringOfExpansionsHelper(Node bottom) {
+        ArrayList<Node> globalBest = new ArrayList<>();
+
+        Deque<Node> stack = new ArrayDeque<>();
+        Deque<ArrayList<Node>> pathStack = new ArrayDeque<>();
+
+        stack.push(bottom);
+        pathStack.push(new ArrayList<>(List.of(bottom)));
+
+        while (!stack.isEmpty()) {
+            Node current = stack.pop();
+            ArrayList<Node> path = pathStack.pop();
+
+            boolean extended = false;
+            for (Node neighbor : current.upExpansions) {
+                if (neighbor == null) continue;
+
+                ArrayList<Node> newPath = new ArrayList<>(path);
+                newPath.add(neighbor);
+
+                stack.push(neighbor);
+                pathStack.push(newPath);
+                extended = true;
+            }
+
+            if (!extended) {
+                // We've reached a dead end. Run the splitting helper on this single path
+                ArrayList<ArrayList<Node>> chunks = splitChunkIntoPiecesHelper(path);
+
+                for (ArrayList<Node> chunk : chunks) {
+                    if (chunk.size() > globalBest.size()) {
+                        globalBest = chunk;
+                    }
+                }
+            }
+        }
+
+        return globalBest;
+    }
 
     // splits a list of nodes (part or whole hansel chain) on nodes which are confirmed
     private static ArrayList<ArrayList<Node>> splitChunkIntoPiecesHelper(ArrayList<Node> chunk) {
