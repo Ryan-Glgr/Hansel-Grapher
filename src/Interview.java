@@ -1,10 +1,9 @@
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 // this class is where we are going to handle anything classification related.
@@ -226,7 +225,8 @@ public class Interview {
             // NOT a hansel chain necessarily. Thought it could be technically a hansel chain?
             // but just a string of Nodes which are all + 1 in some attribute from another.
             // just the longest string of dominoes.
-            ArrayList<Node> longestChain = findLongestStringOfExpansionsHelper(rootNode);
+            ArrayList<Node> longestChain = findLongestStringOfExpansions(aliveNodes);
+            // ArrayList<Node> longestChain = findLongestStringOfExpansionsHelper(rootNode);
 
             if (longestChain.isEmpty()) 
                 break; // safety
@@ -247,48 +247,83 @@ public class Interview {
         System.out.println("TOTAL NODES:\t" + totalNodes);
     }
 
-    // Helper method. what this does is simple. It does a DFS from this node, returning the longest path before a dead end.
-    // could be the end, the top node, or it could just be a node where all it's neighbors are confirmed. we are returning the longest
-    // dfs, of STILL UNCONFIRMED nodes. This is useful so that we can use all of these lists, and binary search whichever is longest.
-    // could most likely be made more efficient with some kind of dynamic programming version if time becomes an issue!
-    private static ArrayList<Node> findLongestStringOfExpansionsHelper(Node bottom) {
-        ArrayList<Node> globalBest = new ArrayList<>();
+    // ALL NODES IS ONLY THE UNCONFIRMED NODES AT THIS STEP OF INTERVIEW!
+    // This returns the longest possible chain of expansions at this stage of our interview. IMPORTANT: this is NOT a hansel chain, but rather just a chain of Nodes which are + 1 from one another. They could and will be all in different chains all over the place.
+    private static ArrayList<Node> findLongestStringOfExpansions(List<Node> allNodes) {
+        
+        /*
+         * Build our longest possible path like this:
+         * 
+         * - find all our LEAVES (nodes with no unconfirmed neighbors in upExpansions. Up and down are interchangeable in this algorithm, you just have to use whichever one consistently).
+         *      - initialize them with a length of 1.
+         * - iteratively, kind of like a Bellman-Ford, we check each node, and check if we can put a bigger length on it. We do this just by checking if any of it's upExpansions have a larger value than what we have.
+         *     - if we find a bigger length, we update it.
+         * - Then we go through and rebuild our path by finding the node at each step with the longest possible length.
+         */ 
 
-        Deque<Node> stack = new ArrayDeque<>();
-        Deque<ArrayList<Node>> pathStack = new ArrayDeque<>();
+        // map: longest chain length starting at each node
+        Map<Node, Integer> longestPossibleChainOfExpansionsForEachNode = new HashMap<>();
 
-        stack.push(bottom);
-        pathStack.push(new ArrayList<>(List.of(bottom)));
-
-        while (!stack.isEmpty()) {
-            Node current = stack.pop();
-            ArrayList<Node> path = pathStack.pop();
-
-            boolean extended = false;
-            for (Node neighbor : current.upExpansions) {
-                if (neighbor == null) continue;
-
-                ArrayList<Node> newPath = new ArrayList<>(path);
-                newPath.add(neighbor);
-
-                stack.push(neighbor);
-                pathStack.push(newPath);
-                extended = true;
+        // Step 1: initialize leaves (no unconfirmed upstairs neighbors) with a length of 1.
+        for (Node n : allNodes) {
+            boolean isTerminal = Arrays.stream(n.upExpansions)
+                .allMatch(nb -> nb == null || nb.classificationConfirmed);
+            if (isTerminal) {
+                longestPossibleChainOfExpansionsForEachNode.put(n, 1);
             }
+        }
 
-            if (!extended) {
-                // We've reached a dead end. Run the splitting helper on this single path
-                ArrayList<ArrayList<Node>> chunks = splitChunkIntoPiecesHelper(path);
+        // Step 2: iteratively update each node's longest length, until we have no progress.
+        boolean progress = true;
+        while (progress) {
+            progress = false;
 
-                for (ArrayList<Node> chunk : chunks) {
-                    if (chunk.size() > globalBest.size()) {
-                        globalBest = chunk;
-                    }
+            for (Node n : allNodes) {
+
+                int bestNeighbor = Arrays.stream(n.upExpansions)
+                    .filter(nb -> nb != null && !nb.classificationConfirmed)
+                    .mapToInt(nb -> longestPossibleChainOfExpansionsForEachNode.getOrDefault(nb, 0))
+                    .max()
+                    .orElse(0);
+
+                // if our best neighbor is not 0, we check if it is better than what we had.
+                int newVal = (bestNeighbor > 0) ? bestNeighbor + 1 : 0;
+                int oldVal = longestPossibleChainOfExpansionsForEachNode.getOrDefault(n, 0);
+
+                // if our new value is better than what we had, put that in.
+                if (newVal > oldVal) {
+                    longestPossibleChainOfExpansionsForEachNode.put(n, newVal);
+                    progress = true;
                 }
             }
         }
 
-        return globalBest;
+        // Step 3: pick starting node with the max value from our input list.
+        Node bestNode = longestPossibleChainOfExpansionsForEachNode.entrySet().stream()
+            .max(Comparator.comparingInt(Map.Entry::getValue))
+            .map(Map.Entry::getKey)
+            .orElse(null);
+
+        // if we didn't have one just get out of here.
+        if (bestNode == null) 
+            return new ArrayList<>();
+
+        // Step 4: reconstruct path greedily
+        ArrayList<Node> path = new ArrayList<>();
+        Node current = bestNode;
+        while (current != null && longestPossibleChainOfExpansionsForEachNode.containsKey(current)) {
+            path.add(current);
+
+            // pick the next node from my down expansions. We want that with the highest count at each step This is the DP approach.
+            Node next = Arrays.stream(current.upExpansions)
+                .filter(nb -> nb != null && !nb.classificationConfirmed)
+                .max(Comparator.comparingInt(nb -> longestPossibleChainOfExpansionsForEachNode.getOrDefault(nb, 0)))
+                .orElse(null);
+
+            current = next;
+        }
+
+        return path;
     }
 
     // splits a list of nodes (part or whole hansel chain) on nodes which are confirmed

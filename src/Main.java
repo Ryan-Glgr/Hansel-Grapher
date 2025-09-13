@@ -3,7 +3,7 @@ import java.util.HashMap;
 
 public class Main {
 
-    public static Integer[] kValues = {3, 3, 4, 3, 4};
+    public static Integer[] kValues = {3, 3, 5, 3, 5, 4};
     
     // Calculate the highest possible classification at compile time
     // This uses the same logic as questionExpert: sum of max values / dimension
@@ -28,7 +28,7 @@ public class Main {
         System.exit(0);
     }
 
-    // TODO
+    // TODO:
     // make a meta version of the interview which combines heuristics?
     // make a version which can benefit from there being less chains, though some will be tiny.
     //      right now we are hung up by the fact that we have less chains, but a lot are one point chains. so we have to check all of them at the end?
