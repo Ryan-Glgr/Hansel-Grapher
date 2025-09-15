@@ -51,7 +51,7 @@ public class Node {
     public float balanceRatio;
 
     // takes in a datapoint, and makes a copy of that and stores that as our "point"
-    public Node(Integer[] datapoint, int numClasses){
+    private Node(Integer[] datapoint, int numClasses){
         // copy the passed in datapoint to this node's point.
         values = Arrays.copyOf(datapoint, datapoint.length);
         
@@ -260,6 +260,7 @@ public class Node {
         return sum;
     }
 
+    // does a BFS from each node, updating rankings as we go. Ranking are umbrella size and the minimum classifications.
     public static void updateNodeRankings(ArrayList<Node> allNodes, int numClasses) {
 
         for(Node n : allNodes) {
@@ -269,13 +270,17 @@ public class Node {
             Arrays.fill(n.possibleConfirmationsByClass, 0);
         }
         // update the node stats for above and below cases.
-        allNodes.parallelStream().forEach(n -> n.updateNodeStatistics(false, numClasses));
-        allNodes.parallelStream().forEach(n -> n.updateNodeStatistics(true, numClasses));
+        allNodes.parallelStream()
+            .forEach(n -> n.updateNodeStatistics(false, numClasses));
+        allNodes.parallelStream()
+            .forEach(n -> n.updateNodeStatistics(true, numClasses));
         
-        allNodes.parallelStream().forEach(n -> n.totalUmbrellaCases = n.aboveUmbrellaCases + n.underneathUmbrellaCases);
+        allNodes.parallelStream()
+            .forEach(n -> n.totalUmbrellaCases = n.aboveUmbrellaCases + n.underneathUmbrellaCases);
         
         // compute the new balance ratio for each node. this is defined as the total umbrella size, divided by the difference in up/down size.
-        allNodes.parallelStream().forEach(n -> n.setBalanceFactor());
+        allNodes.parallelStream()
+            .forEach(n -> n.setBalanceFactor());
     }
 
     // Calculate umbrella size using proper graph traversal to avoid double counting
@@ -358,7 +363,6 @@ public class Node {
         }
         return distance;
     }
-
 
     // compute the "balance factor" for a node.
     private void setBalanceFactor() {

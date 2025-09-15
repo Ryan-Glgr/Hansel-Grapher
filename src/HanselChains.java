@@ -11,6 +11,8 @@ public class HanselChains{
     private static final int THREAD_COUNT = Runtime.getRuntime().availableProcessors();
     private static final ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT);
 
+
+    private static boolean cascadingIsomorphicAdjustment = true;
     // true for ryan version, false for harlow version.
     // difference is this:
     //      harlow version takes the ends of each chain which was copied from an original, and puts them at the end of the original.
@@ -18,7 +20,7 @@ public class HanselChains{
 
     // function to create our chains
     public static ArrayList<ArrayList<Node>> generateHanselChainSet(
-            Integer[] kValues, HashMap<Integer, Node> nodes, boolean cascadingIsomorphicAdjustment) {
+            Integer[] kValues, HashMap<Integer, Node> nodes) {
 
         ArrayList<ArrayList<Node>> hanselChainSet = new ArrayList<>();
 
@@ -42,8 +44,7 @@ public class HanselChains{
                 .flatMap(chain -> copyChainAndAdjustCopies(nodes, 
                     chain, 
                     digitFinalBecauseJavaSucks, 
-                    kValues[digitFinalBecauseJavaSucks], 
-                    cascadingIsomorphicAdjustment)
+                    kValues[digitFinalBecauseJavaSucks])
                 .stream())
                 .collect(Collectors.toCollection(ArrayList::new));
         }
@@ -58,7 +59,7 @@ public class HanselChains{
         return hanselChainSet;
     }
 
-    private static ArrayList<ArrayList<Node>> copyChainAndAdjustCopies(HashMap<Integer, Node> nodes, ArrayList<Node> original, int digit, int kValue, boolean cascadingIsomorphicAdjustment) {
+    private static ArrayList<ArrayList<Node>> copyChainAndAdjustCopies(HashMap<Integer, Node> nodes, ArrayList<Node> original, int digit, int kValue) {
 
         ArrayList<ArrayList<Node>> group = new ArrayList<>();
 
@@ -131,7 +132,6 @@ public class HanselChains{
         // Remove any chains that became empty
         group.removeIf(List::isEmpty);
     }
-
 
     // simple helper which checks that all the nodes of a chain have a hamming distance of + 1 from the next.
     private static boolean checkValidChain(ArrayList<Node> chain) {

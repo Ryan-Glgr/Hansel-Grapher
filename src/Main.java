@@ -3,7 +3,7 @@ import java.util.HashMap;
 
 public class Main {
 
-    public static Integer[] kValues = {3, 3, 5, 3, 5, 4};
+    public static Integer[] kValues = {6, 5, 4, 5, 6};
     
     // Calculate the highest possible classification at compile time
     // This uses the same logic as questionExpert: sum of max values / dimension
@@ -23,7 +23,7 @@ public class Main {
 
         // TODO: DETERMINE WHICH WAY MOEKA WORKS. THEN DEBATE WITH DR K WHICH WAY MAKES SENSE.
         boolean isomorphicAdjustmentCascadingStyle = true;
-        makeClassifyAndSaveNodes(Interview.InterviewMode.BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS, isomorphicAdjustmentCascadingStyle);
+        makeClassifyAndSaveNodes(Interview.InterviewMode.BEST_MINIMUM_CONFIRMED, isomorphicAdjustmentCascadingStyle);
 
         System.exit(0);
     }
@@ -39,11 +39,10 @@ public class Main {
             // make all our nodes.
             HashMap<Integer, Node> nodes = Node.makeNodes(kValues, highestPossibleClassification + 1);
             // make the chains
-            ArrayList<ArrayList<Node>> hanselChains = HanselChains.generateHanselChainSet(kValues, nodes, isomorphicAdjustmentCascadingStyle);
+            ArrayList<ArrayList<Node>> hanselChains = HanselChains.generateHanselChainSet(kValues, nodes);
 
             System.out.println("NUMBER OF CHAINS:\t" + hanselChains.size());
             System.out.println("NUMBER OF NODES:\t" + nodes.size());
-            System.out.println("ISOMORPHIC ADJUSTMENT MODE CASCADING?:\t" + isomorphicAdjustmentCascadingStyle);
 
             // classify all our data
             Interview.conductInterview(nodes, hanselChains, interviewMode, highestPossibleClassification + 1);
@@ -53,12 +52,6 @@ public class Main {
 
             // make the expansions picture
             Visualization.makeExpansionsDOT(nodes);
-
-            // our scripting to make the pictures - start and continue
-            ProcessBuilder pb = new ProcessBuilder("./makeGraphs.sh");
-            pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
-            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
-            pb.start();
         }
         catch (Exception e){
             e.printStackTrace();
