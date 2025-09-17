@@ -30,8 +30,9 @@ public class Main {
 
     // TODO:
     // make a meta version of the interview which combines heuristics?
-    // make a version which can benefit from there being less chains, though some will be tiny.
-    //      right now we are hung up by the fact that we have less chains, but a lot are one point chains. so we have to check all of them at the end?
+    //      - A useful one might be something like using the best balanced node earlier in the interview, and then using the best min confirmed as we get further.
+    //      - Or just combining the two with some kind of weighing.
+
 
     public static void makeClassifyAndSaveNodes(Interview.InterviewMode interviewMode, boolean isomorphicAdjustmentCascadingStyle){
         try{
