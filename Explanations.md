@@ -62,7 +62,6 @@ This helper function is called FROM each node, traversing to other nodes in a BF
     }
 ```
 
-
 ### Balance Factor
 A Node's Balance Factor is the attempt to reconcile two things:
 - We want to pick a Node which has a huge umbrella, so that we get to update lots of nodes by questioning it.
@@ -92,9 +91,9 @@ Consider the following example to see an illustration of why this version outper
 
 ![BinarySearchVersions](./AlgorithmDiagrams/BinarySearchModes.drawio.png)
 
-### Isomorphic Adjustment Step Variations:
+### Isomorphic Adjustment Example:
 When creating Hansel Chains, for each digit, we take all existing chains, copy each one, and append the new digit (with each possible k value). For example, if we have a k value of 4 for a particular digit, we would make 3 new copies, and put 1, 2, 3 onto the front of each Node in the input chain which we copied. 
 
-![Isomorphic Adjustment Example](./AlgorithmDiagrams/HanselChainCreationCascadingVsNonCascading.drawio.png)
+Then, you take the end of each chain, and move it to the one previous. See Isomorphic Adjustment Example.
 
-The cascading version allows us to reduce the amount of chains. In Hansel chains with just boolean values, these would be exactly the same. But with K values for each attribute, it is an important distinction.
+![Isomorphic Adjustment Example](./AlgorithmDiagrams/IsomorphicAdjustmentExample.drawio.png)
