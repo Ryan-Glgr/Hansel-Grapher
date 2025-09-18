@@ -324,10 +324,9 @@ public class Node {
             return false;
         }
 
-        // if we are counting upwards. this is an upstairs neighbor from the node which called this on us.
+        // if we are counting upwards. this is ABOVE the node which called this on us.
         if (countingUpwards){
-            // if the neighbor got confirmed as hypothetical class, we would be confirmed, if that was already our max possible value.
-            // in the above case.
+            // if the neighbor got confirmed as hypothetical class, we would be confirmed, if that hypothetical class was already our max possible value.
             return this.maxPossibleValue == hypotheticalClass;
         }
         // if we are counting downwards. this is a downstairs neighbor. our classification is already set as the lowerbound. so if our lowerbound is the same as the node above, then we are confirmed.

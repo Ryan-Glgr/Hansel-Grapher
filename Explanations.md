@@ -38,9 +38,30 @@ This is tracked Node by Node. It is an Integer array with one entry per class in
     - Look at one individual node, say my upstairs neighbor was assigned class 2, does that confirm me as class 2 as well?
         - If so, my upstairs neighbor would count me towards its wouldBeConfirmedForClass[2] entry.
         - If my downstairs neighbor gets classified as whatever my current maxPossibleValue is, that would raise my floor, so we know that I would be confirmed in this case as well.
-    - This happens recursively of course all the way up and down.
 - Current implementation for bestMinConfirmed is to find the **MINIMUM** value in each Node's possibleConfirmationsByClass, and use whichever Node has the **MAXIMUM** of all our unconfirmed Nodes at a step in the interview.
-- This means that for whichever Node we choose, we are guaranteed to confirm **AT LEAST** as many nodes as it's **MINIMUM** possibleConfirmationsByClass entry which we sorted by. 
+
+This helper function is called FROM each node, traversing to other nodes in a BFS while we are updating Node rankings, for each possible class. This way, we are able to count from each node, how many would be confirmed for each class. Using these values, we are able to see how many Nodes we are guaranteed to classify at minimum from each Node.
+
+```
+    // determines if a neighbor would get confirmed if it's upstairs or downstairs neighbor were given "hypotheticalClass"
+    private boolean wouldBeConfirmedForClass(int hypotheticalClass, boolean countingUpwards) {
+        // return false if we're already confirmed.
+        if (this.classificationConfirmed){
+            return false;
+        }
+
+        // if we are counting upwards. this is ABOVE the node which called this on us.
+        if (countingUpwards){
+            // if the neighbor got confirmed as hypothetical class, we would be confirmed, if that class was already our max possible value.
+            return this.maxPossibleValue == hypotheticalClass;
+        }
+        // if we are counting downwards. this is BELOW the node which we are computing. our classification is already set as the lowerbound. so if our lowerbound is the same as the node's hypothetical class above, then we are confirmed.
+        else {
+            return this.classification == hypotheticalClass;
+        }
+    }
+```
+
 
 ### Balance Factor
 A Node's Balance Factor is the attempt to reconcile two things:
@@ -66,3 +87,14 @@ The longest Hansel Chain/Portion of a Hansel Chain, may not actually be the long
     - We then just use that path, and take it's middle.
 - This outperforms regular binary search, since we are not limiting ourselves to only using the Nodes as they are arranged in the Hansel Chains.
 
+Consider the following example to see an illustration of why this version outperforms the typical binary search. 
+- The highlighted in Green portions show which section would be chosen by each binary search version, respectively.
+
+![BinarySearchVersions](./AlgorithmDiagrams/BinarySearchModes.drawio.png)
+
+### Isomorphic Adjustment Step Variations:
+When creating Hansel Chains, for each digit, we take all existing chains, copy each one, and append the new digit (with each possible k value). For example, if we have a k value of 4 for a particular digit, we would make 3 new copies, and put 1, 2, 3 onto the front of each Node in the input chain which we copied. 
+
+![Isomorphic Adjustment Example](./AlgorithmDiagrams/HanselChainCreationCascadingVsNonCascading.drawio.png)
+
+The cascading version allows us to reduce the amount of chains. In Hansel chains with just boolean values, these would be exactly the same. But with K values for each attribute, it is an important distinction.
