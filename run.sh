@@ -1,19 +1,38 @@
-rm debug
+#!/usr/bin/env bash
+set -euo pipefail
 
-cd src/
-javac *.java
-java Main.java
-cat debug
+# Usage:
+#   ./run.sh         # normal mode (shows normal output; dot errors are hidden into out/dot_errors.log)
+#   ./run.sh debug   # debug mode (prints dot errors and is more verbose)
 
-echo "Compiling PDFs\n"
-dot -Tpdf expansions.dot -o expansions.pdf
-rm expansions.dot
-mv expansions.pdf ../
+DEBUG=0
+if [ "${1-}" = "debug" ]; then
+  DEBUG=1
+fi
 
-dot -Tpdf HanselChains.dot -o HanselChains.pdf
-rm HanselChains.dot
-mv HanselChains.pdf ../
+echo "=== run.sh starting (debug=${DEBUG}) ==="
 
-cd ..
-open *.pdf
+# Forward DEBUG to make so Makefile can flip dot behavior
+if [ "$DEBUG" -eq 1 ]; then
+  make all DEBUG=1
+else
+  make all DEBUG=0 >/dev/null
+  # above: silence repetitive make output in normal mode; adjust if you prefer visible make logs
+fi
 
+echo "=== running Java ==="
+java -cp bin Main
+
+echo "=== opening generated PDFs (from out/) ==="
+if [ "$DEBUG" -eq 1 ]; then
+  # debug: open normally so you can see messages from Preview (if any)
+  open out/*.pdf || true
+else
+  # normal: open in background and suppress output to keep terminal clean
+  open -g out/*.pdf >/dev/null 2>&1 || true
+  if [ -f out/dot_errors.log ] && [ -s out/dot_errors.log ]; then
+    echo "NOTE: Graphviz wrote messages to out/dot_errors.log. Run './run.sh debug' to view them."
+  fi
+fi
+
+echo "=== done ==="

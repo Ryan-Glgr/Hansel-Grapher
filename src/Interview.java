@@ -88,7 +88,7 @@ public class Interview {
             // if we are sorting by umbrella metrics, sort using our strategy.
             // this is useful if we want to find which node may impact the most other nodes at a given time.
             // go through all the nodes, and update their umbrella sizes.
-            Node.updateNodeRankings(allNodes, numClasses);
+            Node.updateAllNodeRankings(allNodes, numClasses);
 
             // sort based on our umbrella strategy
             umbrellaSortInterviewSortingHelper(nodesToAsk, umbrellaSortingStrategy);
@@ -108,8 +108,8 @@ public class Interview {
             questionsAsked++;
 
             nodesToAsk = nodesToAsk.parallelStream()
-            .filter(node -> !node.classificationConfirmed) // keep only unconfirmed nodes
-            .collect(Collectors.toCollection(ArrayList::new));
+                .filter(node -> !node.classificationConfirmed) // keep only unconfirmed nodes
+                .collect(Collectors.toCollection(ArrayList::new));
         }
         System.out.println("QUESTIONS ASKED:\t" + questionsAsked);
         System.out.println("TOTAL NODES:\t" + totalNodes);
@@ -207,9 +207,36 @@ public class Interview {
         System.out.println("TOTAL NODES:\t" + totalNodes);
     }
 
+    // splits a list of nodes (part or whole hansel chain) on nodes which are confirmed
+    private static ArrayList<ArrayList<Node>> splitChunkIntoPiecesHelper(ArrayList<Node> chunk) {
+        ArrayList<ArrayList<Node>> newChunks = new ArrayList<>();
+        ArrayList<Node> currentChunk = new ArrayList<>();
+    
+        for (Node node : chunk) {
+            if (node.classificationConfirmed) {
+                // End current chunk if we have nodes collected
+                if (!currentChunk.isEmpty()) {
+                    newChunks.add(new ArrayList<>(currentChunk));
+                    currentChunk.clear();
+                }
+                else{
+                    // Skip the confirmed node entirely
+                }
+            } else {
+                currentChunk.add(node);
+            }
+        }
+    
+        // Add last chunk if there are remaining nodes
+        if (!currentChunk.isEmpty()) {
+            newChunks.add(currentChunk);
+        }
+    
+        return newChunks;
+    }
+
     private static void binarySearchStringOfExpansionsInterview(ArrayList<Node> allNodes, Node rootNode) {
-        int totalNodes = (int) allNodes.stream()
-            .count();
+        int totalNodes = (int) allNodes.size();
         int questionsAsked = 0;
 
         while (true) {
@@ -262,14 +289,14 @@ public class Interview {
          */ 
 
         // map: longest chain length starting at each node
-        Map<Node, Integer> longestPossibleChainOfExpansionsForEachNode = new HashMap<>();
+        Map<Node, Integer> longestPossibleChainOfExpansionsForEachNodeMap = new HashMap<>();
 
         // Step 1: initialize leaves (no unconfirmed upstairs neighbors) with a length of 1.
         for (Node n : allNodes) {
             boolean isTerminal = Arrays.stream(n.upExpansions)
                 .allMatch(nb -> nb == null || nb.classificationConfirmed);
             if (isTerminal) {
-                longestPossibleChainOfExpansionsForEachNode.put(n, 1);
+                longestPossibleChainOfExpansionsForEachNodeMap.put(n, 1);
             }
         }
 
@@ -281,25 +308,25 @@ public class Interview {
             for (Node n : allNodes) {
 
                 int bestNeighbor = Arrays.stream(n.upExpansions)
-                    .filter(nb -> nb != null && !nb.classificationConfirmed)
-                    .mapToInt(nb -> longestPossibleChainOfExpansionsForEachNode.getOrDefault(nb, 0))
+                    .filter(neighbor -> neighbor != null && !neighbor.classificationConfirmed)
+                    .mapToInt(neighbor -> longestPossibleChainOfExpansionsForEachNodeMap.getOrDefault(neighbor, 0))
                     .max()
                     .orElse(0);
 
                 // if our best neighbor is not 0, we check if it is better than what we had.
                 int newVal = (bestNeighbor > 0) ? bestNeighbor + 1 : 0;
-                int oldVal = longestPossibleChainOfExpansionsForEachNode.getOrDefault(n, 0);
+                int oldVal = longestPossibleChainOfExpansionsForEachNodeMap.getOrDefault(n, 0);
 
                 // if our new value is better than what we had, put that in.
                 if (newVal > oldVal) {
-                    longestPossibleChainOfExpansionsForEachNode.put(n, newVal);
+                    longestPossibleChainOfExpansionsForEachNodeMap.put(n, newVal);
                     progress = true;
                 }
             }
         }
 
         // Step 3: pick starting node with the max value from our input list.
-        Node bestNode = longestPossibleChainOfExpansionsForEachNode.entrySet().stream()
+        Node bestNode = longestPossibleChainOfExpansionsForEachNodeMap.entrySet().stream()
             .max(Comparator.comparingInt(Map.Entry::getValue))
             .map(Map.Entry::getKey)
             .orElse(null);
@@ -311,47 +338,19 @@ public class Interview {
         // Step 4: reconstruct path greedily
         ArrayList<Node> path = new ArrayList<>();
         Node current = bestNode;
-        while (current != null && longestPossibleChainOfExpansionsForEachNode.containsKey(current)) {
+        while (current != null && longestPossibleChainOfExpansionsForEachNodeMap.containsKey(current)) {
             path.add(current);
 
             // pick the next node from my down expansions. We want that with the highest count at each step This is the DP approach.
             Node next = Arrays.stream(current.upExpansions)
                 .filter(nb -> nb != null && !nb.classificationConfirmed)
-                .max(Comparator.comparingInt(nb -> longestPossibleChainOfExpansionsForEachNode.getOrDefault(nb, 0)))
+                .max(Comparator.comparingInt(nb -> longestPossibleChainOfExpansionsForEachNodeMap.getOrDefault(nb, 0)))
                 .orElse(null);
 
             current = next;
         }
 
         return path;
-    }
-
-    // splits a list of nodes (part or whole hansel chain) on nodes which are confirmed
-    private static ArrayList<ArrayList<Node>> splitChunkIntoPiecesHelper(ArrayList<Node> chunk) {
-        ArrayList<ArrayList<Node>> newChunks = new ArrayList<>();
-        ArrayList<Node> currentChunk = new ArrayList<>();
-    
-        for (Node node : chunk) {
-            if (node.classificationConfirmed) {
-                // End current chunk if we have nodes collected
-                if (!currentChunk.isEmpty()) {
-                    newChunks.add(new ArrayList<>(currentChunk));
-                    currentChunk.clear();
-                }
-                else{
-                    // Skip the confirmed node entirely
-                }
-            } else {
-                currentChunk.add(node);
-            }
-        }
-    
-        // Add last chunk if there are remaining nodes
-        if (!currentChunk.isEmpty()) {
-            newChunks.add(currentChunk);
-        }
-    
-        return newChunks;
     }
 
     /*
@@ -373,7 +372,7 @@ public class Interview {
 
             // now sort decreasing, using our strategy. we sort descending, by a nodes minimum guaranteed classifications.
             // that is, of it's classes, whichever is the worst, we choose the one with the best floor. we are guaranteed to confirm that many at least.
-            Node.updateNodeRankings(allNodes, numClasses);            
+            Node.updateAllNodeRankings(allNodes, numClasses);            
             nodesToAsk.sort((Node x, Node y) -> {
                 return x.compareMinClassifications(y);
             });
@@ -397,7 +396,6 @@ public class Interview {
                 .collect(Collectors.toCollection(ArrayList::new));
         }
         System.out.println("QUESTIONS ASKED:\t" + questionsAsked);
-        System.out.println("TOTAL NODES:\t" + totalNodes);
     }
 
 }

@@ -11,13 +11,6 @@ public class HanselChains{
     private static final int THREAD_COUNT = Runtime.getRuntime().availableProcessors();
     private static final ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT);
 
-
-    private static boolean cascadingIsomorphicAdjustment = true;
-    // true for ryan version, false for harlow version.
-    // difference is this:
-    //      harlow version takes the ends of each chain which was copied from an original, and puts them at the end of the original.
-    //      ryan version does that, but then continues, and the 3rd chain puts its next end on the 2nd chain, and so on.
-
     // function to create our chains
     public static ArrayList<ArrayList<Node>> generateHanselChainSet(
             Integer[] kValues, HashMap<Integer, Node> nodes) {
@@ -73,11 +66,7 @@ public class HanselChains{
         }
 
         // adjust group locally
-        if (cascadingIsomorphicAdjustment) {
-            adjustEndsOfIsomorphicChainsCascading(group);
-        } else {
-            adjustEndsOfIsomorphicChainsStepNotCascading(group);
-        }
+        adjustEndsOfIsomorphicChains(group);
 
         return group;
     }
@@ -96,7 +85,7 @@ public class HanselChains{
     }
 
     // takes the end of one isomorphic chain, and moves it to the end of the next isomorphic chain. for example [0,0] - [0,1] gets [1,1] from the chain [1,0] - [1,1]..
-    private static void adjustEndsOfIsomorphicChainsCascading(ArrayList<ArrayList<Node>> group) {
+    private static void adjustEndsOfIsomorphicChains(ArrayList<ArrayList<Node>> group) {
         int n = group.size();
         if (n < 2) return;
 
@@ -109,23 +98,6 @@ public class HanselChains{
                     Node topNode = donatingChain.remove(donatingChain.size() - 1);
                     receivingChain.add(topNode);
                 }
-            }
-        }
-
-        // Remove any chains that became empty
-        group.removeIf(List::isEmpty);
-    }
-
-    // step adjustment: only chain2 → chain1, stop
-    private static void adjustEndsOfIsomorphicChainsStepNotCascading(ArrayList<ArrayList<Node>> group) {
-        if (group.size() < 2) return;
-
-        ArrayList<Node> recipient = group.get(0);
-        for (int i = 1; i < group.size(); i++) {
-            ArrayList<Node> donor = group.get(i);
-            if (!donor.isEmpty()) {
-                Node moved = donor.remove(donor.size() - 1);
-                recipient.add(moved);
             }
         }
 

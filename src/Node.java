@@ -261,7 +261,7 @@ public class Node {
     }
 
     // does a BFS from each node, updating rankings as we go. Ranking are umbrella size and the minimum classifications.
-    public static void updateNodeRankings(ArrayList<Node> allNodes, int numClasses) {
+    public static void updateAllNodeRankings(ArrayList<Node> allNodes, int numClasses) {
 
         for(Node n : allNodes) {
             n.aboveUmbrellaCases = 0;

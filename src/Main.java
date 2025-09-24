@@ -3,7 +3,7 @@ import java.util.HashMap;
 
 public class Main {
 
-    public static Integer[] kValues = {6, 5, 4, 5, 6};
+    public static Integer[] kValues = {3, 4, 6, 3, 8, 3, 4};
     
     // Calculate the highest possible classification at compile time
     // This uses the same logic as questionExpert: sum of max values / dimension
@@ -21,9 +21,7 @@ public class Main {
 
     public static void main(String[] args) {
 
-        // TODO: DETERMINE WHICH WAY MOEKA WORKS. THEN DEBATE WITH DR K WHICH WAY MAKES SENSE.
-        boolean isomorphicAdjustmentCascadingStyle = true;
-        makeClassifyAndSaveNodes(Interview.InterviewMode.BEST_MINIMUM_CONFIRMED, isomorphicAdjustmentCascadingStyle);
+        makeClassifyAndSaveNodes(Interview.InterviewMode.BEST_MINIMUM_CONFIRMED);
 
         System.exit(0);
     }
@@ -34,7 +32,7 @@ public class Main {
     //      - Or just combining the two with some kind of weighing.
 
 
-    public static void makeClassifyAndSaveNodes(Interview.InterviewMode interviewMode, boolean isomorphicAdjustmentCascadingStyle){
+    public static void makeClassifyAndSaveNodes(Interview.InterviewMode interviewMode){
         try{
             
             // make all our nodes.
