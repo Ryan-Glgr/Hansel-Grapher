@@ -1,9 +1,11 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 
 public class Main {
 
-    public static Integer[] kValues = {3, 4, 6, 3, 8, 3, 4};
+    public static Integer[] kValues = {3, 4, 6, 3};
     
     // Calculate the highest possible classification at compile time
     // This uses the same logic as questionExpert: sum of max values / dimension
@@ -34,9 +36,10 @@ public class Main {
 
     public static void makeClassifyAndSaveNodes(Interview.InterviewMode interviewMode){
         try{
-            
+            int numClasses = highestPossibleClassification + 1;
+
             // make all our nodes.
-            HashMap<Integer, Node> nodes = Node.makeNodes(kValues, highestPossibleClassification + 1);
+            HashMap<Integer, Node> nodes = Node.makeNodes(kValues, numClasses);
             // make the chains
             ArrayList<ArrayList<Node>> hanselChains = HanselChains.generateHanselChainSet(kValues, nodes);
 
@@ -44,7 +47,40 @@ public class Main {
             System.out.println("NUMBER OF NODES:\t" + nodes.size());
 
             // classify all our data
-            Interview.conductInterview(nodes, hanselChains, interviewMode, highestPossibleClassification + 1);
+            Interview.conductInterview(nodes, hanselChains, interviewMode, numClasses);
+
+            // find our low units
+            ArrayList<ArrayList<Node>> lowUnits = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
+            int numberOfLowUnits = lowUnits.stream().mapToInt(ArrayList::size).sum();
+            System.out.println("TOTAL NUMBER OF LOW UNITS:\t" + numberOfLowUnits);
+
+            for (int classification = 0; classification < numClasses; classification++) {
+                System.out.println("NUMBER OF LOW UNITS FOR CLASS " + classification + ":\t" 
+                                + lowUnits.get(classification).size());
+
+                // map each node to Arrays.toString(node.values) and collect to a list
+                List<String> valuesStrings = lowUnits.get(classification).stream()
+                                                    .map(node -> Arrays.toString(node.values) + "\n")
+                                                    .toList();
+
+                System.out.println("LOW UNITS FOR CLASS " + classification + ":\t" + valuesStrings);
+            }
+
+            ArrayList<ArrayList<Node>> adjustedLowUnits = HanselChains.removeUselessLowUnits(lowUnits);
+            int numberOfAdjustedLowUnits = adjustedLowUnits.stream().mapToInt(ArrayList::size).sum();
+            System.out.println("\nTOTAL NUMBER OF ADJUSTED LOW UNITS:\t" + numberOfAdjustedLowUnits);
+
+            for (int classification = 0; classification < numClasses; classification++) {
+                System.out.println("NUMBER OF LOW UNITS FOR CLASS " + classification + ":\t" 
+                                + adjustedLowUnits.get(classification).size());
+
+                List<String> valuesStrings = adjustedLowUnits.get(classification).stream()
+                                                            .map(node -> Arrays.toString(node.values) + "\n")
+                                                            .toList();
+
+                System.out.println("LOW UNITS FOR CLASS " + classification + ":\t" + valuesStrings);
+            }
+
 
             // visualize our results
             Visualization.makeHanselChainDOT(hanselChains);

@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
@@ -120,6 +121,75 @@ public class HanselChains{
         return true;
     }
     
+    // takes in our fully classified data, and just finds the low units in each chain.
+    public static ArrayList<ArrayList<Node>> findLowUnitsForEachClass(ArrayList<ArrayList<Node>> hanselChainSet, int numClasses) {
+        
+        ArrayList<ArrayList<Node>> lowUnits = new ArrayList<>();
+        for (int i = 0; i < numClasses; i++) {
+            lowUnits.add(new ArrayList<>());
+        }
+
+        for(ArrayList<Node> chain : hanselChainSet){
+            Node[] lowestNodeInEachClassInsideThisChain = new Node[numClasses];
+            
+            // take the FIRST occurence of each class in the chain as the low unit for the
+            for (Node node : chain) {
+                if (lowestNodeInEachClassInsideThisChain[node.classification] == null) {
+                    lowestNodeInEachClassInsideThisChain[node.classification] = node;
+                }
+            }
+            
+            // add the lowest node of each class to our set of low units.
+            for(Node lowUnit : lowestNodeInEachClassInsideThisChain){
+                if(lowUnit != null){
+                    // get this particular low unit's class, and add it to that classes list of low units.
+                    lowUnits.get(lowUnit.classification).add(lowUnit);
+                }
+            }
+        }
+        return lowUnits;
+    }
+
+    public static ArrayList<ArrayList<Node>> removeUselessLowUnits(ArrayList<ArrayList<Node>> lowUnits) {
+
+        ArrayList<ArrayList<Node>> newLowUnits = new ArrayList<>();
+        for (int i = 0; i < lowUnits.size(); i++) {
+            newLowUnits.add(new ArrayList<>());
+        }
+
+        boolean dominatingInAnUpwardFashion = true; // meaning that "otherNode" is dominating from the top...                                                                                   pause
+
+        for (int classification = 0; classification < lowUnits.size(); classification++) {
+            // add all the low units for this class
+            newLowUnits.get(classification).addAll(lowUnits.get(classification));
+
+            HashSet<Node> nodesWhichAreNotNeeded = new HashSet<>();
+
+            // for each node, if it is totally dominated by any of the other nodes, we know that we can remove that other node which is dominating us.
+            for (Node node : lowUnits.get(classification)) {
+                for (Node otherNode : lowUnits.get(classification)) {
+                    if (node != otherNode) {
+                        if (node.isDominatedBy(otherNode, true)) {
+                            nodesWhichAreNotNeeded.add(otherNode);
+                        }
+                    }
+                }
+            }
+
+            // go backwards through the list so we can safely remove by index
+            for (int nodePosition = newLowUnits.get(classification).size() - 1; nodePosition >= 0; nodePosition--) {
+                // if this node has been marked as "dominating" another node, we can remove it. it's not really a low unit. just a low unit in it's own chain.
+                Node node = newLowUnits.get(classification).get(nodePosition);
+
+                if (nodesWhichAreNotNeeded.contains(node)) {
+                    newLowUnits.get(classification).remove(nodePosition);
+                }
+            }
+        }
+
+        return newLowUnits;
+    }
+
     // Clean up thread pool when done
     public static void shutdown() {
         executor.shutdown();
