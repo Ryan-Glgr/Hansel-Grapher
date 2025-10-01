@@ -61,10 +61,19 @@ public class Interview {
         }
     }
 
+
+    // just use the weights from main for simple magic function testing.
+    public static Float[] kValueWeights = Main.weights;
+
     // asks the "expert" what the classification of this datapoint is.
     private static int questionExpert(Node datapoint){
         // for now, we will just say classification is sum of digits / dimension to keep it simple.
-        return datapoint.sum / Node.dimension;
+        // return datapoint.sum / Node.dimension;
+        int sum = 0;
+        for (int i = 0; i < Node.dimension; i++){
+            sum += (int)(datapoint.values[i] * kValueWeights[i]);
+        }
+        return sum / Node.dimension;
     }
     
     private static int questionML(Node datapoint){
@@ -395,6 +404,7 @@ public class Interview {
                 .filter(node -> !node.classificationConfirmed) // keep only unconfirmed nodes
                 .collect(Collectors.toCollection(ArrayList::new));
         }
+        System.out.println("TOTAL NODES:\t" + totalNodes);
         System.out.println("QUESTIONS ASKED:\t" + questionsAsked);
     }
 

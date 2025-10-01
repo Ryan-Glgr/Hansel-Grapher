@@ -23,6 +23,22 @@ fi
 echo "=== running Java ==="
 java -cp bin Main
 
+
+echo "=== generating PDFs from .dot files ==="
+for dotfile in out/*.dot; do
+    pdf="${dotfile%.dot}.pdf"
+    if [ "$DEBUG" -eq 1 ]; then
+        dot -Tpdf "$dotfile" -o "$pdf"
+    else
+        dot -Tpdf "$dotfile" -o "$pdf" 2>> out/dot_errors.log || true
+    fi
+
+    # optional cleanup
+    if [ -f "$pdf" ]; then
+        rm "$dotfile"
+    fi
+done
+
 echo "=== opening generated PDFs (from out/) ==="
 if [ "$DEBUG" -eq 1 ]; then
   # debug: open normally so you can see messages from Preview (if any)

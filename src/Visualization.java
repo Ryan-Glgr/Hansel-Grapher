@@ -1,11 +1,10 @@
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.awt.Color;
-
-;
 
 public class Visualization {
     
@@ -31,122 +30,166 @@ public class Visualization {
         return newOrdering;
     }
 
+    // Generate a color for a given classification using HSV color space
+    private static String getColorForClass(int classification) {
+            // Use golden ratio to space out hues nicely
+            float goldenRatio = 0.618033988749895f;
+            
+            // Generate hue by spacing classifications evenly and offsetting by golden ratio
+            float hue = (classification * goldenRatio) % 1.0f;
+            
+            // Keep saturation and value high for vibrant, distinct colors
+            float saturation = 0.7f;
+            float value = 0.95f;
+            
+            // Convert HSV to RGB
+            int rgb = Color.HSBtoRGB(hue, saturation, value);
+            Color color = new Color(rgb);
+            
+            // Convert to hex format for DOT
+            return String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue());
+        }
+    
+    // --- Constants ---
+    private static final String NODE_SHAPE = "rectangle";
 
-    // takes all our nodes, and writes them to a DOT file, so we can visualize all the expansions.
-    public static void makeExpansionsDOT(HashMap<Integer, Node> allNodes) throws IOException{
-        
+    // Unicode floor symbols
+    private static final char LEFT_FLOOR = '\u230A';
+    private static final char RIGHT_FLOOR = '\u230B';
+
+    // --- Escaping helper ---
+    private static final String escapeQuote(String s) {
+        return s == null ? "" : s.replace("\"", "\\\"");
+    }
+
+    // --- Low-unit classification highlight ---
+    private static String highlightClassification(Node temp, boolean isLow, int maxClassificationLength) {
+        String cls = String.valueOf(temp.classification);
+        if (isLow) {
+            // wrap with floor symbols
+            return LEFT_FLOOR + cls + RIGHT_FLOOR;
+        } else {
+            // pad with spaces to align visually
+            int pad = maxClassificationLength - cls.length();
+            int left = pad / 2;
+            int right = pad - left;
+            return " ".repeat(left) + cls + " ".repeat(right);
+        }
+    }
+
+    // --- Shared node-writing helper ---
+    private static void writeNode(FileWriter fw, Node temp, boolean isLow, int maxClassificationLength) throws IOException {
+        StringBuilder attr = new StringBuilder();
+        String label = nodeLabel(temp, isLow, maxClassificationLength);
+        attr.append("label = \"").append(escapeQuote(label)).append("\"");        
+        String nodeColor = getColorForClass(temp.classification);
+
+        attr.append("label = \"").append(escapeQuote(label)).append("\"");
+        attr.append(", shape = ").append(NODE_SHAPE);
+        attr.append(", style = filled");
+        attr.append(", fillcolor = \"").append(nodeColor).append("\"");
+
+        fw.write(temp.hashCode() + " [" + attr.toString() + "];\n\t");
+    }
+
+    private static String nodeLabel(Node temp, boolean isLow, int maxClassificationLength) {
+
+        String cls = String.valueOf(temp.classification);
+        if (!isLow) {
+            int pad = maxClassificationLength - cls.length();
+            int left = pad / 2;
+            int right = pad - left;
+            cls = " ".repeat(left) + cls + " ".repeat(right);
+        } else {
+            cls = LEFT_FLOOR + cls + RIGHT_FLOOR; // or bold if you want
+        }
+
+        // 2. Values array line
+        String valuesLine = Arrays.toString(temp.values);
+
+        // 3. Combine into multi-line DOT label
+        return valuesLine + "\\nClassification: " + cls;
+    }
+
+
+    // --- makeExpansionsDOT ---
+    public static void makeExpansionsDOT(HashMap<Integer, Node> allNodes, ArrayList<ArrayList<Node>> lowUnitsByClass) throws IOException {
+        HashSet<Node> lowSet = new HashSet<>();
+        if (lowUnitsByClass != null)
+            for (ArrayList<Node> listForClass : lowUnitsByClass)
+                if (listForClass != null) lowSet.addAll(listForClass);
+
+        int maxClassificationLength = allNodes.values().stream()
+                .mapToInt(n -> String.valueOf(n.classification).length())
+                .max().orElse(1);
+
         Integer[] kValsToMakeNode = Node.counterInitializer();
-        
-        // now that we have our node, we can just mark all it's UP expansions. we already have the nodes made, we are just marking them.
-        HashMap<Node, Node> usedNodes = new HashMap<>();    
-        File DOTfile = new File("Expansions.dot");
-        FileWriter fw = new FileWriter(DOTfile);
+        HashMap<Node, Node> usedNodes = new HashMap<>();
+        FileWriter fw = new FileWriter("out/Expansions.dot");
         fw.write("digraph G {\n\trankdir = BT;\n\tbgcolor = white;\n\t");
 
-        while(Node.incrementCounter(kValsToMakeNode)){
-            // get the node which corresponds to this combination of digits
+        while (Node.incrementCounter(kValsToMakeNode)) {
             Node temp = allNodes.get(Node.hash(kValsToMakeNode));
-            
-            // if we haven't used temp yet, it has to go into the file.
-            if (usedNodes.get(temp) == null){
-                String nodeName = temp.toString();
-                String nodeColor = getColorForClass(temp.classification);
-                fw.write(temp.hashCode() + " [label = \"" + nodeName + "\", shape = rectangle, style = filled, fillcolor = \"" + nodeColor + "\"];\n\t");
+            if (!usedNodes.containsKey(temp)) {
+                usedNodes.put(temp, temp);
+                writeNode(fw, temp, lowSet.contains(temp), maxClassificationLength);
             }
 
-            // put all the neighbors into the pile if they are not used yet.
-            for(Node ex : temp.upExpansions){
-                
-                if (ex == null)
-                    continue;
-
-                if (usedNodes.get(ex) == null){
+            for (Node ex : temp.upExpansions) {
+                if (ex == null) continue;
+                if (!usedNodes.containsKey(ex)) {
                     usedNodes.put(ex, ex);
-                    
-                    // write our node into the DOT file now.
-                    String nodeName = ex.toString();
-                    String nodeColor = getColorForClass(ex.classification);
-                    
-                    // writing the expanded value into the file before we try to make the edge to it.
-                    fw.write(ex.hashCode() + " [label = \"" + nodeName + "\", shape = rectangle, style = filled, fillcolor = \"" + nodeColor + "\"];\n\t");
+                    writeNode(fw, ex, lowSet.contains(ex), maxClassificationLength);
                 }
-
-                // now we make the edge between temp and ex.
-                fw.write(temp.hashCode() + " -> " + ex.hashCode() + " [dir = both, color = black, arrowhead = vee, penwdith = 2]\n\t");
+                fw.write(temp.hashCode() + " -> " + ex.hashCode() +
+                        " [dir = both, color = black, arrowhead = vee, penwidth = 2];\n\t");
             }
         }
+
         fw.write("}");
         fw.close();
     }
 
-    // Generate a color for a given classification using HSV color space
-    private static String getColorForClass(int classification) {
-        // Use golden ratio to space out hues nicely
-        float goldenRatio = 0.618033988749895f;
-        
-        // Generate hue by spacing classifications evenly and offsetting by golden ratio
-        float hue = (classification * goldenRatio) % 1.0f;
-        
-        // Keep saturation and value high for vibrant, distinct colors
-        float saturation = 0.7f;
-        float value = 0.95f;
-        
-        // Convert HSV to RGB
-        int rgb = Color.HSBtoRGB(hue, saturation, value);
-        Color color = new Color(rgb);
-        
-        // Convert to hex format for DOT
-        return String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue());
-    }
+    // --- makeHanselChainDOT ---
+    public static void makeHanselChainDOT(ArrayList<ArrayList<Node>> chains, ArrayList<ArrayList<Node>> lowUnitsByClass) throws IOException {
+        chains = sortChainsForVisualization(chains);
 
-// takes our already created nodes, and calls our HC generation function. then makes a simple visualization just like we had for the expansions.
-public static void makeHanselChainDOT(ArrayList<ArrayList<Node>> chains) throws IOException{
-    
-    chains = sortChainsForVisualization(chains);
+        HashSet<Node> lowSet = new HashSet<>();
+        if (lowUnitsByClass != null)
+            for (ArrayList<Node> listForClass : lowUnitsByClass)
+                if (listForClass != null) lowSet.addAll(listForClass);
 
-    File DOTfile = new File("HanselChains.dot");
-    FileWriter fw = new FileWriter(DOTfile);
-    fw.write("digraph G {\n\trankdir = BT;\n\tbgcolor = white;\n\t");
+        int maxClassificationLength = chains.stream()
+                .flatMap(ArrayList::stream)
+                .mapToInt(n -> String.valueOf(n.classification).length())
+                .max().orElse(1);
 
-    // NEW: collect the middle node of each chain for rank = same
-    ArrayList<Node> middleNodes = new ArrayList<>();
+        FileWriter fw = new FileWriter("out/HanselChains.dot");
+        fw.write("digraph G {\n\trankdir = BT;\n\tbgcolor = white;\n\t");
 
-    // iterate each hansel chain. we know that each point SHOULD appear exactly once. so no need for a used map.
-    // we just write the node, then the target to the next one if there is one.
-    for(ArrayList<Node> chain : chains){
+        ArrayList<Node> middleNodes = new ArrayList<>();
 
-        // grab the middle node
-        int midIndex = chain.size() / 2;
-        middleNodes.add(chain.get(midIndex));
+        for (ArrayList<Node> chain : chains) {
+            middleNodes.add(chain.get(chain.size() / 2));
 
-        // iterate through the chain. write the node, then the one on top. 
-        for(Node temp : chain){
-            String nodeName = temp.toString();
-            String nodeColor = getColorForClass(temp.classification);
-            fw.write(temp.hashCode() + " [label = \"" + nodeName + "\", shape = rectangle, style = filled, fillcolor = \"" + nodeColor + "\"];\n\t");
+            for (Node temp : chain) {
+                writeNode(fw, temp, lowSet.contains(temp), maxClassificationLength);
+            }
+
+            for (int c = 0; c < chain.size() - 1; c++) {
+                Node temp = chain.get(c);
+                Node ex = chain.get(c + 1);
+                fw.write(temp.hashCode() + " -> " + ex.hashCode() +
+                        " [dir = both, color = black, arrowhead = vee, penwidth = 2];\n\t");
+            }
         }
 
-        // iterate through and add the guy on top for each one.
-        for(int c = 0; c < chain.size() - 1; c++){
+        fw.write("{ rank = same; ");
+        for (Node mid : middleNodes) fw.write(mid.hashCode() + " ");
+        fw.write("};\n");
 
-            Node temp = chain.get(c);
-            Node ex = chain.get(c + 1);
-
-            // now we make the edge between temp and the next one in the chain.
-            fw.write(temp.hashCode() + " -> " + ex.hashCode() + " [dir = both, color = black, arrowhead = vee, penwidth = 2];\n\t");
-        }
+        fw.write("}");
+        fw.close();
     }
-
-    // enforce middle elements to share the same rank
-    fw.write("{ rank = same; ");
-    for(Node mid : middleNodes){
-        fw.write(mid.hashCode() + " ");
-    }
-    fw.write("};\n");
-
-    fw.write("}");
-    fw.close();
-
-}
 
 }

@@ -6,11 +6,10 @@ BIN := bin
 OUT := out
 
 JAVAS := $(shell find $(SRC) -name '*.java')
-PDFS := $(patsubst %.dot,$(OUT)/%.pdf,$(wildcard *.dot))
 
 .PHONY: all run clean
 
-all: $(BIN) $(OUT) compile $(PDFS)
+all: $(BIN) $(OUT) compile
 
 $(BIN):
 	mkdir -p $(BIN)

@@ -6,21 +6,20 @@ import java.util.List;
 public class Main {
 
     public static Integer[] kValues = {3, 4, 6, 3};
-    
-    // Calculate the highest possible classification at compile time
-    // This uses the same logic as questionExpert: sum of max values / dimension
-    public static Integer highestPossibleClassification;
-    
+    public static Float[] weights = {2.25f, 1.0f, 0.5f, 0.75f};
     static {
         int maxSum = 0;
-        for (int k : kValues) {
-            maxSum += (k - 1); // max value for each dimension is k-1
+        for (int i = 0; i < kValues.length; i++) {
+            maxSum += (int)((kValues[i] - 1) * weights[i]);
         }
         highestPossibleClassification = maxSum / kValues.length; // same as sum / dimension
 
         Node.dimension = kValues.length;
     }
-
+    // Calculate the highest possible classification at compile time
+    // This uses the same logic as questionExpert: sum of max values / dimension
+    public static Integer highestPossibleClassification;
+    
     public static void main(String[] args) {
 
         makeClassifyAndSaveNodes(Interview.InterviewMode.BEST_MINIMUM_CONFIRMED);
@@ -60,8 +59,8 @@ public class Main {
 
                 // map each node to Arrays.toString(node.values) and collect to a list
                 List<String> valuesStrings = lowUnits.get(classification).stream()
-                                                    .map(node -> Arrays.toString(node.values) + "\n")
-                                                    .toList();
+                    .map(node -> Arrays.toString(node.values) + "\n")
+                    .toList();
 
                 System.out.println("LOW UNITS FOR CLASS " + classification + ":\t" + valuesStrings);
             }
@@ -75,18 +74,18 @@ public class Main {
                                 + adjustedLowUnits.get(classification).size());
 
                 List<String> valuesStrings = adjustedLowUnits.get(classification).stream()
-                                                            .map(node -> Arrays.toString(node.values) + "\n")
-                                                            .toList();
+                    .map(node -> Arrays.toString(node.values) + "\n")
+                    .toList();
 
                 System.out.println("LOW UNITS FOR CLASS " + classification + ":\t" + valuesStrings);
             }
 
 
             // visualize our results
-            Visualization.makeHanselChainDOT(hanselChains);
+            Visualization.makeHanselChainDOT(hanselChains, adjustedLowUnits);
 
             // make the expansions picture
-            Visualization.makeExpansionsDOT(nodes);
+            Visualization.makeExpansionsDOT(nodes, adjustedLowUnits);
         }
         catch (Exception e){
             e.printStackTrace();

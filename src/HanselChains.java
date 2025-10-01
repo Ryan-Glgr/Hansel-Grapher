@@ -169,7 +169,7 @@ public class HanselChains{
             for (Node node : lowUnits.get(classification)) {
                 for (Node otherNode : lowUnits.get(classification)) {
                     if (node != otherNode) {
-                        if (node.isDominatedBy(otherNode, true)) {
+                        if (node.isDominatedBy(otherNode, dominatingInAnUpwardFashion)) {
                             nodesWhichAreNotNeeded.add(otherNode);
                         }
                     }
