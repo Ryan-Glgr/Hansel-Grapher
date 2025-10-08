@@ -5,8 +5,8 @@ import java.util.List;
 
 public class Main {
 
-    public static Integer[] kValues = {3, 4, 3, 3, 3, 2, 3};
-    public static Float[] weights = {2.25f, 1.0f, 0.5f, 0.75f, 5.25f, 4.75f, 2.45f};
+    public static Integer[] kValues = {3, 4, 3, 5, 3, 3};
+    public static Float[] weights = {2.25f, 1.0f, 0.75f, 1.5f, 2.65f, 1.5f};
     static {
         int maxSum = 0;
         for (int i = 0; i < kValues.length; i++) {
@@ -22,7 +22,7 @@ public class Main {
     
     public static void main(String[] args) {
 
-        makeClassifyAndSaveNodes(Interview.InterviewMode.BEST_MINIMUM_CONFIRMED);
+        makeClassifyAndSaveNodes(Interview.InterviewMode.BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS);
         System.exit(0);
     }
 

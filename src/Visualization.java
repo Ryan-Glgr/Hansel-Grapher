@@ -31,25 +31,35 @@ public class Visualization {
     }
 
     // Generate a color for a given classification using HSV color space
-    private static String getColorForClass(int classification) {
-            // Use golden ratio to space out hues nicely
-            float goldenRatio = 0.618033988749895f;
-            
-            // Generate hue by spacing classifications evenly and offsetting by golden ratio
-            float hue = (classification * goldenRatio) % 1.0f;
-            
-            // Keep saturation and value high for vibrant, distinct colors
-            float saturation = 0.7f;
-            float value = 0.95f;
-            
-            // Convert HSV to RGB
-            int rgb = Color.HSBtoRGB(hue, saturation, value);
-            Color color = new Color(rgb);
-            
-            // Convert to hex format for DOT
-            return String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue());
-        }
-    
+    private static String getColorForClass(int classification, boolean isLowUnit) {
+        // Use golden ratio to space out hues nicely
+        float goldenRatio = 0.618033988749895f;
+
+        // Generate hue by spacing classifications evenly and offsetting by golden ratio
+        float hue = (classification * goldenRatio) % 1.0f;
+
+        // Keep saturation and value high for vibrant, distinct colors
+        float saturation = 0.7f;
+        float value = 0.95f;
+
+        // Convert HSV to RGB
+        int rgb = Color.HSBtoRGB(hue, saturation, value);
+        Color baseColor = new Color(rgb);
+
+        // Adjust alpha based on whether the node is a low unit
+        float alpha = isLowUnit ? 1.0f : 0.65f;
+
+        // Create RGBA color with transparency
+        Color colorWithAlpha = new Color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), Math.round(alpha * 255));
+
+        // Convert to hex format with alpha (Graphviz supports #RRGGBBAA)
+        return String.format("#%02x%02x%02x%02x",
+                colorWithAlpha.getRed(),
+                colorWithAlpha.getGreen(),
+                colorWithAlpha.getBlue(),
+                colorWithAlpha.getAlpha());
+    }
+
     // --- Constants ---
     private static final String NODE_SHAPE = "rectangle";
 
@@ -63,7 +73,7 @@ public class Visualization {
         StringBuilder attr = new StringBuilder();
         String label = nodeLabel(temp, isLow);
         attr.append("label = \"").append(escapeQuote(label)).append("\"");        
-        String nodeColor = getColorForClass(temp.classification);
+        String nodeColor = getColorForClass(temp.classification, isLow);
 
         attr.append("label = \"").append(escapeQuote(label)).append("\"");
         attr.append(", shape = ").append(NODE_SHAPE);
