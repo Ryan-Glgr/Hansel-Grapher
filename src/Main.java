@@ -22,7 +22,7 @@ public class Main {
     
     public static void main(String[] args) {
 
-        makeClassifyAndSaveNodes(Interview.InterviewMode.BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS);
+        makeClassifyAndSaveNodes(Interview.InterviewMode.BEST_MINIMUM_CONFIRMED);
         System.exit(0);
     }
 

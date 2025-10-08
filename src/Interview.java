@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -81,29 +82,74 @@ public class Interview {
     }
 
     // Sort nodes based on umbrella strategy
-    // umbrella strategy considers how many nodes COULD be confirmed underneath/above a given node. for example:
-    // if there are 30 unclassified nodes under a given node, it's underneath umbrella is 30. this just gives us an idea
-    // of how powerful this node can be in classification.
+    // umbrella strategy considers how many nodes are reachable underneath/above a given node. for example:
     private static void umbrellaSortInterview(ArrayList<Node> allNodes, InterviewMode umbrellaSortingStrategy, int numClasses) {
-        
+            
         int totalNodes = allNodes.size();
-
-        ArrayList<Node> nodesToAsk = new ArrayList<>();
-        nodesToAsk.addAll(allNodes);
+        ArrayList<Node> nodesToAsk = new ArrayList<>(allNodes);
 
         int questionsAsked = 0;
-        while(nodesToAsk.size() != 0){
+
+        // --- Build comparator once (based on umbrella strategy) ---
+        // Instead of sorting every time, we’ll reuse this comparator
+        // and just call Collections.min or Collections.max in the loop.
+        final Comparator<Node> comparator;
+        final boolean chooseMax; // true => take max, false => take min
+
+        switch (umbrellaSortingStrategy) {
+            case HIGHEST_TOTAL_UMBRELLA_SORT:
+                comparator = Comparator.comparingInt(n -> n.totalUmbrellaCases);
+                chooseMax = true;
+                break;
+
+            case MOST_ABOVE_UMBRELLA_SORT:
+                comparator = Comparator.comparingInt(n -> n.aboveUmbrellaCases);
+                chooseMax = true;
+                break;
+
+            case MOST_BELOW_UMBRELLA_SORT:
+                comparator = Comparator.comparingInt(n -> n.underneathUmbrellaCases);
+                chooseMax = true;
+                break;
+
+            case BEST_BALANCE_RATIO_UMBRELLA_SORT:
+                comparator = Comparator.comparingDouble(n -> n.balanceRatio);
+                chooseMax = true;
+                break;
+
+            case SMALLEST_DIFFERENCE_UMBRELLA_SORT:
+            default:
+                comparator = (x, y) -> {
+                    // Calculate the absolute difference between above and below for each node
+                    int diffX = Math.abs(x.aboveUmbrellaCases - x.underneathUmbrellaCases);
+                    int diffY = Math.abs(y.aboveUmbrellaCases - y.underneathUmbrellaCases);
+
+                    // Sort by smallest difference first, but among nodes with similar differences,
+                    // prefer those with larger total umbrella size (more impactful)
+                    if (diffX == diffY) {
+                        return Integer.compare(y.totalUmbrellaCases, x.totalUmbrellaCases);
+                    }
+                    return Integer.compare(diffX, diffY);
+                };
+                chooseMax = false; // for smallest difference, we want the min
+                break;
+        }
+
+        // --- Main loop ---
+        while (!nodesToAsk.isEmpty()) {
 
             // if we are sorting by umbrella metrics, sort using our strategy.
             // this is useful if we want to find which node may impact the most other nodes at a given time.
             // go through all the nodes, and update their umbrella sizes.
-            Node.updateAllNodeRankings(allNodes, numClasses);
+            Node.updateAllNodeRankings(nodesToAsk, numClasses);
 
-            // sort based on our umbrella strategy
-            umbrellaSortInterviewSortingHelper(nodesToAsk, umbrellaSortingStrategy);
-            
-            // remove the front guy
-            Node n = nodesToAsk.remove(0);
+            // Instead of sorting every time, just find the best node according to the chosen comparator
+            Node n = chooseMax
+                ? Collections.max(nodesToAsk, comparator)
+                : Collections.min(nodesToAsk, comparator);
+
+            // remove the front guy (the chosen one)
+            nodesToAsk.remove(n);
 
             // no need to ask about a confirmed node.
             if (n.classificationConfirmed)
@@ -116,61 +162,14 @@ public class Interview {
             n.permeateClassification();
             questionsAsked++;
 
+            // filter out confirmed nodes and continue
             nodesToAsk = nodesToAsk.parallelStream()
-                .filter(node -> !node.classificationConfirmed) // keep only unconfirmed nodes
+                .filter(node -> !node.classificationConfirmed)
                 .collect(Collectors.toCollection(ArrayList::new));
         }
+
         System.out.println("QUESTIONS ASKED:\t" + questionsAsked);
         System.out.println("TOTAL NODES:\t" + totalNodes);
-    }
-
-    // just sorts our nodes in order of how we should ask them based on which interview technique we are trying.
-    // smallest difference seems to be the best. taking that with the smallest difference between above and below, with
-    // tiebreaker going to the greatest total size. That way the middle nodes ones go first.
-    private static void umbrellaSortInterviewSortingHelper(ArrayList<Node> allNodes, InterviewMode umbrellaSortingStrategy){
-                
-        // Convert to array for parallel sorting
-        Node[] nodeArray = allNodes.toArray(new Node[0]);
-
-        switch (umbrellaSortingStrategy) {
-            case HIGHEST_TOTAL_UMBRELLA_SORT:
-                Arrays.parallelSort(nodeArray, (Node x, Node y) -> {
-                    return Integer.compare(y.totalUmbrellaCases, x.totalUmbrellaCases);
-                });
-                break;
-                
-            case MOST_ABOVE_UMBRELLA_SORT:
-                Arrays.parallelSort(nodeArray, (Node x, Node y) -> {
-                    return Integer.compare(y.aboveUmbrellaCases, x.aboveUmbrellaCases);
-                });
-                break;
-                
-            case MOST_BELOW_UMBRELLA_SORT:
-                Arrays.parallelSort(nodeArray, (Node x, Node y) -> {
-                    return Integer.compare(y.underneathUmbrellaCases, x.underneathUmbrellaCases);
-                });
-                break;
-            case BEST_BALANCE_RATIO_UMBRELLA_SORT:
-                Arrays.parallelSort(nodeArray, (Node x, Node y) -> {
-                    return Float.compare(y.balanceRatio, x.balanceRatio);
-                });
-                break;
-                            case SMALLEST_DIFFERENCE_UMBRELLA_SORT:
-            default:
-                Arrays.parallelSort(nodeArray, (Node x, Node y) -> {
-                    // Calculate the absolute difference between above and below for each node
-                    int diffX = Math.abs(x.aboveUmbrellaCases - x.underneathUmbrellaCases);
-                    int diffY = Math.abs(y.aboveUmbrellaCases - y.underneathUmbrellaCases);
-                    
-                    // Sort by smallest difference first, but among nodes with similar differences,
-                    // prefer those with larger total umbrella size (more impactful)
-                    if (diffX == diffY) {
-                        return Integer.compare(y.totalUmbrellaCases, x.totalUmbrellaCases);
-                    }
-                    return Integer.compare(diffX, diffY);
-                });
-                break;
-        }
     }
 
     // function where we search through chains, which get recursively split into chunks.
@@ -372,6 +371,7 @@ public class Interview {
     private static void bestMinConfirmedInterview(ArrayList<Node> allNodes, int numClasses){
         
         int totalNodes = allNodes.size();
+        Comparator<Node> comp = (a, b) -> a.compareMinClassifications(b);
 
         ArrayList<Node> nodesToAsk = new ArrayList<>();
         nodesToAsk.addAll(allNodes);
@@ -381,13 +381,10 @@ public class Interview {
 
             // now sort decreasing, using our strategy. we sort descending, by a nodes minimum guaranteed classifications.
             // that is, of it's classes, whichever is the worst, we choose the one with the best floor. we are guaranteed to confirm that many at least.
-            Node.updateAllNodeRankings(allNodes, numClasses);            
-            nodesToAsk.sort((Node x, Node y) -> {
-                return x.compareMinClassifications(y);
-            });
-
-            // remove the front guy
-            Node n = nodesToAsk.remove(0);
+            Node.updateAllNodeRankings(nodesToAsk, numClasses);            
+            
+            Node n = Collections.max(nodesToAsk, comp);
+            nodesToAsk.remove(n);
 
             // no need to ask about a confirmed node.
             if (n.classificationConfirmed)

@@ -373,9 +373,8 @@ public class Node {
         this.balanceRatio = totalUmbrellaCases * (1.0f - imbalance);
     }
 
-
     // checks whether 'this' is getting dominated - smothered or even in ALL attributes. Either upwards or downwards.
-    // in terms of finding low units, we only care about the other node on top case, but going the other way, we could find HIGH units, if that's useful.
+    // in terms of finding low units, we only care about the other node on top case, but going the other way, we could find HIGH units.
     public boolean isDominatedBy(Node otherNode, boolean otherNodeOnTop){
 
         // look for ONE digit, where our boy isn't getting covered. if otherNode is greater or equal 
