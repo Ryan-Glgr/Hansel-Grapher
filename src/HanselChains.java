@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -147,6 +148,8 @@ public class HanselChains{
                 }
             }
         }
+
+        lowUnits.forEach(list -> list.sort(LEXICOGRAPHIC_NODE_COMPARATOR));
         return lowUnits;
     }
 
@@ -186,9 +189,23 @@ public class HanselChains{
                 }
             }
         }
-
+        lowUnits.forEach(list -> list.sort(LEXICOGRAPHIC_NODE_COMPARATOR));
         return newLowUnits;
     }
+
+    // Compare nodes lexicographically by their attribute arrays
+    private static final Comparator<Node> LEXICOGRAPHIC_NODE_COMPARATOR = (a, b) -> {
+        Integer[] A = a.values;
+        Integer[] B = b.values;
+        for (int i = 0; i < A.length; i++) {
+            int cmp = Integer.compare(A[i], B[i]);
+            
+            if (cmp != 0) 
+                return cmp;
+        }
+        return 0;
+    };
+
 
     // Clean up thread pool when done
     public static void shutdown() {

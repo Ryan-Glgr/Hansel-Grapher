@@ -5,8 +5,8 @@ import java.util.List;
 
 public class Main {
 
-    public static Integer[] kValues = {3, 4, 6, 3};
-    public static Float[] weights = {2.25f, 1.0f, 0.5f, 0.75f};
+    public static Integer[] kValues = {3, 4, 3, 3, 3, 2, 3};
+    public static Float[] weights = {2.25f, 1.0f, 0.5f, 0.75f, 5.25f, 4.75f, 2.45f};
     static {
         int maxSum = 0;
         for (int i = 0; i < kValues.length; i++) {
@@ -23,15 +23,8 @@ public class Main {
     public static void main(String[] args) {
 
         makeClassifyAndSaveNodes(Interview.InterviewMode.BEST_MINIMUM_CONFIRMED);
-
         System.exit(0);
     }
-
-    // TODO:
-    // make a meta version of the interview which combines heuristics?
-    //      - A useful one might be something like using the best balanced node earlier in the interview, and then using the best min confirmed as we get further.
-    //      - Or just combining the two with some kind of weighing.
-
 
     public static void makeClassifyAndSaveNodes(Interview.InterviewMode interviewMode){
         try{
@@ -50,19 +43,16 @@ public class Main {
 
             // find our low units
             ArrayList<ArrayList<Node>> lowUnits = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
-            int numberOfLowUnits = lowUnits.stream().mapToInt(ArrayList::size).sum();
-            System.out.println("TOTAL NUMBER OF LOW UNITS:\t" + numberOfLowUnits);
+            int numberOfLowUnits = lowUnits
+                .stream()
+                .mapToInt(ArrayList::size)
+                .sum();
+                System.out.println("TOTAL NUMBER OF LOW UNITS:\t" + numberOfLowUnits);
 
             for (int classification = 0; classification < numClasses; classification++) {
-                System.out.println("NUMBER OF LOW UNITS FOR CLASS " + classification + ":\t" 
-                                + lowUnits.get(classification).size());
-
-                // map each node to Arrays.toString(node.values) and collect to a list
-                List<String> valuesStrings = lowUnits.get(classification).stream()
-                    .map(node -> Arrays.toString(node.values) + "\n")
-                    .toList();
-
-                System.out.println("LOW UNITS FOR CLASS " + classification + ":\t" + valuesStrings);
+                System.out.println("NUMBER OF LOW UNITS FOR CLASS " + classification + ":\t" + lowUnits.get(classification).size());
+                System.out.println("LOW UNITS FOR CLASS " + classification + ":\n");
+                printListOfNodes(lowUnits.get(classification));
             }
 
             ArrayList<ArrayList<Node>> adjustedLowUnits = HanselChains.removeUselessLowUnits(lowUnits);
@@ -70,14 +60,9 @@ public class Main {
             System.out.println("\nTOTAL NUMBER OF ADJUSTED LOW UNITS:\t" + numberOfAdjustedLowUnits);
 
             for (int classification = 0; classification < numClasses; classification++) {
-                System.out.println("NUMBER OF LOW UNITS FOR CLASS " + classification + ":\t" 
-                                + adjustedLowUnits.get(classification).size());
-
-                List<String> valuesStrings = adjustedLowUnits.get(classification).stream()
-                    .map(node -> Arrays.toString(node.values) + "\n")
-                    .toList();
-
-                System.out.println("LOW UNITS FOR CLASS " + classification + ":\t" + valuesStrings);
+                System.out.println("NUMBER OF ADJUSTED LOW UNITS FOR CLASS " + classification + ":\t" + adjustedLowUnits.get(classification).size());
+                System.out.println("ADJUSTED LOW UNITS FOR CLASS " + classification + ":\n");
+                printListOfNodes(adjustedLowUnits.get(classification));
             }
 
 
@@ -90,6 +75,13 @@ public class Main {
         catch (Exception e){
             e.printStackTrace();
         }
+    }
+
+    public static void printListOfNodes(ArrayList<Node> nodes){
+        List<String> valuesStrings = nodes.stream()
+            .map(node -> "\n" + Arrays.toString(node.values))
+            .toList();
+        System.out.println(valuesStrings);
     }
 
 }

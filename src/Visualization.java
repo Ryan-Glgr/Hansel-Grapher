@@ -53,34 +53,15 @@ public class Visualization {
     // --- Constants ---
     private static final String NODE_SHAPE = "rectangle";
 
-    // Unicode floor symbols
-    private static final char LEFT_FLOOR = '\u230A';
-    private static final char RIGHT_FLOOR = '\u230B';
-
     // --- Escaping helper ---
     private static final String escapeQuote(String s) {
         return s == null ? "" : s.replace("\"", "\\\"");
     }
 
-    // --- Low-unit classification highlight ---
-    private static String highlightClassification(Node temp, boolean isLow, int maxClassificationLength) {
-        String cls = String.valueOf(temp.classification);
-        if (isLow) {
-            // wrap with floor symbols
-            return LEFT_FLOOR + cls + RIGHT_FLOOR;
-        } else {
-            // pad with spaces to align visually
-            int pad = maxClassificationLength - cls.length();
-            int left = pad / 2;
-            int right = pad - left;
-            return " ".repeat(left) + cls + " ".repeat(right);
-        }
-    }
-
     // --- Shared node-writing helper ---
-    private static void writeNode(FileWriter fw, Node temp, boolean isLow, int maxClassificationLength) throws IOException {
+    private static void writeNode(FileWriter fw, Node temp, boolean isLow) throws IOException {
         StringBuilder attr = new StringBuilder();
-        String label = nodeLabel(temp, isLow, maxClassificationLength);
+        String label = nodeLabel(temp, isLow);
         attr.append("label = \"").append(escapeQuote(label)).append("\"");        
         String nodeColor = getColorForClass(temp.classification);
 
@@ -92,17 +73,11 @@ public class Visualization {
         fw.write(temp.hashCode() + " [" + attr.toString() + "];\n\t");
     }
 
-    private static String nodeLabel(Node temp, boolean isLow, int maxClassificationLength) {
+    private static String nodeLabel(Node temp, boolean isLow) {
 
-        String cls = String.valueOf(temp.classification);
-        if (!isLow) {
-            int pad = maxClassificationLength - cls.length();
-            int left = pad / 2;
-            int right = pad - left;
-            cls = " ".repeat(left) + cls + " ".repeat(right);
-        } else {
-            cls = LEFT_FLOOR + cls + RIGHT_FLOOR; // or bold if you want
-        }
+        String cls = (isLow) 
+            ? String.format("*%s*", temp.classification)
+            : String.format(" %s ", temp.classification);
 
         // 2. Values array line
         String valuesLine = Arrays.toString(temp.values);
@@ -119,10 +94,6 @@ public class Visualization {
             for (ArrayList<Node> listForClass : lowUnitsByClass)
                 if (listForClass != null) lowSet.addAll(listForClass);
 
-        int maxClassificationLength = allNodes.values().stream()
-                .mapToInt(n -> String.valueOf(n.classification).length())
-                .max().orElse(1);
-
         Integer[] kValsToMakeNode = Node.counterInitializer();
         HashMap<Node, Node> usedNodes = new HashMap<>();
         FileWriter fw = new FileWriter("out/Expansions.dot");
@@ -132,14 +103,14 @@ public class Visualization {
             Node temp = allNodes.get(Node.hash(kValsToMakeNode));
             if (!usedNodes.containsKey(temp)) {
                 usedNodes.put(temp, temp);
-                writeNode(fw, temp, lowSet.contains(temp), maxClassificationLength);
+                writeNode(fw, temp, lowSet.contains(temp));
             }
 
             for (Node ex : temp.upExpansions) {
                 if (ex == null) continue;
                 if (!usedNodes.containsKey(ex)) {
                     usedNodes.put(ex, ex);
-                    writeNode(fw, ex, lowSet.contains(ex), maxClassificationLength);
+                    writeNode(fw, ex, lowSet.contains(ex));
                 }
                 fw.write(temp.hashCode() + " -> " + ex.hashCode() +
                         " [dir = both, color = black, arrowhead = vee, penwidth = 2];\n\t");
@@ -159,11 +130,6 @@ public class Visualization {
             for (ArrayList<Node> listForClass : lowUnitsByClass)
                 if (listForClass != null) lowSet.addAll(listForClass);
 
-        int maxClassificationLength = chains.stream()
-                .flatMap(ArrayList::stream)
-                .mapToInt(n -> String.valueOf(n.classification).length())
-                .max().orElse(1);
-
         FileWriter fw = new FileWriter("out/HanselChains.dot");
         fw.write("digraph G {\n\trankdir = BT;\n\tbgcolor = white;\n\t");
 
@@ -173,7 +139,7 @@ public class Visualization {
             middleNodes.add(chain.get(chain.size() / 2));
 
             for (Node temp : chain) {
-                writeNode(fw, temp, lowSet.contains(temp), maxClassificationLength);
+                writeNode(fw, temp, lowSet.contains(temp));
             }
 
             for (int c = 0; c < chain.size() - 1; c++) {
