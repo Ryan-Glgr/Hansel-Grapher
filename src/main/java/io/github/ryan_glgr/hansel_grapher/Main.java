@@ -1,3 +1,6 @@
+package io.github.ryan_glgr.hansel_grapher;
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -64,7 +67,12 @@ public class Main {
                 System.out.println("ADJUSTED LOW UNITS FOR CLASS " + classification + ":\n");
                 printListOfNodes(adjustedLowUnits.get(classification));
             }
-
+            
+            // ensure output directory exists
+            File outputDir = new File("out/phony.txt").getParentFile();
+            if (outputDir != null && !outputDir.exists()) {
+                outputDir.mkdirs();
+            }
 
             // visualize our results
             Visualization.makeHanselChainDOT(hanselChains, adjustedLowUnits);

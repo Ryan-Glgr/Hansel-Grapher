@@ -1,3 +1,5 @@
+package io.github.ryan_glgr.hansel_grapher;
+
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
