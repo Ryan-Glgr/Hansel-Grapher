@@ -5,6 +5,9 @@
 ### Mac OS ###
 .DS_Store
 
+### Maven ###
+target/
+
 src/*.pdf
 src/*.png
 src/*.dot

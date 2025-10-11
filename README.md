@@ -8,6 +8,8 @@ The goal of this project is very simple. It serves as a simplistic, understandab
 - Find a way to apply our problem where "asking a question" is a big heavy operation/and or when asking what we are modeling is a very hard domain, where it makes sense to need to classify all possible Nodes, not just find a min/max.
 
 ## RUNNING ##
-- To run the program, cd to the src directory, and simply ./run.sh. you may need to give it the old chmod +x.
-- Running in debug gives you more logging, and more info in the pictures as well. to do this './run.sh debug'
+- Requires modern maven to run so install maven for your system (package manager/ installer).
+- To run the program, simply `./run.sh`. You may need to give it the old `chmod +x run.sh`.
+- Alternatively you can run `mvn clean compile`, to compile, and `mvn exec:java` to run. 
+- Running in debug gives you more logging, and more info in the pictures as well. To do this './run.sh debug'
 - To view logs, 'cat debug' after a run

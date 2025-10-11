@@ -12,16 +12,20 @@ fi
 
 echo "=== run.sh starting (debug=${DEBUG}) ==="
 
-# Forward DEBUG to make so Makefile can flip dot behavior
+# Forward DEBUG to maven's compile
 if [ "$DEBUG" -eq 1 ]; then
-  make all DEBUG=1
+  mvn clean compile
 else
-  make all DEBUG=0 >/dev/null
-  # above: silence repetitive make output in normal mode; adjust if you prefer visible make logs
+  mvn clean compile --quiet
 fi
 
 echo "=== running Java ==="
-java -cp bin Main
+# Forward DEBUG to maven's exec
+if [ "$DEBUG" -eq 1 ]; then
+  mvn exec:java
+else
+  mvn exec:java --quiet
+fi
 
 
 echo "=== generating PDFs from .dot files ==="

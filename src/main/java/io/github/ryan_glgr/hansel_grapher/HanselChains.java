@@ -1,3 +1,5 @@
+package io.github.ryan_glgr.hansel_grapher;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;

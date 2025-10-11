@@ -1,3 +1,5 @@
+package io.github.ryan_glgr.hansel_grapher;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,25 +40,25 @@ public class Interview {
 
         switch (mode){
             // all these go to umbrella sort, since it's the same interview, just different sorting technique.
-            case InterviewMode.HIGHEST_TOTAL_UMBRELLA_SORT:
-            case InterviewMode.MOST_ABOVE_UMBRELLA_SORT:
-            case InterviewMode.MOST_BELOW_UMBRELLA_SORT:
-            case InterviewMode.SMALLEST_DIFFERENCE_UMBRELLA_SORT:
-            case InterviewMode.BEST_BALANCE_RATIO_UMBRELLA_SORT:
+            case HIGHEST_TOTAL_UMBRELLA_SORT:
+            case MOST_ABOVE_UMBRELLA_SORT:
+            case MOST_BELOW_UMBRELLA_SORT:
+            case SMALLEST_DIFFERENCE_UMBRELLA_SORT:
+            case BEST_BALANCE_RATIO_UMBRELLA_SORT:
                 umbrellaSortInterview(allNodes, mode, numClasses);
                 break;
             
-            case InterviewMode.BINARY_SEARCH_CHAINS:
+            case BINARY_SEARCH_CHAINS:
                 cutMiddleOfChainInterview(hanselChains);
                 break;
             
-            case InterviewMode.BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS:
+            case BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS:
                 // our root node is easy to find. it's the node with [0,0,...,0] since our hash function
                 // is that value, we can just know that we look up 0 to find it.
                 binarySearchStringOfExpansionsInterview(allNodes, data.get(0));
                 break;
             
-            case InterviewMode.BEST_MINIMUM_CONFIRMED:
+            case BEST_MINIMUM_CONFIRMED:
                 bestMinConfirmedInterview(allNodes, numClasses);
                 break;
         }
