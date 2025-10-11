@@ -25,7 +25,7 @@ public class Visualization {
                 newOrdering.add(chainSet.get(i));
             }
             else{
-                newOrdering.addFirst(chainSet.get(i));
+                newOrdering.add(0, chainSet.get(i));
             }
         }
         // change the pointer to hanselChainSet to the reordered ones.

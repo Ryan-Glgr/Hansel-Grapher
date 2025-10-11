@@ -6,16 +6,18 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+import io.github.ryan_glgr.hansel_grapher.RuleCreation.RuleNode;
+
 public class Main {
 
-    public static Integer[] kValues = {3, 4, 3, 5, 3, 3};
-    public static Float[] weights = {2.25f, 1.0f, 0.75f, 1.5f, 2.65f, 1.5f};
+    public static Integer[] kValues = {3, 4, 3, 3, 4};
+    public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f};
     static {
         int maxSum = 0;
         for (int i = 0; i < kValues.length; i++) {
             maxSum += (int)((kValues[i] - 1) * weights[i]);
         }
-        highestPossibleClassification = maxSum / kValues.length; // same as sum / dimension
+        highestPossibleClassification = maxSum / kValues.length;
 
         Node.dimension = kValues.length;
     }
@@ -73,6 +75,17 @@ public class Main {
             if (outputDir != null && !outputDir.exists()) {
                 outputDir.mkdirs();
             }
+
+            int totalClauses = 0;
+            for (int classification = 0; classification < numClasses; classification++){
+                System.out.println("Class: " + classification + " Rules:");
+                RuleNode topNode = RuleCreation.RuleNode.createRuleNodes(adjustedLowUnits.get(classification));
+                topNode.printTree();
+                int thisClassClauses = topNode.getTreeSize();
+                totalClauses += thisClassClauses;
+                System.out.println("\nClauses in the Rule tree:\t" + thisClassClauses);
+            }
+            System.out.println("\nTOTAL NUMBER OF CLAUSES NEEDED:\t" + totalClauses);
 
             // visualize our results
             Visualization.makeHanselChainDOT(hanselChains, adjustedLowUnits);
