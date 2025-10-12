@@ -6,7 +6,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import io.github.ryan_glgr.hansel_grapher.RuleCreation.RuleNode;
+import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleCreation;
+import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleNode;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.HanselChains;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
+import io.github.ryan_glgr.hansel_grapher.Visualizations.VisualizationDOT;
 
 public class Main {
 
@@ -32,14 +37,13 @@ public class Main {
     }
 
     public static void makeClassifyAndSaveNodes(Interview.InterviewMode interviewMode){
-        try{
+
             int numClasses = highestPossibleClassification + 1;
 
             // make all our nodes.
             HashMap<Integer, Node> nodes = Node.makeNodes(kValues, numClasses);
             // make the chains
             ArrayList<ArrayList<Node>> hanselChains = HanselChains.generateHanselChainSet(kValues, nodes);
-
             System.out.println("NUMBER OF CHAINS:\t" + hanselChains.size());
             System.out.println("NUMBER OF NODES:\t" + nodes.size());
 
@@ -48,11 +52,8 @@ public class Main {
 
             // find our low units
             ArrayList<ArrayList<Node>> lowUnits = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
-            int numberOfLowUnits = lowUnits
-                .stream()
-                .mapToInt(ArrayList::size)
-                .sum();
-                System.out.println("TOTAL NUMBER OF LOW UNITS:\t" + numberOfLowUnits);
+            int numberOfLowUnits = lowUnits.stream().mapToInt(ArrayList::size).sum();
+            System.out.println("TOTAL NUMBER OF LOW UNITS:\t" + numberOfLowUnits);
 
             for (int classification = 0; classification < numClasses; classification++) {
                 System.out.println("NUMBER OF LOW UNITS FOR CLASS " + classification + ":\t" + lowUnits.get(classification).size());
@@ -70,28 +71,28 @@ public class Main {
                 printListOfNodes(adjustedLowUnits.get(classification));
             }
             
+            RuleNode[] ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnits);
+            for (int classification = 0; classification < numClasses; classification++) {
+                ruleTrees[classification].printTree(false, classification);
+            }
+
+            int totalClauses = Arrays.stream(ruleTrees)
+                .mapToInt(ruleTree -> ruleTree.subtreeSize(ruleTree))
+                .sum();
+            System.out.println("\nTOTAL NUMBER OF CLAUSES NEEDED:\t" + totalClauses);
+
+        try{
             // ensure output directory exists
             File outputDir = new File("out/phony.txt").getParentFile();
             if (outputDir != null && !outputDir.exists()) {
                 outputDir.mkdirs();
             }
 
-            int totalClauses = 0;
-            for (int classification = 0; classification < numClasses; classification++){
-                System.out.println("Class: " + classification + " Rules:");
-                RuleNode topNode = RuleCreation.RuleNode.createRuleNodes(adjustedLowUnits.get(classification));
-                topNode.printTree();
-                int thisClassClauses = topNode.getTreeSize();
-                totalClauses += thisClassClauses;
-                System.out.println("\nClauses in the Rule tree:\t" + thisClassClauses);
-            }
-            System.out.println("\nTOTAL NUMBER OF CLAUSES NEEDED:\t" + totalClauses);
-
             // visualize our results
-            Visualization.makeHanselChainDOT(hanselChains, adjustedLowUnits);
+            VisualizationDOT.makeHanselChainDOT(hanselChains, adjustedLowUnits);
 
             // make the expansions picture
-            Visualization.makeExpansionsDOT(nodes, adjustedLowUnits);
+            VisualizationDOT.makeExpansionsDOT(nodes, adjustedLowUnits);
         }
         catch (Exception e){
             e.printStackTrace();

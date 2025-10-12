@@ -1,4 +1,4 @@
-package io.github.ryan_glgr.hansel_grapher;
+package io.github.ryan_glgr.hansel_grapher.TheHardStuff;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import io.github.ryan_glgr.hansel_grapher.Main;
 
 // this class is where we are going to handle anything classification related.
 public class Interview {

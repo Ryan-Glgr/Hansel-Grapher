@@ -1,4 +1,4 @@
-package io.github.ryan_glgr.hansel_grapher;
+package io.github.ryan_glgr.hansel_grapher.Visualizations;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -6,9 +6,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
+
 import java.awt.Color;
 
-public class Visualization {
+public class VisualizationDOT {
     
     private static ArrayList<ArrayList<Node>> sortChainsForVisualization(ArrayList<ArrayList<Node>> chainSet){
 

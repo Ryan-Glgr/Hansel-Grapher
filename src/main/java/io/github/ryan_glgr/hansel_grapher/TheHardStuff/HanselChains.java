@@ -1,4 +1,4 @@
-package io.github.ryan_glgr.hansel_grapher;
+package io.github.ryan_glgr.hansel_grapher.TheHardStuff;
 
 import java.util.ArrayList;
 import java.util.Arrays;
