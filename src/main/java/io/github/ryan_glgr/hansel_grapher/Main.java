@@ -32,7 +32,7 @@ public class Main {
     
     public static void main(String[] args) {
 
-        makeClassifyAndSaveNodes(Interview.InterviewMode.BINARY_SEARCH_CHAINS);
+        makeClassifyAndSaveNodes(Interview.InterviewMode.SMALLEST_DIFFERENCE_UMBRELLA_SORT);
         System.exit(0);
     }
 

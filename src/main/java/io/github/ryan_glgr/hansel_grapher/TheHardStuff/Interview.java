@@ -22,9 +22,7 @@ public class Interview {
         BINARY_SEARCH_CHAINS,                       // method where we just query midpoint of the chain each time. thus chopping each chain in half. we work on the longest chain at a time.
         BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS, // basically finds the longest expansion chain, + 1 in some attribute, as far as we can go, and binary searches that chain at each step.
         BEST_MINIMUM_CONFIRMED,                     // method where we check all nodes, and determine which has the best min bound. meaning of all k classes, confirming this one as a particular class, how many nodes get confirmed. The node with the best lower bound is used each iteration.
-        HIGHEST_TOTAL_UMBRELLA_SORT,                // sort by just the total amount in the umbrella. This means we find the node who's classification affects the most other nodes.
-        MOST_ABOVE_UMBRELLA_SORT,
-        MOST_BELOW_UMBRELLA_SORT,                 
+        HIGHEST_TOTAL_UMBRELLA_SORT,                // sort by just the total amount in the umbrella. This means we find the node who's classification affects the most other nodes.         
         SMALLEST_DIFFERENCE_UMBRELLA_SORT,          // sort our nodes by the smallest difference above/below. this way we find balanced nodes first
         BEST_BALANCE_RATIO_UMBRELLA_SORT,           // sort our nodes by their balance ratios.
     }
@@ -41,17 +39,18 @@ public class Interview {
         allNodes.addAll(data.values());
 
         switch (mode){
-            // all these go to umbrella sort, since it's the same interview, just different sorting technique.
             case HIGHEST_TOTAL_UMBRELLA_SORT:
-            case MOST_ABOVE_UMBRELLA_SORT:
-            case MOST_BELOW_UMBRELLA_SORT:
+                umbrellaSortInterview(allNodes, NodeComparisons.HIGHEST_TOTAL_UMBRELLA, numClasses);
+                break;
             case SMALLEST_DIFFERENCE_UMBRELLA_SORT:
+                umbrellaSortInterview(allNodes, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA, numClasses);
+                break;
             case BEST_BALANCE_RATIO_UMBRELLA_SORT:
-                umbrellaSortInterview(allNodes, mode, numClasses);
+                umbrellaSortInterview(allNodes, NodeComparisons.BEST_BALANCE_RATIO_UMBRELLA, numClasses);
                 break;
             
             case BINARY_SEARCH_CHAINS:
-                cutMiddleOfChainInterview(hanselChains);
+                cutMiddleOfChainInterview(hanselChains, false);
                 break;
             
             case BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS:
@@ -87,57 +86,12 @@ public class Interview {
 
     // Sort nodes based on umbrella strategy
     // umbrella strategy considers how many nodes are reachable underneath/above a given node. for example:
-    private static void umbrellaSortInterview(ArrayList<Node> allNodes, InterviewMode umbrellaSortingStrategy, int numClasses) {
+    private static void umbrellaSortInterview(ArrayList<Node> allNodes, Comparator<Node> umbrellaSortingStrategy, int numClasses) {
             
         int totalNodes = allNodes.size();
         ArrayList<Node> nodesToAsk = new ArrayList<>(allNodes);
 
         int questionsAsked = 0;
-
-        // --- Build comparator once (based on umbrella strategy) ---
-        // Instead of sorting every time, we’ll reuse this comparator
-        // and just call Collections.min or Collections.max in the loop.
-        final Comparator<Node> comparator;
-        final boolean chooseMax; // true => take max, false => take min
-
-        switch (umbrellaSortingStrategy) {
-            case HIGHEST_TOTAL_UMBRELLA_SORT:
-                comparator = Comparator.comparingInt(n -> n.totalUmbrellaCases);
-                chooseMax = true;
-                break;
-
-            case MOST_ABOVE_UMBRELLA_SORT:
-                comparator = Comparator.comparingInt(n -> n.aboveUmbrellaCases);
-                chooseMax = true;
-                break;
-
-            case MOST_BELOW_UMBRELLA_SORT:
-                comparator = Comparator.comparingInt(n -> n.underneathUmbrellaCases);
-                chooseMax = true;
-                break;
-
-            case BEST_BALANCE_RATIO_UMBRELLA_SORT:
-                comparator = Comparator.comparingDouble(n -> n.balanceRatio);
-                chooseMax = true;
-                break;
-
-            case SMALLEST_DIFFERENCE_UMBRELLA_SORT:
-            default:
-                comparator = (x, y) -> {
-                    // Calculate the absolute difference between above and below for each node
-                    int diffX = Math.abs(x.aboveUmbrellaCases - x.underneathUmbrellaCases);
-                    int diffY = Math.abs(y.aboveUmbrellaCases - y.underneathUmbrellaCases);
-
-                    // Sort by smallest difference first, but among nodes with similar differences,
-                    // prefer those with larger total umbrella size (more impactful)
-                    if (diffX == diffY) {
-                        return Integer.compare(y.totalUmbrellaCases, x.totalUmbrellaCases);
-                    }
-                    return Integer.compare(diffX, diffY);
-                };
-                chooseMax = false; // for smallest difference, we want the min
-                break;
-        }
 
         // --- Main loop ---
         while (!nodesToAsk.isEmpty()) {
@@ -148,9 +102,10 @@ public class Interview {
             Node.updateAllNodeRankings(nodesToAsk, numClasses);
 
             // Instead of sorting every time, just find the best node according to the chosen comparator
-            Node n = chooseMax
-                ? Collections.max(nodesToAsk, comparator)
-                : Collections.min(nodesToAsk, comparator);
+            boolean useMin = (umbrellaSortingStrategy == NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
+            Node n = useMin 
+            ? Collections.min(nodesToAsk, umbrellaSortingStrategy) 
+            : Collections.max(nodesToAsk, umbrellaSortingStrategy);
 
             // remove the front guy (the chosen one)
             nodesToAsk.remove(n);
@@ -177,7 +132,7 @@ public class Interview {
     }
 
     // function where we search through chains, which get recursively split into chunks.
-    private static void cutMiddleOfChainInterview(ArrayList<ArrayList<Node>> hanselChainSet){
+    private static void cutMiddleOfChainInterview(ArrayList<ArrayList<Node>> hanselChainSet, boolean completingTheSquareTechnique){
 
         // we have to keep a list of chunks of the chain which are not confirmed. basically we chop the chain
         // each time that we confirm a node. we could confirm a whole bunch with one question, and we have to investigate all the 
@@ -193,17 +148,18 @@ public class Interview {
         int questionsAsked = 0;
         while (chunks.size() > 0){
 
-            // sort our list of chains by size. this way we use the largest chunks first.
-            chunks = chunks.parallelStream()
-                .sorted((ArrayList<Node> a, ArrayList<Node> b) -> {
-                    return (Integer.compare(b.size(), a.size()));
-                })
-                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+            // get our biggest chunk
+            ArrayList<Node> chunkToQuestion = Collections.max(chunks, Comparator.comparingInt(List::size));
 
-            // get the first chunk
-            ArrayList<Node> chunkToQuestion = chunks.get(0);
             // get the middle node
             Node middleNode = chunkToQuestion.get(chunkToQuestion.size() / 2);
+
+            if (completingTheSquareTechnique){
+                // TODO: logic for determining a new node to question instead of the middle one.
+                // this would be the intersection of the above node, and the below nodes up/down expansions.
+            }
+
+
             // ask the expert or ML
             middleNode.classification = (EXPERT_MODE) ? questionExpert(middleNode) : questionML(middleNode);
             middleNode.permeateClassification();
@@ -375,7 +331,6 @@ public class Interview {
     private static void bestMinConfirmedInterview(ArrayList<Node> allNodes, int numClasses){
         
         int totalNodes = allNodes.size();
-        Comparator<Node> comp = (a, b) -> a.compareMinClassifications(b);
 
         ArrayList<Node> nodesToAsk = new ArrayList<>();
         nodesToAsk.addAll(allNodes);
@@ -387,7 +342,7 @@ public class Interview {
             // that is, of it's classes, whichever is the worst, we choose the one with the best floor. we are guaranteed to confirm that many at least.
             Node.updateAllNodeRankings(nodesToAsk, numClasses);            
             
-            Node n = Collections.max(nodesToAsk, comp);
+            Node n = Collections.max(nodesToAsk, NodeComparisons.BY_MIN_CLASSIFICATIONS);
             nodesToAsk.remove(n);
 
             // no need to ask about a confirmed node.
