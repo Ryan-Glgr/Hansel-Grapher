@@ -15,8 +15,8 @@ import io.github.ryan_glgr.hansel_grapher.Visualizations.VisualizationDOT;
 
 public class Main {
 
-    public static Integer[] kValues = {3, 4, 3, 3, 4};
-    public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f};
+    public static Integer[] kValues = {3, 4, 3, 3, 4, 5};
+    public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f, .25f};
     static {
         int maxSum = 0;
         for (int i = 0; i < kValues.length; i++) {
@@ -32,7 +32,7 @@ public class Main {
     
     public static void main(String[] args) {
 
-        makeClassifyAndSaveNodes(Interview.InterviewMode.BEST_MINIMUM_CONFIRMED);
+        makeClassifyAndSaveNodes(Interview.InterviewMode.BINARY_SEARCH_CHAINS);
         System.exit(0);
     }
 

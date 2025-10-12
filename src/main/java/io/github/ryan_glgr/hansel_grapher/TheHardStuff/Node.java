@@ -340,20 +340,21 @@ public class Node {
     // compares two nodes by their minimum number of confirmations. Then by the second lowest, third and so on. If a total tie, we go by the balanceRatio.
     // returns negative when THIS node should be after.
     public int compareMinClassifications(Node other) {
+        // make a copy of the mins and maxes arrays.
         int[] thisNodeMins = Arrays.copyOf(this.possibleConfirmationsByClass, this.possibleConfirmationsByClass.length);
         int[] otherNodeMins = Arrays.copyOf(other.possibleConfirmationsByClass, other.possibleConfirmationsByClass.length);
 
-        Arrays.sort(thisNodeMins);  // ascending
-        Arrays.sort(otherNodeMins); // ascending
+        Arrays.sort(thisNodeMins);   // ascending
+        Arrays.sort(otherNodeMins);  // ascending
 
+        // Compare lexicographically, preferring LARGER minima first
         for (int i = 0; i < thisNodeMins.length; i++) {
             if (thisNodeMins[i] != otherNodeMins[i]) {
-                // Larger minimum comes first
-                return Integer.compare(otherNodeMins[i], thisNodeMins[i]);
+                return Integer.compare(thisNodeMins[i], otherNodeMins[i]); // positive means "this" > "other"
             }
         }
 
-        // tie-breaker: smaller balanceRatio first
+        // Tie-breaker: prefer smaller balanceRatio (so lower is "better" → should return positive)
         return Float.compare(other.balanceRatio, this.balanceRatio);
     }
 

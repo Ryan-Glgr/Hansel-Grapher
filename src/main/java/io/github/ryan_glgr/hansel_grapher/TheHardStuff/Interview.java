@@ -248,7 +248,7 @@ public class Interview {
     }
 
     private static void binarySearchStringOfExpansionsInterview(ArrayList<Node> allNodes, Node rootNode) {
-        int totalNodes = (int) allNodes.size();
+        int totalNodes = allNodes.size();
         int questionsAsked = 0;
 
         while (true) {
