@@ -262,6 +262,13 @@ public class Node {
         return sum;
     }
 
+
+    // assume we had a node who's min classifications by class were [1, 2, 2] and another who's min classifications by class were:
+    //  [0 (because it is guaranteed to NOT be this class by monotonicity already), 6, 12] we would choose the first, since it's min is lower.
+    // but in reality, we want that second one, since the first class is just not possible. the real min is 6. not 0. so we have to have a flag for not set.
+    // the reason it's max value, is so that when we sort the counts, this number last still, and will serve as a tiebreaker
+    public static final Integer NOT_SET = Integer.MAX_VALUE;
+
     // does a BFS from each node, updating rankings as we go. Ranking are umbrella size and the minimum classifications.
     public static void updateAllNodeRankings(ArrayList<Node> allNodes, int numClasses) {
 
@@ -269,7 +276,12 @@ public class Node {
             n.aboveUmbrellaCases = 0;
             n.underneathUmbrellaCases = 0;
             n.totalUmbrellaCases = 0;
-            Arrays.fill(n.possibleConfirmationsByClass, 0);
+            Arrays.fill(n.possibleConfirmationsByClass, NOT_SET);
+
+            // specifically set those class values where it IS possible to assign this class still, as 0. impossible is going to stay as NOT SET.
+            for (int minPossibleClassForThisNode = n.classification; minPossibleClassForThisNode <= n.maxPossibleValue; minPossibleClassForThisNode++) {
+                n.possibleConfirmationsByClass[minPossibleClassForThisNode] = 0;
+            }
         }
         // update the node stats for above and below cases.
         allNodes.parallelStream()
@@ -280,9 +292,16 @@ public class Node {
         allNodes.parallelStream()
             .forEach(n -> n.totalUmbrellaCases = n.aboveUmbrellaCases + n.underneathUmbrellaCases);
         
-        // compute the new balance ratio for each node. this is defined as the total umbrella size, divided by the difference in up/down size.
+        // compute the new balance ratio for each node.
         allNodes.parallelStream()
             .forEach(n -> n.setBalanceFactor());
+
+        // now last step. sort each node's possible confirmations
+        allNodes.parallelStream().forEach(n -> 
+            n.possibleConfirmationsByClass = Arrays.stream(n.possibleConfirmationsByClass)
+                .sorted() // sort ascending
+                .toArray()
+        );
     }
 
     // Calculate umbrella size using proper graph traversal to avoid double counting
@@ -303,7 +322,7 @@ public class Node {
                     queue.add(neighbor);
 
                     // if "this" node were assigned a hypothetical class how does that affect neighbor.
-                    for(int hypotheticalClass = 0; hypotheticalClass < numClasses; hypotheticalClass++){
+                    for(int hypotheticalClass = this.classification; hypotheticalClass <= this.maxPossibleValue; hypotheticalClass++){
                         if (neighbor.wouldBeConfirmedForClass(hypotheticalClass, countUpwards)) {
                             this.possibleConfirmationsByClass[hypotheticalClass]++;
                         }

@@ -5,8 +5,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.github.ryan_glgr.hansel_grapher.Main;
@@ -20,6 +23,9 @@ public class Interview {
 
     public enum InterviewMode {
         BINARY_SEARCH_CHAINS,                       // method where we just query midpoint of the chain each time. thus chopping each chain in half. we work on the longest chain at a time.
+        BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_SMALLEST_DIFFERENCE,
+        BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_BEST_MIN_CONFIRMED,
+        BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_HIGHEST_TOTAL_UMBRELLA_SORT,
         BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS, // basically finds the longest expansion chain, + 1 in some attribute, as far as we can go, and binary searches that chain at each step.
         BEST_MINIMUM_CONFIRMED,                     // method where we check all nodes, and determine which has the best min bound. meaning of all k classes, confirming this one as a particular class, how many nodes get confirmed. The node with the best lower bound is used each iteration.
         HIGHEST_TOTAL_UMBRELLA_SORT,                // sort by just the total amount in the umbrella. This means we find the node who's classification affects the most other nodes.         
@@ -50,9 +56,22 @@ public class Interview {
                 break;
             
             case BINARY_SEARCH_CHAINS:
-                cutMiddleOfChainInterview(hanselChains, false);
+                // extra args after hansel chains don't matter for regular binary search.
+                cutMiddleOfChainInterview(hanselChains, false, null, numClasses);
+                break;
+
+            case BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_SMALLEST_DIFFERENCE:
+                cutMiddleOfChainInterview(hanselChains, true, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA, numClasses); // we use the MIN for smallest difference
+                break;
+
+            case BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_HIGHEST_TOTAL_UMBRELLA_SORT:
+                cutMiddleOfChainInterview(hanselChains, true, NodeComparisons.HIGHEST_TOTAL_UMBRELLA, numClasses);
                 break;
             
+            case BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_BEST_MIN_CONFIRMED:
+                cutMiddleOfChainInterview(hanselChains, true, NodeComparisons.BY_MIN_CLASSIFICATIONS, numClasses);
+                break;
+
             case BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS:
                 // our root node is easy to find. it's the node with [0,0,...,0] since our hash function
                 // is that value, we can just know that we look up 0 to find it.
@@ -62,9 +81,12 @@ public class Interview {
             case BEST_MINIMUM_CONFIRMED:
                 bestMinConfirmedInterview(allNodes, numClasses);
                 break;
+
+            default:
+                System.out.println("PROGRAMMER IS AN IDIOT!");
+                System.exit(0);
         }
     }
-
 
     // just use the weights from main for simple magic function testing.
     public static Float[] kValueWeights = Main.weights;
@@ -86,7 +108,10 @@ public class Interview {
 
     // Sort nodes based on umbrella strategy
     // umbrella strategy considers how many nodes are reachable underneath/above a given node. for example:
-    private static void umbrellaSortInterview(ArrayList<Node> allNodes, Comparator<Node> umbrellaSortingStrategy, int numClasses) {
+    private static void umbrellaSortInterview(ArrayList<Node> allNodes, 
+        Comparator<Node> umbrellaSortingStrategy, 
+        int numClasses) 
+        {
             
         int totalNodes = allNodes.size();
         ArrayList<Node> nodesToAsk = new ArrayList<>(allNodes);
@@ -132,7 +157,12 @@ public class Interview {
     }
 
     // function where we search through chains, which get recursively split into chunks.
-    private static void cutMiddleOfChainInterview(ArrayList<ArrayList<Node>> hanselChainSet, boolean completingTheSquareTechnique){
+    private static void cutMiddleOfChainInterview(ArrayList<ArrayList<Node>> hanselChainSet, 
+        boolean completingTheSquareTechnique, 
+        Comparator<Node> choosingAlternateMiddleNodeTechnique,
+        int numClasses) {
+
+        boolean useMaxComparison = (choosingAlternateMiddleNodeTechnique == NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
 
         // we have to keep a list of chunks of the chain which are not confirmed. basically we chop the chain
         // each time that we confirm a node. we could confirm a whole bunch with one question, and we have to investigate all the 
@@ -152,17 +182,31 @@ public class Interview {
             ArrayList<Node> chunkToQuestion = Collections.max(chunks, Comparator.comparingInt(List::size));
 
             // get the middle node
-            Node middleNode = chunkToQuestion.get(chunkToQuestion.size() / 2);
+            int middleIndex = chunkToQuestion.size() / 2;
+            Node middleNode = chunkToQuestion.get(middleIndex);
+            
+            // if we are completing the square to find a potential better node than just the middle node.
+            Node nodeToQuestion;
+            if (completingTheSquareTechnique){    
+                // now that our nodes have been updated with their umbrella sizes and min classifications and such, we can determine if there is a better node than our middle node.
+                nodeToQuestion = getBestPossibleSquareCompletion(chunkToQuestion, 
+                                                                middleIndex, 
+                                                                choosingAlternateMiddleNodeTechnique, 
+                                                                useMaxComparison,
+                                                                numClasses);
+            }
+            else nodeToQuestion = chunkToQuestion.get(middleIndex);
 
-            if (completingTheSquareTechnique){
-                // TODO: logic for determining a new node to question instead of the middle one.
-                // this would be the intersection of the above node, and the below nodes up/down expansions.
+            if (DEBUG && middleNode != nodeToQuestion){
+                System.out.println("REPLACING MIDDLE NODE: " + middleNode + " WITH " + nodeToQuestion);
+                System.out.println("IN CHAIN: " + chunkToQuestion);
             }
 
-
             // ask the expert or ML
-            middleNode.classification = (EXPERT_MODE) ? questionExpert(middleNode) : questionML(middleNode);
-            middleNode.permeateClassification();
+            nodeToQuestion.classification = (EXPERT_MODE) 
+                ? questionExpert(nodeToQuestion) 
+                : questionML(nodeToQuestion);
+            nodeToQuestion.permeateClassification();
             questionsAsked++;
 
             // for each chunk we have remaining of each chain, we are going to chop them up, splitting on parts where they are confirmed.
@@ -203,6 +247,63 @@ public class Interview {
         return newChunks;
     }
 
+    private static Node getBestPossibleSquareCompletion(
+            ArrayList<Node> chunkToQuestion,
+            int middleIndex,
+            Comparator<Node> choosingAlternateMiddleNodeTechnique,
+            boolean useMaxComparison,
+            int numClasses) {
+
+        Node middleNode = chunkToQuestion.get(middleIndex);
+
+        Node aboveNode = (middleIndex + 1 >= chunkToQuestion.size())
+            ? null
+            : chunkToQuestion.get(middleIndex + 1);
+
+        Node belowNode = (middleIndex - 1 < 0)
+            ? null
+            : chunkToQuestion.get(middleIndex - 1);
+
+        ArrayList<Node> intersection = new ArrayList<>();
+
+        if (aboveNode != null && belowNode != null) {
+            // filter nulls from expansions
+            Set<Node> upSet = Arrays.stream(belowNode.upExpansions)
+                                    .filter(Objects::nonNull)
+                                    .filter(n -> !n.classificationConfirmed)
+                                    .collect(Collectors.toCollection(HashSet::new));
+
+            intersection = Arrays.stream(aboveNode.downExpansions)
+                                .filter(Objects::nonNull)
+                                .filter(n -> !n.classificationConfirmed)
+                                .filter(upSet::contains)
+                                .collect(Collectors.toCollection(ArrayList::new));
+        } 
+        else if (aboveNode != null) {
+            intersection = Arrays.stream(aboveNode.downExpansions)
+                                .filter(Objects::nonNull)
+                                .filter(n -> !n.classificationConfirmed)
+                                .collect(Collectors.toCollection(ArrayList::new));
+        } 
+        else if (belowNode != null) {
+            intersection = Arrays.stream(belowNode.upExpansions)
+                                .filter(Objects::nonNull)
+                                .filter(n -> !n.classificationConfirmed)
+                                .collect(Collectors.toCollection(ArrayList::new));
+        } 
+        else {
+            return middleNode;
+        }
+
+        // THIS IS VERY IMPORTANT! WE NEED TO UPDATE THE NODE RANKINGS FOR THESE NODES!!!!
+        Node.updateAllNodeRankings(intersection, numClasses);
+
+        // safe min/max selection
+        return useMaxComparison
+            ? Collections.max(intersection, choosingAlternateMiddleNodeTechnique)
+            : Collections.min(intersection, choosingAlternateMiddleNodeTechnique);
+    }
+
     private static void binarySearchStringOfExpansionsInterview(ArrayList<Node> allNodes, Node rootNode) {
         int totalNodes = allNodes.size();
         int questionsAsked = 0;
@@ -221,7 +322,6 @@ public class Interview {
             // but just a string of Nodes which are all + 1 in some attribute from another.
             // just the longest string of dominoes.
             ArrayList<Node> longestChain = findLongestStringOfExpansions(aliveNodes);
-            // ArrayList<Node> longestChain = findLongestStringOfExpansionsHelper(rootNode);
 
             if (longestChain.isEmpty()) 
                 break; // safety

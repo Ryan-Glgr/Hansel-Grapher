@@ -1,31 +1,8 @@
 package io.github.ryan_glgr.hansel_grapher.TheHardStuff;
 
-import java.util.Arrays;
 import java.util.Comparator;
 
 public class NodeComparisons {
-
-
-    // compares two nodes by their minimum number of confirmations. Then by the second lowest, third and so on. If a total tie, we go by the balanceRatio.
-    // returns negative when THIS node should be after.
-    public static final Comparator<Node> BY_MIN_CLASSIFICATIONS =
-    (a, b) -> {
-        int[] aMins = Arrays.copyOf(a.possibleConfirmationsByClass, a.possibleConfirmationsByClass.length);
-        int[] bMins = Arrays.copyOf(b.possibleConfirmationsByClass, b.possibleConfirmationsByClass.length);
-
-        Arrays.sort(aMins); // ascending
-        Arrays.sort(bMins); // ascending
-
-        // Compare lexicographically, preferring LARGER minima first
-        for (int i = 0; i < aMins.length; i++) {
-            if (aMins[i] != bMins[i]) {
-                return Integer.compare(aMins[i], bMins[i]); // positive means a > b
-            }
-        }
-
-        // Tie-breaker: smaller balanceRatio preferred
-        return Float.compare(b.balanceRatio, a.balanceRatio);
-    };
 
     public static final Comparator<Node> HIGHEST_TOTAL_UMBRELLA = 
         (a, b) -> {
@@ -48,6 +25,29 @@ public class NodeComparisons {
             }
             return Integer.compare(diffX, diffY); // smaller difference first
         };
+
+    // compares two nodes by their minimum number of confirmations. Then by the second lowest, third and so on. If a total tie, we go by the balanceRatio.
+    public static final Comparator<Node> BY_MIN_CLASSIFICATIONS = (a, b) -> {
+        for (int i = 0; i < a.possibleConfirmationsByClass.length; i++) {
+            int cmp = Integer.compare(a.possibleConfirmationsByClass[i], b.possibleConfirmationsByClass[i]);
+            if (cmp != 0) 
+                return cmp;
+        }
+        return SMALLEST_DIFFERENCE_UMBRELLA.compare(a, b);
+    };
+
+    // Compare nodes lexicographically by their attribute arrays
+    public static final Comparator<Node> LEXICOGRAPHIC_NODE_COMPARATOR = (a, b) -> {
+        Integer[] A = a.values;
+        Integer[] B = b.values;
+        for (int i = 0; i < A.length; i++) {
+            int cmp = Integer.compare(A[i], B[i]);
+            
+            if (cmp != 0) 
+                return cmp;
+        }
+        return 0;
+    };
 
 }
 

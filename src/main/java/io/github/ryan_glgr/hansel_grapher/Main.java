@@ -11,12 +11,14 @@ import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleNode;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.HanselChains;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
-import io.github.ryan_glgr.hansel_grapher.Visualizations.VisualizationDOT;
+
+// TODO: implement completing the square for a chain of expansions
+// TODO: implement better balance ratio
 
 public class Main {
 
-    public static Integer[] kValues = {3, 4, 3, 3, 4, 5};
-    public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f, .25f};
+    public static Integer[] kValues = {3, 4, 3, 3, 4};
+    public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f};
     static {
         int maxSum = 0;
         for (int i = 0; i < kValues.length; i++) {
@@ -32,7 +34,7 @@ public class Main {
     
     public static void main(String[] args) {
 
-        makeClassifyAndSaveNodes(Interview.InterviewMode.SMALLEST_DIFFERENCE_UMBRELLA_SORT);
+        makeClassifyAndSaveNodes(Interview.InterviewMode.BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_HIGHEST_TOTAL_UMBRELLA_SORT);
         System.exit(0);
     }
 
@@ -58,7 +60,7 @@ public class Main {
             for (int classification = 0; classification < numClasses; classification++) {
                 System.out.println("NUMBER OF LOW UNITS FOR CLASS " + classification + ":\t" + lowUnits.get(classification).size());
                 System.out.println("LOW UNITS FOR CLASS " + classification + ":\n");
-                printListOfNodes(lowUnits.get(classification));
+                // printListOfNodes(lowUnits.get(classification));
             }
 
             ArrayList<ArrayList<Node>> adjustedLowUnits = HanselChains.removeUselessLowUnits(lowUnits);
@@ -89,10 +91,10 @@ public class Main {
             }
 
             // visualize our results
-            VisualizationDOT.makeHanselChainDOT(hanselChains, adjustedLowUnits);
+            // VisualizationDOT.makeHanselChainDOT(hanselChains, adjustedLowUnits);
 
             // make the expansions picture
-            VisualizationDOT.makeExpansionsDOT(nodes, adjustedLowUnits);
+            // VisualizationDOT.makeExpansionsDOT(nodes, adjustedLowUnits);
         }
         catch (Exception e){
             e.printStackTrace();
