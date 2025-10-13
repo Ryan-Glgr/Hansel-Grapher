@@ -10,7 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.github.ryan_glgr.hansel_grapher.Main;
 
@@ -299,9 +301,31 @@ public class Interview {
         Node.updateAllNodeRankings(intersection, numClasses);
 
         // safe min/max selection
-        return useMaxComparison
+        Node selectedNode = useMaxComparison
             ? Collections.max(intersection, choosingAlternateMiddleNodeTechnique)
             : Collections.min(intersection, choosingAlternateMiddleNodeTechnique);
+
+        // check to see if chosen node is the same as the middleNode
+        // if it is check to see if there is a up or down exclusive expandable node
+        // which is better to ask about
+        if(selectedNode.equals(middleNode) && aboveNode != null && belowNode != null) {
+            ArrayList<Node> union = Stream.concat(
+                    Arrays.stream(aboveNode.downExpansions), Arrays.stream(belowNode.upExpansions))
+                    .filter(Objects::nonNull)
+                    .filter(n -> !n.classificationConfirmed)
+                    .distinct()
+                    .filter(Predicate.not(intersection::contains))
+                    .collect(Collectors.toCollection(ArrayList::new));
+            union.add(selectedNode);
+            
+            // AGAIN IMPORTANT TO UPDATE THE RANKINGS BEFORE WE COMPARE!!!
+            Node.updateAllNodeRankings(union, numClasses);
+            selectedNode = useMaxComparison
+                ? Collections.max(union, choosingAlternateMiddleNodeTechnique)
+                : Collections.min(union, choosingAlternateMiddleNodeTechnique);
+        }
+
+        return selectedNode;
     }
 
     private static void binarySearchStringOfExpansionsInterview(ArrayList<Node> allNodes, Node rootNode) {
