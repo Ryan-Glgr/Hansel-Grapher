@@ -10,7 +10,7 @@ The goal of this project is very simple. It serves as a simplistic, understandab
 - Implementing using the adjacent node concept in the Interview phase. if we are grabbing a particular node, determine if there are any adjacent nodes which can cover it's whole chain instead.
   - If a node is present in the chosen nodes, above/below nodes up and down expansions respectively, it is a viable suitor to replace said chosen node.
   - This can be useful in any time where we are doing a binary search.
-
+- Implement binary search (with or without chain of expansions) which can stop binary searching and do a fallback
 
 ## RUNNING ##
 - Requires modern maven to run so install maven for your system (package manager/ installer).
