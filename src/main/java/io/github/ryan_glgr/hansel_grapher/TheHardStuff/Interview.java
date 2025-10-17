@@ -15,6 +15,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.github.ryan_glgr.hansel_grapher.Main;
+import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
+import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats;
 
 // this class is where we are going to handle anything classification related.
 public class Interview {
@@ -22,6 +24,9 @@ public class Interview {
     public static boolean DEBUG = false;
     // if we set this false, we are going to call upon some ML interviewer instead.
     public static boolean EXPERT_MODE = true;
+
+    // just use the weights from main for simple magic function testing.
+    public static Float[] kValueWeights = Main.weights;
 
     public enum InterviewMode {
         BINARY_SEARCH_CHAINS,                       // method where we just query midpoint of the chain each time. thus chopping each chain in half. we work on the longest chain at a time.
@@ -37,61 +42,63 @@ public class Interview {
 
     // mega function which determines how we are going to ask questions.
     // mode determines the question asking heuristics. umbrellaBased determines if we sort by umbrella metrics.
-    public static void conductInterview(HashMap<Integer, Node> data, 
-                                        ArrayList<ArrayList<Node>> hanselChains, 
-                                        InterviewMode mode, 
-                                        int numClasses) {
+    public static InterviewStats conductInterview(
+            HashMap<Integer, Node> data,
+            ArrayList<ArrayList<Node>> hanselChains,
+            InterviewMode mode,
+            int numClasses) {
 
         ArrayList<Node> allNodes = new ArrayList<>();
         // for each node, we are going to put in that node, and it's number of expansions as a pair.
         allNodes.addAll(data.values());
 
-        switch (mode){
-            case HIGHEST_TOTAL_UMBRELLA_SORT:
+        InterviewStats stats = switch(mode) {
+
+            case HIGHEST_TOTAL_UMBRELLA_SORT ->
                 umbrellaSortInterview(allNodes, NodeComparisons.HIGHEST_TOTAL_UMBRELLA, numClasses);
-                break;
-            case SMALLEST_DIFFERENCE_UMBRELLA_SORT:
+
+            case SMALLEST_DIFFERENCE_UMBRELLA_SORT ->
                 umbrellaSortInterview(allNodes, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA, numClasses);
-                break;
-            case BEST_BALANCE_RATIO_UMBRELLA_SORT:
+
+            case BEST_BALANCE_RATIO_UMBRELLA_SORT ->
                 umbrellaSortInterview(allNodes, NodeComparisons.BEST_BALANCE_RATIO_UMBRELLA, numClasses);
-                break;
-            
-            case BINARY_SEARCH_CHAINS:
+
+            case BINARY_SEARCH_CHAINS ->
                 // extra args after hansel chains don't matter for regular binary search.
                 cutMiddleOfChainInterview(hanselChains, false, null, numClasses);
-                break;
 
-            case BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_SMALLEST_DIFFERENCE:
-                cutMiddleOfChainInterview(hanselChains, true, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA, numClasses); // we use the MIN for smallest difference
-                break;
+            case BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_SMALLEST_DIFFERENCE ->
+                // we use the MIN for smallest difference
+                cutMiddleOfChainInterview(hanselChains, true, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA, numClasses);
 
-            case BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_HIGHEST_TOTAL_UMBRELLA_SORT:
+            case BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_HIGHEST_TOTAL_UMBRELLA_SORT ->
                 cutMiddleOfChainInterview(hanselChains, true, NodeComparisons.HIGHEST_TOTAL_UMBRELLA, numClasses);
-                break;
-            
-            case BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_BEST_MIN_CONFIRMED:
-                cutMiddleOfChainInterview(hanselChains, true, NodeComparisons.BY_MIN_CLASSIFICATIONS, numClasses);
-                break;
 
-            case BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS:
+            case BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_BEST_MIN_CONFIRMED ->
+                cutMiddleOfChainInterview(hanselChains, true, NodeComparisons.BY_MIN_CLASSIFICATIONS, numClasses);
+
+            case BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS ->
                 // our root node is easy to find. it's the node with [0,0,...,0] since our hash function
                 // is that value, we can just know that we look up 0 to find it.
                 binarySearchStringOfExpansionsInterview(allNodes, data.get(0));
-                break;
-            
-            case BEST_MINIMUM_CONFIRMED:
-                bestMinConfirmedInterview(allNodes, numClasses);
-                break;
 
-            default:
+            case BEST_MINIMUM_CONFIRMED ->
+                bestMinConfirmedInterview(allNodes, numClasses);
+
+            default -> {
                 System.out.println("PROGRAMMER IS AN IDIOT!");
                 System.exit(0);
-        }
+                yield null; // required inside a block
+            }
+        };
+        return new InterviewStats(Main.kValues,
+        hanselChains.size(),
+        data.size(),
+        mode,
+        EXPERT_MODE,
+        stats.nodesAsked,
+        stats.permeationStatsForEachNodeAsked);
     }
-
-    // just use the weights from main for simple magic function testing.
-    public static Float[] kValueWeights = Main.weights;
 
     // asks the "expert" what the classification of this datapoint is.
     private static int questionExpert(Node datapoint){
@@ -110,16 +117,18 @@ public class Interview {
 
     // Sort nodes based on umbrella strategy
     // umbrella strategy considers how many nodes are reachable underneath/above a given node. for example:
-    private static void umbrellaSortInterview(ArrayList<Node> allNodes, 
-        Comparator<Node> umbrellaSortingStrategy, 
-        int numClasses) 
-        {
-            
-        int totalNodes = allNodes.size();
+    private static InterviewStats umbrellaSortInterview(ArrayList<Node> allNodes, 
+            Comparator<Node> umbrellaSortingStrategy, 
+            int numClasses) {
+
+        List<Node> nodesAsked = new ArrayList<>();
+        List<PermeationStats> permeationStatsForEachNodeAsked = new ArrayList<>();
+
+
+        // Instead of sorting every time, just find the best node according to the chosen comparator
+        boolean useMin = (umbrellaSortingStrategy == NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
+
         ArrayList<Node> nodesToAsk = new ArrayList<>(allNodes);
-
-        int questionsAsked = 0;
-
         // --- Main loop ---
         while (!nodesToAsk.isEmpty()) {
 
@@ -128,8 +137,6 @@ public class Interview {
             // go through all the nodes, and update their umbrella sizes.
             Node.updateAllNodeRankings(nodesToAsk, numClasses);
 
-            // Instead of sorting every time, just find the best node according to the chosen comparator
-            boolean useMin = (umbrellaSortingStrategy == NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
             Node n = useMin 
             ? Collections.min(nodesToAsk, umbrellaSortingStrategy) 
             : Collections.max(nodesToAsk, umbrellaSortingStrategy);
@@ -142,27 +149,29 @@ public class Interview {
                 continue;
 
             // get our value either from expert or ML
-            n.classification = (EXPERT_MODE) ? questionExpert(n) : questionML(n);
+            int classification = (EXPERT_MODE) ? questionExpert(n) : questionML(n);
 
             // this sets all the upper bounds below, and all the lower bounds above.
-            n.permeateClassification();
-            questionsAsked++;
+            PermeationStats stats = n.permeateClassification(classification);
+            nodesAsked.add(n);
+            permeationStatsForEachNodeAsked.add(stats);
 
             // filter out confirmed nodes and continue
             nodesToAsk = nodesToAsk.parallelStream()
                 .filter(node -> !node.classificationConfirmed)
                 .collect(Collectors.toCollection(ArrayList::new));
         }
-
-        System.out.println("QUESTIONS ASKED:\t" + questionsAsked);
-        System.out.println("TOTAL NODES:\t" + totalNodes);
+        return new InterviewStats(nodesAsked, permeationStatsForEachNodeAsked);
     }
 
     // function where we search through chains, which get recursively split into chunks.
-    private static void cutMiddleOfChainInterview(ArrayList<ArrayList<Node>> hanselChainSet, 
+    private static InterviewStats cutMiddleOfChainInterview(ArrayList<ArrayList<Node>> hanselChainSet, 
         boolean completingTheSquareTechnique, 
         Comparator<Node> choosingAlternateMiddleNodeTechnique,
         int numClasses) {
+
+        List<Node> questionsAsked = new ArrayList<>();
+        List<PermeationStats> permeationStats = new ArrayList<>();
 
         boolean useMaxComparison = (choosingAlternateMiddleNodeTechnique == NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
 
@@ -171,13 +180,6 @@ public class Interview {
         // chains/chunks to determine that. a chain
         ArrayList<ArrayList<Node>> chunks = new ArrayList<>();
         chunks.addAll(hanselChainSet);
-
-        // just get the total number of nodes.
-        int totalNodes = chunks.parallelStream()
-            .mapToInt(ArrayList::size) // or chunk -> chunk.size()
-            .sum();
-    
-        int questionsAsked = 0;
         while (chunks.size() > 0){
 
             // get our biggest chunk
@@ -185,31 +187,28 @@ public class Interview {
 
             // get the middle node
             int middleIndex = chunkToQuestion.size() / 2;
-            Node middleNode = chunkToQuestion.get(middleIndex);
             
             // if we are completing the square to find a potential better node than just the middle node.
             Node nodeToQuestion;
             if (completingTheSquareTechnique){    
                 // now that our nodes have been updated with their umbrella sizes and min classifications and such, we can determine if there is a better node than our middle node.
-                nodeToQuestion = getBestPossibleSquareCompletion(chunkToQuestion, 
-                                                                middleIndex, 
-                                                                choosingAlternateMiddleNodeTechnique, 
-                                                                useMaxComparison,
-                                                                numClasses);
+                nodeToQuestion = getBestSquareCompletion(chunkToQuestion, 
+                    middleIndex, 
+                    choosingAlternateMiddleNodeTechnique, 
+                    useMaxComparison,
+                    numClasses);
             }
-            else nodeToQuestion = chunkToQuestion.get(middleIndex);
-
-            if (DEBUG && middleNode != nodeToQuestion){
-                System.out.println("REPLACING MIDDLE NODE: " + middleNode + " WITH " + nodeToQuestion);
-                System.out.println("IN CHAIN: " + chunkToQuestion);
-            }
+            else 
+                nodeToQuestion = chunkToQuestion.get(middleIndex);
 
             // ask the expert or ML
-            nodeToQuestion.classification = (EXPERT_MODE) 
+            int classification = (EXPERT_MODE) 
                 ? questionExpert(nodeToQuestion) 
                 : questionML(nodeToQuestion);
-            nodeToQuestion.permeateClassification();
-            questionsAsked++;
+
+            PermeationStats permStats = nodeToQuestion.permeateClassification(classification);
+            questionsAsked.add(nodeToQuestion);
+            permeationStats.add(permStats);
 
             // for each chunk we have remaining of each chain, we are going to chop them up, splitting on parts where they are confirmed.
             chunks = chunks.parallelStream()
@@ -217,8 +216,7 @@ public class Interview {
                 .collect(Collectors.toCollection(ArrayList::new));
         }
 
-        System.out.println("QUESTIONS ASKED:\t" + questionsAsked);
-        System.out.println("TOTAL NODES:\t" + totalNodes);
+        return new InterviewStats(questionsAsked, permeationStats);
     }
 
     // splits a list of nodes (part or whole hansel chain) on nodes which are confirmed
@@ -249,7 +247,7 @@ public class Interview {
         return newChunks;
     }
 
-    private static Node getBestPossibleSquareCompletion(
+    private static Node getBestSquareCompletion(
             ArrayList<Node> chunkToQuestion,
             int middleIndex,
             Comparator<Node> choosingAlternateMiddleNodeTechnique,
@@ -328,9 +326,9 @@ public class Interview {
         return selectedNode;
     }
 
-    private static void binarySearchStringOfExpansionsInterview(ArrayList<Node> allNodes, Node rootNode) {
-        int totalNodes = allNodes.size();
-        int questionsAsked = 0;
+    private static InterviewStats binarySearchStringOfExpansionsInterview(ArrayList<Node> allNodes, Node rootNode) {
+        List<Node> nodesAsked = new ArrayList<>();
+        List<PermeationStats> permeationStats = new ArrayList<>();
 
         while (true) {
             // Collect still alive nodes
@@ -354,16 +352,17 @@ public class Interview {
             Node middleNode = longestChain.get(longestChain.size() / 2);
 
             // Query expert or ML
-            middleNode.classification = (EXPERT_MODE)
+            int classification = (EXPERT_MODE)
                 ? questionExpert(middleNode)
                 : questionML(middleNode);
 
             // Permeate classification
-            middleNode.permeateClassification();
-            questionsAsked++;
+            PermeationStats permeationStatsForNode = middleNode.permeateClassification(classification);
+            nodesAsked.add(middleNode);
+            permeationStats.add(permeationStatsForNode);
         }
-        System.out.println("QUESTIONS ASKED:\t" + questionsAsked);
-        System.out.println("TOTAL NODES:\t" + totalNodes);
+
+        return new InterviewStats(nodesAsked, permeationStats);
     }
 
     // ALL NODES IS ONLY THE UNCONFIRMED NODES AT THIS STEP OF INTERVIEW!
@@ -452,40 +451,37 @@ public class Interview {
      *      in a three class problem, we would use the minimum number of confirmed nodes, if a given class of the three were assigned.
      *      thus we take that node which had the largest number of confirmations (using the worst case)
      */
-    private static void bestMinConfirmedInterview(ArrayList<Node> allNodes, int numClasses){
+    private static InterviewStats bestMinConfirmedInterview(ArrayList<Node> allNodes, int numClasses){
         
-        int totalNodes = allNodes.size();
+        // interview stats we need later.
+        List<Node> nodesAsked = new ArrayList<>();
+        List<PermeationStats> permeationStatsForEachNodeAsked = new ArrayList<>();
 
         ArrayList<Node> nodesToAsk = new ArrayList<>();
         nodesToAsk.addAll(allNodes);
-
-        int questionsAsked = 0;
         while(nodesToAsk.size() != 0){
 
             // now sort decreasing, using our strategy. we sort descending, by a nodes minimum guaranteed classifications.
             // that is, of it's classes, whichever is the worst, we choose the one with the best floor. we are guaranteed to confirm that many at least.
             Node.updateAllNodeRankings(nodesToAsk, numClasses);            
             
-            Node n = Collections.max(nodesToAsk, NodeComparisons.BY_MIN_CLASSIFICATIONS);
-            nodesToAsk.remove(n);
-
-            // no need to ask about a confirmed node.
-            if (n.classificationConfirmed)
-                continue;
+            Node nodeToAsk = Collections.max(nodesToAsk, NodeComparisons.BY_MIN_CLASSIFICATIONS);
+            nodesToAsk.remove(nodeToAsk);
+            nodesAsked.add(nodeToAsk);
 
             // get our value either from expert or ML
-            n.classification = (EXPERT_MODE) ? questionExpert(n) : questionML(n);
+            int classification = (EXPERT_MODE) ? questionExpert(nodeToAsk) : questionML(nodeToAsk);
 
             // this sets all the upper bounds below, and all the lower bounds above.
-            n.permeateClassification();
-            questionsAsked++;
+            PermeationStats thisNodeStats = nodeToAsk.permeateClassification(classification);
+            permeationStatsForEachNodeAsked.add(thisNodeStats);
 
             nodesToAsk = nodesToAsk.parallelStream()
                 .filter(node -> !node.classificationConfirmed) // keep only unconfirmed nodes
                 .collect(Collectors.toCollection(ArrayList::new));
         }
-        System.out.println("TOTAL NODES:\t" + totalNodes);
-        System.out.println("QUESTIONS ASKED:\t" + questionsAsked);
+
+        return new InterviewStats(nodesAsked, permeationStatsForEachNodeAsked);
     }
 
 }

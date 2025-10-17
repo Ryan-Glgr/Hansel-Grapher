@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.stream.IntStream;
 
+import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats;
+
 public class Node {
 
     public static boolean DEBUG_PRINTING = false;
@@ -46,7 +48,7 @@ public class Node {
 
     // stores the number of possible confirmations by class in this way.
     // hypothetically compute how many confirmations we would get by assigning this node to each class. and store them respectively.
-    public int[] possibleConfirmationsByClass;
+    public Integer[] possibleConfirmationsByClass;
 
     // used as a different measure of how "good" an umbrella is. basically, we want a node which has a lot of nodes in umbrella, and they're balanced.
     // so we take the ratio with the total number / the difference in above and below cases. 
@@ -71,7 +73,7 @@ public class Node {
         underneathUmbrellaCases = 0;
         aboveUmbrellaCases = 0;
 
-        possibleConfirmationsByClass = new int[numClasses];
+        possibleConfirmationsByClass = new Integer[numClasses];
         balanceRatio = 0.0f;
 
         sum = sumUpDataPoint();
@@ -162,11 +164,13 @@ public class Node {
     }
 
     // BFS-based expansion to set floor (classification) for nodes above
-    private void expandUp(int lowerBound){
+    private PermeationStats expandUp(int lowerBound){
         
         java.util.Queue<Node> queue = new java.util.LinkedList<>();
         java.util.Set<Node> visited = new java.util.HashSet<>();
-        
+        Integer numberOfConfirmations = 0;
+        Integer numberOfNodesTouched = 0;
+
         queue.add(this);
         visited.add(this);
         
@@ -179,11 +183,15 @@ public class Node {
             
             for (Node upstairsNeighbor : current.upExpansions) {
                 // if we have a neighbor, who needs their floor raised, where we haven't been, and importantly, WHO IS NOT CONFIRMED.
-                if (upstairsNeighbor != null && upstairsNeighbor.classification < lowerBound && !visited.contains(upstairsNeighbor) && upstairsNeighbor.classificationConfirmed == false) {
+                if (upstairsNeighbor != null 
+                && upstairsNeighbor.classification < lowerBound          // if they have a minimum set as less than what we are carrying up, we update. 
+                && !visited.contains(upstairsNeighbor)                   // if we haven't already done this node.
+                && upstairsNeighbor.classificationConfirmed == false) {
                     
                     // Update the floor (classification) of upstairs neighbor
                     upstairsNeighbor.classification = lowerBound;
-                    
+                    numberOfNodesTouched++;
+
                     queue.add(upstairsNeighbor);
                     visited.add(upstairsNeighbor);
                 }
@@ -194,16 +202,20 @@ public class Node {
         for (Node node : visited) {
             if (node.classification == node.maxPossibleValue && node != this) {
                 node.classificationConfirmed = true;
+                numberOfConfirmations++;
             }
         }
+        return new PermeationStats(numberOfConfirmations, numberOfNodesTouched, 0);
     }
 
     // BFS-based expansion to set ceiling (maxPossibleValue) for nodes below
-    private void expandDown(int upperBound){
+    private PermeationStats expandDown(int upperBound){
         
         java.util.Queue<Node> queue = new java.util.LinkedList<>();
         java.util.Set<Node> visited = new java.util.HashSet<>();
-        
+        Integer numberOfConfirmations = 0;
+        Integer numberOfNodesTouched = 0;
+
         queue.add(this);
         visited.add(this);
         
@@ -218,10 +230,14 @@ public class Node {
             for (Node downstairsNeighbor : current.downExpansions) {
                 
                 // if we have a neighbor, who needs their ceiling lowered, where we haven't been, and importantly, WHO IS NOT CONFIRMED.
-                if (downstairsNeighbor != null && downstairsNeighbor.maxPossibleValue > upperBound && !visited.contains(downstairsNeighbor) && downstairsNeighbor.classificationConfirmed == false) {
+                if (downstairsNeighbor != null 
+                && downstairsNeighbor.maxPossibleValue > upperBound 
+                && !visited.contains(downstairsNeighbor) 
+                && downstairsNeighbor.classificationConfirmed == false) {
                     
                     // lower the ceiling (maxPossibleValue) of downstairs neighbor
                     downstairsNeighbor.maxPossibleValue = upperBound;
+                    numberOfNodesTouched++;
                     
                     queue.add(downstairsNeighbor);
                     visited.add(downstairsNeighbor);
@@ -233,25 +249,31 @@ public class Node {
         for (Node node : visited) {
             if (node.classification == node.maxPossibleValue && node != this) {
                 node.classificationConfirmed = true;
+                numberOfConfirmations++;
             }
         }
+        return new PermeationStats(numberOfConfirmations, 0, numberOfNodesTouched);
     }
 
     // each node gets this new classification. it sends the effects of the classification up and down. (not just within one HC, but to all expansions up and down.)
-    public void permeateClassification(){
+    public PermeationStats permeateClassification(int newClassification) {
     
-        // update our max here, so that know it is confirmed.
+        // lock in our nodes value
+        this.classification = newClassification;
         this.maxPossibleValue = this.classification;
 
         // Set the floor of everyone above to AT LEAST this value
-        expandUp(this.classification);
+        PermeationStats aboveStats = expandUp(this.classification);
         
         // Set the ceiling of everyone below to AT MOST this value
-        expandDown(this.classification);
+        PermeationStats belowStats = expandDown(this.classification);
 
         // Confirm this node since it was directly asked to expert
         this.classificationConfirmed = true;
-    }   
+
+        // return our stats from this permeation.
+        return new PermeationStats(aboveStats, belowStats);
+    }
 
     // used when we are computing the number of umbrella cases. we need to sort by the hamming value of the case.
     public Integer sumUpDataPoint(){
@@ -300,8 +322,7 @@ public class Node {
         allNodes.parallelStream().forEach(n -> 
             n.possibleConfirmationsByClass = Arrays.stream(n.possibleConfirmationsByClass)
                 .sorted() // sort ascending
-                .toArray()
-        );
+                .toArray(Integer[]::new));
     }
 
     // Calculate umbrella size using proper graph traversal to avoid double counting

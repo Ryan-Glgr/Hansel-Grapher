@@ -8,16 +8,14 @@ import java.util.List;
 
 import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleCreation;
 import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleNode;
+import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.HanselChains;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
 
-// TODO: implement completing the square for a chain of expansions
-// TODO: implement better balance ratio
-
 public class Main {
 
-    public static Integer[] kValues = {3, 4, 3, 3, 4};
+    public static Integer[] kValues = {3, 4, 3, 3, 2};
     public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f};
     static {
         int maxSum = 0;
@@ -33,8 +31,7 @@ public class Main {
     public static Integer highestPossibleClassification;
     
     public static void main(String[] args) {
-
-        makeClassifyAndSaveNodes(Interview.InterviewMode.BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_HIGHEST_TOTAL_UMBRELLA_SORT);
+        makeClassifyAndSaveNodes(Interview.InterviewMode.BEST_MINIMUM_CONFIRMED);
         System.exit(0);
     }
 
@@ -46,11 +43,12 @@ public class Main {
             HashMap<Integer, Node> nodes = Node.makeNodes(kValues, numClasses);
             // make the chains
             ArrayList<ArrayList<Node>> hanselChains = HanselChains.generateHanselChainSet(kValues, nodes);
-            System.out.println("NUMBER OF CHAINS:\t" + hanselChains.size());
-            System.out.println("NUMBER OF NODES:\t" + nodes.size());
 
             // classify all our data
-            Interview.conductInterview(nodes, hanselChains, interviewMode, numClasses);
+            InterviewStats interviewStats = Interview.conductInterview(nodes, hanselChains, interviewMode, numClasses);
+
+            System.out.println("INTERVIEW COMPLETE!");
+            System.out.println(interviewStats);
 
             // find our low units
             ArrayList<ArrayList<Node>> lowUnits = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
