@@ -30,14 +30,19 @@ public class Interview {
 
     public enum InterviewMode {
         BINARY_SEARCH_CHAINS,                       // method where we just query midpoint of the chain each time. thus chopping each chain in half. we work on the longest chain at a time.
-        BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_SMALLEST_DIFFERENCE,
-        BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_BEST_MIN_CONFIRMED,
-        BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_HIGHEST_TOTAL_UMBRELLA_SORT,
+        BINARY_SEARCH_COMPLETING_SQUARE_SMALLEST_DIFFERENCE,
+        BINARY_SEARCH_COMPLETING_SQUARE_BEST_MIN_CONFIRMED,
+        BINARY_SEARCH_COMPLETING_SQUARE_HIGHEST_TOTAL_UMBRELLA_SORT,
+        BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_UNITY,
+        BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_SHANNON_ENTROPY,
+        BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_QUADRATIC,
         BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS, // basically finds the longest expansion chain, + 1 in some attribute, as far as we can go, and binary searches that chain at each step.
         BEST_MINIMUM_CONFIRMED,                     // method where we check all nodes, and determine which has the best min bound. meaning of all k classes, confirming this one as a particular class, how many nodes get confirmed. The node with the best lower bound is used each iteration.
         HIGHEST_TOTAL_UMBRELLA_SORT,                // sort by just the total amount in the umbrella. This means we find the node who's classification affects the most other nodes.         
         SMALLEST_DIFFERENCE_UMBRELLA_SORT,          // sort our nodes by the smallest difference above/below. this way we find balanced nodes first
-        BEST_BALANCE_RATIO_UMBRELLA_SORT,           // sort our nodes by their balance ratios.
+        BEST_BALANCE_RATIO_UNITY,
+        BEST_BALANCE_RATIO_SHANNON_ENTROPY,
+        BEST_BALANCE_RATIO_QUADRATIC,
     }
 
     // mega function which determines how we are going to ask questions.
@@ -60,22 +65,46 @@ public class Interview {
             case SMALLEST_DIFFERENCE_UMBRELLA_SORT ->
                 umbrellaSortInterview(allNodes, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA, numClasses);
 
-            case BEST_BALANCE_RATIO_UMBRELLA_SORT ->
-                umbrellaSortInterview(allNodes, NodeComparisons.BEST_BALANCE_RATIO_UMBRELLA, numClasses);
-
+            case BEST_BALANCE_RATIO_UNITY -> {
+                Node.BALANCE_RATIO = BalanceRatio.UNITY_BALANCE_RATIO;
+                yield umbrellaSortInterview(allNodes, NodeComparisons.BEST_BALANCE_RATIO, numClasses);
+            }
+            case BEST_BALANCE_RATIO_SHANNON_ENTROPY -> {
+                Node.BALANCE_RATIO = BalanceRatio.SHANNON_ENTROPY_BALANCE_RATIO;
+                yield umbrellaSortInterview(allNodes, NodeComparisons.BEST_BALANCE_RATIO, numClasses);
+            }
+            case BEST_BALANCE_RATIO_QUADRATIC -> {
+                Node.BALANCE_RATIO = BalanceRatio.QUADRATIC_BALANCE_RATIO;
+                yield umbrellaSortInterview(allNodes, NodeComparisons.BEST_BALANCE_RATIO, numClasses);
+            }
             case BINARY_SEARCH_CHAINS ->
                 // extra args after hansel chains don't matter for regular binary search.
                 cutMiddleOfChainInterview(hanselChains, false, null, numClasses);
 
-            case BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_SMALLEST_DIFFERENCE ->
+            case BINARY_SEARCH_COMPLETING_SQUARE_SMALLEST_DIFFERENCE ->
                 // we use the MIN for smallest difference
                 cutMiddleOfChainInterview(hanselChains, true, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA, numClasses);
 
-            case BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_HIGHEST_TOTAL_UMBRELLA_SORT ->
+            case BINARY_SEARCH_COMPLETING_SQUARE_HIGHEST_TOTAL_UMBRELLA_SORT ->
                 cutMiddleOfChainInterview(hanselChains, true, NodeComparisons.HIGHEST_TOTAL_UMBRELLA, numClasses);
 
-            case BINARY_SEARCH_WITH_COMPLETING_THE_SQUARE_USING_BEST_MIN_CONFIRMED ->
+            case BINARY_SEARCH_COMPLETING_SQUARE_BEST_MIN_CONFIRMED ->
                 cutMiddleOfChainInterview(hanselChains, true, NodeComparisons.BY_MIN_CLASSIFICATIONS, numClasses);
+
+            case BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_UNITY -> {
+                Node.BALANCE_RATIO = BalanceRatio.UNITY_BALANCE_RATIO;
+                yield cutMiddleOfChainInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO, numClasses);
+            }
+
+            case BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_SHANNON_ENTROPY -> {
+                Node.BALANCE_RATIO = BalanceRatio.SHANNON_ENTROPY_BALANCE_RATIO;
+                yield cutMiddleOfChainInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO, numClasses);
+            }
+
+            case BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_QUADRATIC -> {
+                Node.BALANCE_RATIO = BalanceRatio.QUADRATIC_BALANCE_RATIO;
+                yield cutMiddleOfChainInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO, numClasses);
+            }
 
             case BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS ->
                 // our root node is easy to find. it's the node with [0,0,...,0] since our hash function

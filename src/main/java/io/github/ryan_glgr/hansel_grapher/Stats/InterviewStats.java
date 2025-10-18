@@ -52,10 +52,12 @@ public class InterviewStats {
         sb.append("interviewMode: ").append(interviewMode).append("\n");
         sb.append("expertMode: ").append(expertMode).append("\n");
 
-        while (!nodesAsked.isEmpty()){
-            sb.append(nodesAsked.remove(0));
+        PermeationStats[] permeationStatsArray = permeationStatsForEachNodeAsked.toArray(new PermeationStats[0]);
+        Node[] questionsAsked = nodesAsked.toArray(new Node[0]);
+        for(int i = 0; i < questionsAsked.length; i++){
+            sb.append(questionsAsked[i]);
             sb.append("\n");
-            sb.append(permeationStatsForEachNodeAsked.remove(0));
+            sb.append(permeationStatsArray[i]);
             sb.append("\n------------------------------------------------\n");
         }
         return sb.toString();

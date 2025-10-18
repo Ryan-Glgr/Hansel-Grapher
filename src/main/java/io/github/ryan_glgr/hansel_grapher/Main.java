@@ -9,9 +9,12 @@ import java.util.List;
 import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleCreation;
 import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleNode;
 import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
+import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats.PermeationStatistic;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.HanselChains;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.Visualizations.InterviewStatsVisualizer;
 
 public class Main {
 
@@ -31,7 +34,10 @@ public class Main {
     public static Integer highestPossibleClassification;
     
     public static void main(String[] args) {
-        makeClassifyAndSaveNodes(Interview.InterviewMode.BEST_MINIMUM_CONFIRMED);
+        for (InterviewMode interviewMode : InterviewMode.values()) {
+            makeClassifyAndSaveNodes(interviewMode);
+        }
+        // makeClassifyAndSaveNodes(Interview.InterviewMode.BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_QUADRATIC);
         System.exit(0);
     }
 
@@ -47,39 +53,39 @@ public class Main {
             // classify all our data
             InterviewStats interviewStats = Interview.conductInterview(nodes, hanselChains, interviewMode, numClasses);
 
-            System.out.println("INTERVIEW COMPLETE!");
+            System.out.println(interviewMode.toString() + " INTERVIEW COMPLETE!");
             System.out.println(interviewStats);
 
             // find our low units
             ArrayList<ArrayList<Node>> lowUnits = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
             int numberOfLowUnits = lowUnits.stream().mapToInt(ArrayList::size).sum();
-            System.out.println("TOTAL NUMBER OF LOW UNITS:\t" + numberOfLowUnits);
+            // System.out.println("TOTAL NUMBER OF LOW UNITS:\t" + numberOfLowUnits);
 
             for (int classification = 0; classification < numClasses; classification++) {
-                System.out.println("NUMBER OF LOW UNITS FOR CLASS " + classification + ":\t" + lowUnits.get(classification).size());
-                System.out.println("LOW UNITS FOR CLASS " + classification + ":\n");
+                // System.out.println("NUMBER OF LOW UNITS FOR CLASS " + classification + ":\t" + lowUnits.get(classification).size());
+                // System.out.println("LOW UNITS FOR CLASS " + classification + ":\n");
                 // printListOfNodes(lowUnits.get(classification));
             }
 
             ArrayList<ArrayList<Node>> adjustedLowUnits = HanselChains.removeUselessLowUnits(lowUnits);
             int numberOfAdjustedLowUnits = adjustedLowUnits.stream().mapToInt(ArrayList::size).sum();
-            System.out.println("\nTOTAL NUMBER OF ADJUSTED LOW UNITS:\t" + numberOfAdjustedLowUnits);
+            // System.out.println("\nTOTAL NUMBER OF ADJUSTED LOW UNITS:\t" + numberOfAdjustedLowUnits);
 
             for (int classification = 0; classification < numClasses; classification++) {
-                System.out.println("NUMBER OF ADJUSTED LOW UNITS FOR CLASS " + classification + ":\t" + adjustedLowUnits.get(classification).size());
-                System.out.println("ADJUSTED LOW UNITS FOR CLASS " + classification + ":\n");
-                printListOfNodes(adjustedLowUnits.get(classification));
+                // System.out.println("NUMBER OF ADJUSTED LOW UNITS FOR CLASS " + classification + ":\t" + adjustedLowUnits.get(classification).size());
+                // System.out.println("ADJUSTED LOW UNITS FOR CLASS " + classification + ":\n");
+                // printListOfNodes(adjustedLowUnits.get(classification));
             }
             
             RuleNode[] ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnits);
             for (int classification = 0; classification < numClasses; classification++) {
-                ruleTrees[classification].printTree(false, classification);
+                // ruleTrees[classification].printTree(false, classification);
             }
 
             int totalClauses = Arrays.stream(ruleTrees)
                 .mapToInt(ruleTree -> ruleTree.subtreeSize(ruleTree))
                 .sum();
-            System.out.println("\nTOTAL NUMBER OF CLAUSES NEEDED:\t" + totalClauses);
+            // System.out.println("\nTOTAL NUMBER OF CLAUSES NEEDED:\t" + totalClauses);
 
         try{
             // ensure output directory exists
@@ -93,6 +99,15 @@ public class Main {
 
             // make the expansions picture
             // VisualizationDOT.makeExpansionsDOT(nodes, adjustedLowUnits);
+
+            String interviewStatsOutputString = interviewMode.toString() + " Interview Stats";
+            InterviewStatsVisualizer.savePDF(interviewStats, 
+                List.of(PermeationStatistic.NUMBER_OF_CONFIRMATIONS, 
+                    PermeationStatistic.NUMBER_OF_NODES_TOUCHED_ABOVE, 
+                    PermeationStatistic.NUMBER_OF_NODES_TOUCHED_BELOW, 
+                    PermeationStatistic.TOTAL_NUMBER_OF_NODES_TOUCHED), 
+                "out/" + interviewStatsOutputString + ".pdf",
+                interviewMode);
         }
         catch (Exception e){
             e.printStackTrace();

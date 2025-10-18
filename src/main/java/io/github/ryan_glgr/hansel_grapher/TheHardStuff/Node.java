@@ -11,7 +11,7 @@ public class Node {
 
     public static boolean DEBUG_PRINTING = false;
 
-    public static BalanceRatio BALANCE_RATIO = BalanceRatio.QUADRATIC_BALANCE_RATIO;
+    public static BalanceRatio BALANCE_RATIO = BalanceRatio.UNITY_BALANCE_RATIO;
     
     // list of max possible value of each attribute
     public static Integer[] kValues;
@@ -391,16 +391,6 @@ public class Node {
             distance += Math.abs(this.values[i] - other.values[i]);
         }
         return distance;
-    }
-
-    // compute the "balance factor" for a node.
-    private void setBalanceFactor() {
-        if (totalUmbrellaCases == 0) {
-            this.balanceRatio = 0.0f;
-            return;
-        }
-        float imbalance = (float)Math.abs(this.aboveUmbrellaCases - this.underneathUmbrellaCases) / totalUmbrellaCases;
-        this.balanceRatio = totalUmbrellaCases * (1.0f - imbalance);
     }
 
     // checks whether 'this' is getting dominated - smothered or even in ALL attributes. Either upwards or downwards.

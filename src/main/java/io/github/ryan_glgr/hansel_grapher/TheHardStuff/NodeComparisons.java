@@ -9,8 +9,8 @@ public class NodeComparisons {
             return Integer.compare(a.totalUmbrellaCases, b.totalUmbrellaCases);
         };
 
-    // Sort by BEST_BALANCE_RATIO_UMBRELLA_SORT: prefer nodes with higher balanceRatio
-    public static final Comparator<Node> BEST_BALANCE_RATIO_UMBRELLA =
+    // Sort by BEST_BALANCE_RATIO: prefer nodes with higher balanceRatio
+    public static final Comparator<Node> BEST_BALANCE_RATIO =
         Comparator.comparingDouble((Node n) -> n.balanceRatio);
 
     // Sort by SMALLEST_DIFFERENCE_UMBRELLA_SORT:
@@ -33,7 +33,7 @@ public class NodeComparisons {
             if (cmp != 0) 
                 return cmp;
         }
-        return SMALLEST_DIFFERENCE_UMBRELLA.compare(a, b);
+        return BEST_BALANCE_RATIO.compare(a, b);
     };
 
     // Compare nodes lexicographically by their attribute arrays
