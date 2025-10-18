@@ -10,6 +10,8 @@ import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats;
 public class Node {
 
     public static boolean DEBUG_PRINTING = false;
+
+    public static BalanceRatio BALANCE_RATIO = BalanceRatio.QUADRATIC_BALANCE_RATIO;
     
     // list of max possible value of each attribute
     public static Integer[] kValues;
@@ -52,7 +54,9 @@ public class Node {
 
     // used as a different measure of how "good" an umbrella is. basically, we want a node which has a lot of nodes in umbrella, and they're balanced.
     // so we take the ratio with the total number / the difference in above and below cases. 
-    public float balanceRatio;
+    public double balanceRatio;
+
+    public double umbrellaMagnitude;
 
     // takes in a datapoint, and makes a copy of that and stores that as our "point"
     private Node(Integer[] datapoint, int numClasses){
@@ -314,9 +318,13 @@ public class Node {
         allNodes.parallelStream()
             .forEach(n -> n.totalUmbrellaCases = n.aboveUmbrellaCases + n.underneathUmbrellaCases);
         
+        // compute the new magnitude of above and below umbrella case vector
+        allNodes.parallelStream()
+            .forEach(n -> n.umbrellaMagnitude = n.computeUmbrellaMagnitude());
+
         // compute the new balance ratio for each node.
         allNodes.parallelStream()
-            .forEach(n -> n.setBalanceFactor());
+            .forEach(n -> n.balanceRatio = BALANCE_RATIO.computeBalanceRatio(n));
 
         // now last step. sort each node's possible confirmations
         allNodes.parallelStream().forEach(n -> 
@@ -413,6 +421,10 @@ public class Node {
             }
         }
         return true;
+    }
+
+    public double computeUmbrellaMagnitude() {
+        return Math.sqrt(Math.pow(aboveUmbrellaCases, 2) + Math.pow(underneathUmbrellaCases, 2));
     }
 
     @Override

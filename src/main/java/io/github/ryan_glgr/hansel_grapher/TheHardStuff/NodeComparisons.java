@@ -49,17 +49,5 @@ public class NodeComparisons {
         return 0;
     };
 
-    // Compare nodes by the ratio between the magnitude of their umbrella cases and the uniformity of their umbrella cases
-    public static final Comparator<Node> UNIFORMITY_RATIO_COMPARATOR =
-        (a, b) -> {
-            double aMag = Math.sqrt(Math.pow(a.aboveUmbrellaCases, 2) + Math.pow(a.underneathUmbrellaCases, 2));
-            double bMag = Math.sqrt(Math.pow(b.aboveUmbrellaCases, 2) + Math.pow(b.underneathUmbrellaCases, 2));
-            double aUni = Math.min(a.aboveUmbrellaCases, a.underneathUmbrellaCases)
-                / (double) Math.max(a.aboveUmbrellaCases, a.underneathUmbrellaCases);
-            double bUni = Math.min(b.aboveUmbrellaCases, b.underneathUmbrellaCases)
-                / (double) Math.max(b.aboveUmbrellaCases, b.underneathUmbrellaCases);
-            return Double.compare(aMag * aUni, bMag * bUni);
-        };
-
 }
 
