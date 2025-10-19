@@ -24,9 +24,9 @@ public class Interview {
     // if we set this false, we are going to call upon some ML interviewer instead.
     public static boolean EXPERT_MODE = true;
 
-    // if we want to run more than one interview at a time, the only blocker is refactoring to make this get passed in to
-    // perhaps an interview object. then we could just use Interview stats as an instance field of said object.
-    public static Float[] kValueWeights;
+    private Integer[] kVals;
+    private Float[] kValueWeights;
+    public InterviewStats interviewStats;
 
     public enum InterviewMode {
         BINARY_SEARCH_CHAINS,                       // method where we just query midpoint of the chain each time. thus chopping each chain in half. we work on the longest chain at a time.
@@ -56,17 +56,24 @@ public class Interview {
         BEST_BALANCE_RATIO_QUADRATIC,
     }
 
-    // mega function which determines how we are going to ask questions.
-    // mode determines the question asking heuristics. umbrellaBased determines if we sort by umbrella metrics.
-    public static InterviewStats conductInterview(
+    public Interview(Integer[] kVals,
+            Float[] weights,
             HashMap<Integer, Node> data,
             ArrayList<ArrayList<Node>> hanselChains,
             InterviewMode mode,
-            int numClasses,
-            Integer[] kVals,
-            Float[] weights) {
+            int numClasses){
 
-        kValueWeights = weights;
+        this.kVals = kVals;
+        this.kValueWeights = weights;
+        this.interviewStats = conductInterview(data, hanselChains, mode, numClasses);
+    }
+
+    // mega function which determines how we are going to ask questions.
+    // mode determines the question asking heuristics. umbrellaBased determines if we sort by umbrella metrics.
+    private InterviewStats conductInterview(HashMap<Integer, Node> data,
+           ArrayList<ArrayList<Node>> hanselChains,
+           InterviewMode mode,
+           int numClasses) {
 
         ArrayList<Node> allNodes = new ArrayList<>();
         // for each node, we are going to put in that node, and it's number of expansions as a pair.
@@ -153,7 +160,7 @@ public class Interview {
             case BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS ->
                 // our root node is easy to find. it's the node with [0,0,...,0] since our hash function
                 // is that value, we can just know that we look up 0 to find it.
-                binarySearchStringOfExpansionsInterview(allNodes, data.get(0));
+                binarySearchStringOfExpansionsInterview(allNodes);
 
             case BEST_MINIMUM_CONFIRMED ->
                 bestMinConfirmedInterview(allNodes, numClasses);
@@ -164,19 +171,18 @@ public class Interview {
                 yield null; // required inside a block
             }
         };
+
         return new InterviewStats(kVals,
-        hanselChains.size(),
-        data.size(),
-        mode,
-        EXPERT_MODE,
-        stats.nodesAsked,
-        stats.permeationStatsForEachNodeAsked);
+            hanselChains.size(),
+            data.size(),
+            mode,
+            EXPERT_MODE,
+            stats.nodesAsked,
+            stats.permeationStatsForEachNodeAsked);
     }
 
     // asks the "expert" what the classification of this datapoint is.
-    private static int questionExpert(Node datapoint){
-        // for now, we will just say classification is sum of digits / dimension to keep it simple.
-        // return datapoint.sum / Node.dimension;
+    private int questionExpert(Node datapoint){
         int sum = 0;
         for (int i = 0; i < Node.dimension; i++){
             sum += (int)(datapoint.values[i] * kValueWeights[i]);
@@ -184,13 +190,13 @@ public class Interview {
         return sum / Node.dimension;
     }
     
-    private static int questionML(Node datapoint){
+    private int questionML(Node datapoint){
         return -1;
     }
 
     // Sort nodes based on umbrella strategy
     // umbrella strategy considers how many nodes are reachable underneath/above a given node. for example:
-    private static InterviewStats umbrellaSortInterview(ArrayList<Node> allNodes, 
+    private InterviewStats umbrellaSortInterview(ArrayList<Node> allNodes,
             Comparator<Node> umbrellaSortingStrategy, 
             int numClasses) {
 
@@ -238,10 +244,10 @@ public class Interview {
     }
 
     // function where we search through chains, which get recursively split into chunks.
-    private static InterviewStats binarySearchHCsInterview(ArrayList<ArrayList<Node>> hanselChainSet,
-                                                           boolean completingTheSquareTechnique,
-                                                           Comparator<Node> choosingAlternateMiddleNodeTechnique,
-                                                           int numClasses) {
+    private InterviewStats binarySearchHCsInterview(ArrayList<ArrayList<Node>> hanselChainSet,
+            boolean completingTheSquareTechnique,
+            Comparator<Node> choosingAlternateMiddleNodeTechnique,
+            int numClasses) {
 
         List<Node> questionsAsked = new ArrayList<>();
         List<PermeationStats> permeationStats = new ArrayList<>();
@@ -249,7 +255,7 @@ public class Interview {
         boolean useMaxComparison = (choosingAlternateMiddleNodeTechnique == NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
 
         // we have to keep a list of chunks of the chain which are not confirmed. basically we chop the chain
-        // each time that we confirm a node. we could confirm a whole bunch with one question, and we have to investigate all the 
+        // each time that we confirm a node. we could confirm a whole bunch with one question, and we have to investigate all the
         // chains/chunks to determine that. a chain
         ArrayList<ArrayList<Node>> chunks = new ArrayList<>();
         chunks.addAll(hanselChainSet);
@@ -260,23 +266,23 @@ public class Interview {
 
             // get the middle node
             int middleIndex = chunkToQuestion.size() / 2;
-            
+
             // if we are completing the square to find a potential better node than just the middle node.
             Node nodeToQuestion;
-            if (completingTheSquareTechnique){    
+            if (completingTheSquareTechnique){
                 // now that our nodes have been updated with their umbrella sizes and min classifications and such, we can determine if there is a better node than our middle node.
-                nodeToQuestion = getBestSquareCompletion(chunkToQuestion, 
-                    middleIndex, 
-                    choosingAlternateMiddleNodeTechnique, 
+                nodeToQuestion = getBestSquareCompletion(chunkToQuestion,
+                    middleIndex,
+                    choosingAlternateMiddleNodeTechnique,
                     useMaxComparison,
                     numClasses);
             }
-            else 
+            else
                 nodeToQuestion = chunkToQuestion.get(middleIndex);
 
             // ask the expert or ML
-            int classification = (EXPERT_MODE) 
-                ? questionExpert(nodeToQuestion) 
+            int classification = (EXPERT_MODE)
+                ? questionExpert(nodeToQuestion)
                 : questionML(nodeToQuestion);
 
             PermeationStats permStats = nodeToQuestion.permeateClassification(classification);
@@ -293,7 +299,7 @@ public class Interview {
     }
 
     // splits a list of nodes (part or whole hansel chain) on nodes which are confirmed
-    private static ArrayList<ArrayList<Node>> splitChunkIntoPiecesHelper(ArrayList<Node> chunk) {
+    private ArrayList<ArrayList<Node>> splitChunkIntoPiecesHelper(ArrayList<Node> chunk) {
         ArrayList<ArrayList<Node>> newChunks = new ArrayList<>();
         ArrayList<Node> currentChunk = new ArrayList<>();
     
@@ -320,7 +326,7 @@ public class Interview {
         return newChunks;
     }
 
-    private static Node getBestSquareCompletion(
+    private Node getBestSquareCompletion(
             ArrayList<Node> chunkToQuestion,
             int middleIndex,
             Comparator<Node> choosingAlternateMiddleNodeTechnique,
@@ -399,7 +405,7 @@ public class Interview {
         return selectedNode;
     }
 
-    private static InterviewStats binarySearchStringOfExpansionsInterview(ArrayList<Node> allNodes, Node rootNode) {
+    private InterviewStats binarySearchStringOfExpansionsInterview(ArrayList<Node> allNodes) {
         List<Node> nodesAsked = new ArrayList<>();
         List<PermeationStats> permeationStats = new ArrayList<>();
 
@@ -438,10 +444,10 @@ public class Interview {
         return new InterviewStats(nodesAsked, permeationStats);
     }
 
-    private static InterviewStats nonBinarySearchHCsInterview(ArrayList<ArrayList<Node>> hanselChainSet,
-                                                           boolean completingTheSquareTechnique,
-                                                           Comparator<Node> choosingAlternateMiddleNodeTechnique,
-                                                           int numClasses) {
+    private InterviewStats nonBinarySearchHCsInterview(ArrayList<ArrayList<Node>> hanselChainSet,
+            boolean completingTheSquareTechnique,
+            Comparator<Node> choosingAlternateMiddleNodeTechnique,
+            int numClasses) {
 
         List<Node> questionsAsked = new ArrayList<>();
         List<PermeationStats> permeationStats = new ArrayList<>();
@@ -498,6 +504,7 @@ public class Interview {
                     .flatMap(chunk -> splitChunkIntoPiecesHelper(chunk).stream())
                     .collect(Collectors.toCollection(ArrayList::new));
         }
+
         return new InterviewStats(questionsAsked, permeationStats);
     }
 
@@ -505,7 +512,7 @@ public class Interview {
 
     // ALL NODES IS ONLY THE UNCONFIRMED NODES AT THIS STEP OF INTERVIEW!
     // This returns the longest possible chain of expansions at this stage of our interview. IMPORTANT: this is NOT a hansel chain, but rather just a chain of Nodes which are + 1 from one another. They could and will be all in different chains all over the place.
-    private static ArrayList<Node> findLongestStringOfExpansions(List<Node> allNodes) {
+    private ArrayList<Node> findLongestStringOfExpansions(List<Node> allNodes) {
         
         /*
          * Build our longest possible path like this:
@@ -589,7 +596,7 @@ public class Interview {
      *      in a three class problem, we would use the minimum number of confirmed nodes, if a given class of the three were assigned.
      *      thus we take that node which had the largest number of confirmations (using the worst case)
      */
-    private static InterviewStats bestMinConfirmedInterview(ArrayList<Node> allNodes, int numClasses){
+    private InterviewStats bestMinConfirmedInterview(ArrayList<Node> allNodes, int numClasses){
         
         // interview stats we need later.
         List<Node> nodesAsked = new ArrayList<>();

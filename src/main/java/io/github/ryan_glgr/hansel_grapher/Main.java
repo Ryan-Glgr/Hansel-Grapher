@@ -17,8 +17,8 @@ import io.github.ryan_glgr.hansel_grapher.Visualizations.VisualizationDOT;
 
 public class Main {
 
-    public static Integer[] kValues = {3, 4, 3, 3, 2, 4, 5, 6};
-    public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f, 4.5f, 2.25f, 1.5f};
+    public static Integer[] kValues = {3, 4, 3, 3, 2, 4, 5};
+    public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f, 4.5f, 2.25f};
     static {
         int maxSum = 0;
         for (int i = 0; i < kValues.length; i++) {
@@ -51,12 +51,7 @@ public class Main {
             ArrayList<ArrayList<Node>> hanselChains = HanselChains.generateHanselChainSet(kValues, nodes);
 
             // classify all our data
-            InterviewStats interviewStats = Interview.conductInterview(nodes,
-                    hanselChains,
-                    interviewMode,
-                    numClasses,
-                    kValues,
-                    weights);
+            InterviewStats interviewStats = new Interview(kValues, weights, nodes, hanselChains, interviewMode, numClasses).interviewStats;
 
             System.out.println(interviewMode + " INTERVIEW COMPLETE!");
             System.out.println("NUMBER OF QUESTIONS ASKED: " + interviewStats.nodesAsked.size());
