@@ -55,8 +55,8 @@ public class InterviewStatsVisualizer {
 
 
     // name of the field is the key. the list of values is the list.
-    public static HashMap<String, List<Integer>> permeationStatLists = new HashMap<>();
-    public static List<Integer> xData = new ArrayList<>();
+    public static HashMap<String, List<Integer>> permeationStatLists;
+    public static List<Integer> xData;
     /**
      * Private helper: builds XYChart from InterviewStats and fieldExtractor
      */
@@ -66,6 +66,11 @@ public class InterviewStatsVisualizer {
 
         List<PermeationStats> questions = stats.permeationStatsForEachNodeAsked;
         PermeationStats[] permeationStats = questions.toArray(new PermeationStats[0]);
+
+        // re initialize these each time we make a new chart. they need to be fields so that we can use them in the toggle, when
+        // we have the same chart, just wanting to add or remove a series.
+        xData = new ArrayList<>();
+        permeationStatLists = new HashMap<>();
 
         for (int i = 0; i < permeationStats.length; i++) {
             xData.add(i + 1); // Question index
@@ -97,7 +102,13 @@ public class InterviewStatsVisualizer {
                 });
             }
             permeationStatLists.put(field.toString(), yData);
-            chart.addSeries(field.toString(), xData, yData);
+            try {
+                chart.addSeries(field.toString(), xData, yData);
+            } catch (Exception e){
+                e.printStackTrace();
+                System.out.println("X DATA: " + xData);
+                System.out.println("Y DATA: " + yData);
+            }
         }
         return chart;
     }

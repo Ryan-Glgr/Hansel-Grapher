@@ -17,8 +17,8 @@ import io.github.ryan_glgr.hansel_grapher.Visualizations.VisualizationDOT;
 
 public class Main {
 
-    public static Integer[] kValues = {3, 4, 3, 3, 2};
-    public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f};
+    public static Integer[] kValues = {3, 4, 3, 3, 2, 4, 5, 6};
+    public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f, 4.5f, 2.25f, 1.5f};
     static {
         int maxSum = 0;
         for (int i = 0; i < kValues.length; i++) {
@@ -29,11 +29,15 @@ public class Main {
         Node.dimension = kValues.length;
     }
     // Calculate the highest possible classification at compile time
-    // This uses the same logic as questionExpert: sum of max values / dimension
     public static Integer highestPossibleClassification;
     
     public static void main(String[] args) {
-        makeClassifyAndSaveNodes(Interview.InterviewMode.BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_QUADRATIC);
+
+//        for (Interview.InterviewMode mode : Interview.InterviewMode.values()){
+//            makeClassifyAndSaveNodes(mode);
+//        }
+        makeClassifyAndSaveNodes(Interview.InterviewMode.NONBINARY_SEARCH_CHAINS);
+        makeClassifyAndSaveNodes(Interview.InterviewMode.BEST_MINIMUM_CONFIRMED);
         System.exit(0);
     }
 
@@ -55,12 +59,12 @@ public class Main {
                     weights);
 
             System.out.println(interviewMode + " INTERVIEW COMPLETE!");
-            System.out.println(interviewStats);
+            System.out.println("NUMBER OF QUESTIONS ASKED: " + interviewStats.nodesAsked.size());
 
             // find our low units
             ArrayList<ArrayList<Node>> lowUnits = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
             int numberOfLowUnits = lowUnits.stream().mapToInt(ArrayList::size).sum();
-             System.out.println("TOTAL NUMBER OF LOW UNITS:\t" + numberOfLowUnits);
+            System.out.println("TOTAL NUMBER OF LOW UNITS:\t" + numberOfLowUnits);
 
             for (int classification = 0; classification < numClasses; classification++) {
                  System.out.println("NUMBER OF LOW UNITS FOR CLASS " + classification + ":\t" + lowUnits.get(classification).size());
@@ -70,7 +74,7 @@ public class Main {
 
             ArrayList<ArrayList<Node>> adjustedLowUnits = HanselChains.removeUselessLowUnits(lowUnits);
             int numberOfAdjustedLowUnits = adjustedLowUnits.stream().mapToInt(ArrayList::size).sum();
-             System.out.println("\nTOTAL NUMBER OF ADJUSTED LOW UNITS:\t" + numberOfAdjustedLowUnits);
+            System.out.println("\nTOTAL NUMBER OF ADJUSTED LOW UNITS:\t" + numberOfAdjustedLowUnits);
 
             for (int classification = 0; classification < numClasses; classification++) {
                  System.out.println("NUMBER OF ADJUSTED LOW UNITS FOR CLASS " + classification + ":\t" + adjustedLowUnits.get(classification).size());
@@ -96,10 +100,10 @@ public class Main {
             }
 
             // visualize our results
-             VisualizationDOT.makeHanselChainDOT(hanselChains, adjustedLowUnits);
+//             VisualizationDOT.makeHanselChainDOT(hanselChains, adjustedLowUnits);
 
             // make the expansions picture
-             VisualizationDOT.makeExpansionsDOT(nodes, adjustedLowUnits);
+//             VisualizationDOT.makeExpansionsDOT(nodes, adjustedLowUnits);
 
             String interviewStatsOutputString = interviewMode + " Interview Stats";
             InterviewStatsVisualizer.savePDF(interviewStats, 
