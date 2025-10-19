@@ -10,7 +10,6 @@ import org.knowm.xchart.style.Styler;
 
 import javax.swing.*;
 import java.util.*;
-import java.util.function.Function;
 import java.io.IOException;
 
 import org.knowm.xchart.BitmapEncoder.BitmapFormat;
@@ -22,18 +21,11 @@ import org.knowm.xchart.VectorGraphicsEncoder.VectorGraphicsFormat;
  */
 public class InterviewStatsVisualizer {
 
-    /**
-     * Returns a JPanel displaying a chart of a specific PermeationStats field
-     * @param stats InterviewStats object
-     * @param fieldName Name of the field (used for title)
-     * @param fieldExtractor Lambda extracting Integer from PermeationStats
-     */
     public static JPanel getChartPanel(
             InterviewStats stats,
-            List<PermeationStatistic> fieldsToGraph,
             InterviewMode interviewMode) {
 
-        XYChart chart = buildChart(stats, fieldsToGraph, interviewMode);
+        XYChart chart = buildChart(stats, interviewMode);
         return new XChartPanel<>(chart);
     }
 
@@ -42,11 +34,10 @@ public class InterviewStatsVisualizer {
      */
     public static void savePNG(
             InterviewStats stats,
-            List<PermeationStatistic> fieldsToGraph,
             String filePath,
             InterviewMode interviewMode) throws IOException {
 
-        XYChart chart = buildChart(stats, fieldsToGraph, interviewMode);
+        XYChart chart = buildChart(stats, interviewMode);
         BitmapEncoder.saveBitmap(chart, filePath, BitmapFormat.PNG);
     }
 
@@ -55,26 +46,27 @@ public class InterviewStatsVisualizer {
      */
     public static void savePDF(
             InterviewStats stats,
-            List<PermeationStatistic> fieldsToGraph,
             String filePath,
             InterviewMode interviewMode) throws IOException {
 
-        XYChart chart = buildChart(stats, fieldsToGraph, interviewMode);
+        XYChart chart = buildChart(stats, interviewMode);
         VectorGraphicsEncoder.saveVectorGraphic(chart, filePath, VectorGraphicsFormat.PDF);
     }
 
+
+    // name of the field is the key. the list of values is the list.
+    public static HashMap<String, List<Integer>> permeationStatLists = new HashMap<>();
+    public static List<Integer> xData = new ArrayList<>();
     /**
      * Private helper: builds XYChart from InterviewStats and fieldExtractor
      */
     private static XYChart buildChart(
             InterviewStats stats,
-            List<PermeationStatistic> fieldsToGraph,
             InterviewMode interviewMode) {
 
         List<PermeationStats> questions = stats.permeationStatsForEachNodeAsked;
         PermeationStats[] permeationStats = questions.toArray(new PermeationStats[0]);
 
-        List<Integer> xData = new ArrayList<>();
         for (int i = 0; i < permeationStats.length; i++) {
             xData.add(i + 1); // Question index
         }
@@ -92,23 +84,31 @@ public class InterviewStatsVisualizer {
         chart.getStyler().setMarkerSize(6);
         chart.getStyler().setXAxisTickMarkSpacingHint(50);
 
-        for (PermeationStatistic field : fieldsToGraph) {
+        for (PermeationStatistic field : PermeationStatistic.values()) {
             
-            // make a new list, and all all the questions' stats for that field.
+            // make a new list, and add all the questions' respective stats for that field.
             List<Integer> yData = new ArrayList<>();
-            for (int i = 0; i < permeationStats.length; i++) {
-                yData.add(switch(field) {
-                    case NUMBER_OF_CONFIRMATIONS -> permeationStats[i].numberOfConfirmations;
-                    case NUMBER_OF_NODES_TOUCHED_ABOVE -> permeationStats[i].numberOfNodesTouchedAbove;
-                    case NUMBER_OF_NODES_TOUCHED_BELOW -> permeationStats[i].numberOfNodesTouchedBelow;
-                    case TOTAL_NUMBER_OF_NODES_TOUCHED -> permeationStats[i].totalNumberOfNodesTouched;  
+            for (PermeationStats permeationStat : permeationStats) {
+                yData.add(switch (field) {
+                    case NUMBER_OF_CONFIRMATIONS -> permeationStat.numberOfConfirmations;
+                    case NUMBER_OF_NODES_TOUCHED_ABOVE -> permeationStat.numberOfNodesTouchedAbove;
+                    case NUMBER_OF_NODES_TOUCHED_BELOW -> permeationStat.numberOfNodesTouchedBelow;
+                    case TOTAL_NUMBER_OF_NODES_TOUCHED -> permeationStat.totalNumberOfNodesTouched;
                 });
             }
-            chart.addSeries(field.toString(), xData, yData);   
-
+            permeationStatLists.put(field.toString(), yData);
+            chart.addSeries(field.toString(), xData, yData);
         }
         return chart;
     }
 
+    public static void toggleStatistic(XYChart currentChart,
+                                       PermeationStatistic statToToggle){
+        if (currentChart.getSeriesMap().containsKey(statToToggle.toString())){
+            currentChart.removeSeries(statToToggle.toString());
+        }
+        else {
+            currentChart.addSeries(statToToggle.toString(), xData, permeationStatLists.get(statToToggle.toString()));
+        }
+    }
 }
-

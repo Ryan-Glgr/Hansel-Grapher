@@ -25,8 +25,9 @@ public class Interview {
     // if we set this false, we are going to call upon some ML interviewer instead.
     public static boolean EXPERT_MODE = true;
 
-    // just use the weights from main for simple magic function testing.
-    public static Float[] kValueWeights = Main.weights;
+    // if we want to run more than one interview at a time, the only blocker is refactoring to make this get passed in to
+    // perhaps an interview object. then we could just use Interview stats as an instance field of said object.
+    public static Float[] kValueWeights;
 
     public enum InterviewMode {
         BINARY_SEARCH_CHAINS,                       // method where we just query midpoint of the chain each time. thus chopping each chain in half. we work on the longest chain at a time.
@@ -51,7 +52,11 @@ public class Interview {
             HashMap<Integer, Node> data,
             ArrayList<ArrayList<Node>> hanselChains,
             InterviewMode mode,
-            int numClasses) {
+            int numClasses,
+            Integer[] kVals,
+            Float[] weights) {
+
+        kValueWeights = weights;
 
         ArrayList<Node> allNodes = new ArrayList<>();
         // for each node, we are going to put in that node, and it's number of expansions as a pair.
@@ -120,7 +125,7 @@ public class Interview {
                 yield null; // required inside a block
             }
         };
-        return new InterviewStats(Main.kValues,
+        return new InterviewStats(kVals,
         hanselChains.size(),
         data.size(),
         mode,
