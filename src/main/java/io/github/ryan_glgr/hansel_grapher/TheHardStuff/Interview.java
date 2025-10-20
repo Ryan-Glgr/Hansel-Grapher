@@ -24,9 +24,9 @@ public class Interview {
     // if we set this false, we are going to call upon some ML interviewer instead.
     public static boolean EXPERT_MODE = true;
 
-    private Integer[] kVals;
-    private Float[] kValueWeights;
-    public InterviewStats interviewStats;
+    private final Integer[] kVals;
+    private final Float[] kValueWeights;
+    public final InterviewStats interviewStats;
 
     public enum InterviewMode {
         BINARY_SEARCH_CHAINS,                       // method where we just query midpoint of the chain each time. thus chopping each chain in half. we work on the longest chain at a time.
@@ -75,10 +75,7 @@ public class Interview {
            InterviewMode mode,
            int numClasses) {
 
-        ArrayList<Node> allNodes = new ArrayList<>();
-        // for each node, we are going to put in that node, and it's number of expansions as a pair.
-        allNodes.addAll(data.values());
-
+        ArrayList<Node> allNodes = new ArrayList<>(data.values());
         InterviewStats stats = switch(mode) {
 
             case HIGHEST_TOTAL_UMBRELLA_SORT ->
@@ -257,8 +254,7 @@ public class Interview {
         // we have to keep a list of chunks of the chain which are not confirmed. basically we chop the chain
         // each time that we confirm a node. we could confirm a whole bunch with one question, and we have to investigate all the
         // chains/chunks to determine that. a chain
-        ArrayList<ArrayList<Node>> chunks = new ArrayList<>();
-        chunks.addAll(hanselChainSet);
+        ArrayList<ArrayList<Node>> chunks = new ArrayList<>(hanselChainSet);
         while (chunks.size() > 0){
 
             // get our biggest chunk
@@ -309,9 +305,6 @@ public class Interview {
                 if (!currentChunk.isEmpty()) {
                     newChunks.add(new ArrayList<>(currentChunk));
                     currentChunk.clear();
-                }
-                else{
-                    // Skip the confirmed node entirely
                 }
             } else {
                 currentChunk.add(node);
@@ -457,8 +450,7 @@ public class Interview {
         // we have to keep a list of chunks of the chain which are not confirmed. basically we chop the chain
         // each time that we confirm a node. we could confirm a whole bunch with one question, and we have to investigate all the
         // chains/chunks to determine that. a chain
-        ArrayList<ArrayList<Node>> chunks = new ArrayList<>();
-        chunks.addAll(hanselChainSet);
+        ArrayList<ArrayList<Node>> chunks = new ArrayList<>(hanselChainSet);
         while (chunks.size() > 0){
 
             // get our biggest chunk
@@ -602,8 +594,7 @@ public class Interview {
         List<Node> nodesAsked = new ArrayList<>();
         List<PermeationStats> permeationStatsForEachNodeAsked = new ArrayList<>();
 
-        ArrayList<Node> nodesToAsk = new ArrayList<>();
-        nodesToAsk.addAll(allNodes);
+        ArrayList<Node> nodesToAsk = new ArrayList<>(allNodes);
         while(nodesToAsk.size() != 0){
 
             // now sort decreasing, using our strategy. we sort descending, by a nodes minimum guaranteed classifications.

@@ -17,8 +17,8 @@ import io.github.ryan_glgr.hansel_grapher.Visualizations.VisualizationDOT;
 
 public class Main {
 
-    public static Integer[] kValues = {3, 4, 3, 3, 2, 4, 5};
-    public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f, 4.5f, 2.25f};
+    public static Integer[] kValues = {3, 4, 3, 3, 2, 4};
+    public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f, 4.5f}; // will be used when we are just doing a magic linear function interview for testing.
     static {
         int maxSum = 0;
         for (int i = 0; i < kValues.length; i++) {
@@ -26,7 +26,7 @@ public class Main {
         }
         highestPossibleClassification = maxSum / kValues.length;
 
-        Node.dimension = kValues.length;
+        Node.dimension = kValues.length; // TODO: Node.dimension shouldn't be set here.
     }
     // Calculate the highest possible classification at compile time
     public static Integer highestPossibleClassification;
@@ -95,10 +95,10 @@ public class Main {
             }
 
             // visualize our results
-//             VisualizationDOT.makeHanselChainDOT(hanselChains, adjustedLowUnits);
+            VisualizationDOT.makeHanselChainDOT(hanselChains, adjustedLowUnits);
 
             // make the expansions picture
-//             VisualizationDOT.makeExpansionsDOT(nodes, adjustedLowUnits);
+            VisualizationDOT.makeExpansionsDOT(nodes, adjustedLowUnits);
 
             String interviewStatsOutputString = interviewMode + " Interview Stats";
             InterviewStatsVisualizer.savePDF(interviewStats, 

@@ -21,24 +21,10 @@ import org.knowm.xchart.VectorGraphicsEncoder.VectorGraphicsFormat;
  */
 public class InterviewStatsVisualizer {
 
-    public static JPanel getChartPanel(
+    public static XChartPanel<XYChart> getChartPanel(
             InterviewStats stats,
             InterviewMode interviewMode) {
-
-        XYChart chart = buildChart(stats, interviewMode);
-        return new XChartPanel<>(chart);
-    }
-
-    /**
-     * Save chart as PNG file
-     */
-    public static void savePNG(
-            InterviewStats stats,
-            String filePath,
-            InterviewMode interviewMode) throws IOException {
-
-        XYChart chart = buildChart(stats, interviewMode);
-        BitmapEncoder.saveBitmap(chart, filePath, BitmapFormat.PNG);
+        return new XChartPanel<>(buildChart(stats, interviewMode));
     }
 
     /**
@@ -52,7 +38,6 @@ public class InterviewStatsVisualizer {
         XYChart chart = buildChart(stats, interviewMode);
         VectorGraphicsEncoder.saveVectorGraphic(chart, filePath, VectorGraphicsFormat.PDF);
     }
-
 
     // name of the field is the key. the list of values is the list.
     public static HashMap<String, List<Integer>> permeationStatLists;
@@ -113,8 +98,7 @@ public class InterviewStatsVisualizer {
         return chart;
     }
 
-    public static void toggleStatistic(XYChart currentChart,
-                                       PermeationStatistic statToToggle){
+    public static void toggleStatistic(XYChart currentChart, PermeationStatistic statToToggle){
         if (currentChart.getSeriesMap().containsKey(statToToggle.toString())){
             currentChart.removeSeries(statToToggle.toString());
         }
