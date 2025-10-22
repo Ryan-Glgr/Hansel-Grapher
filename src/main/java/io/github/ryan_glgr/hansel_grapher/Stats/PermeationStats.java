@@ -31,10 +31,10 @@ public class PermeationStats {
     }
 
     public enum PermeationStatistic {
-        NUMBER_OF_CONFIRMATIONS,
         TOTAL_NUMBER_OF_NODES_TOUCHED,
         NUMBER_OF_NODES_TOUCHED_ABOVE,
-        NUMBER_OF_NODES_TOUCHED_BELOW
+        NUMBER_OF_NODES_TOUCHED_BELOW,
+        NUMBER_OF_CONFIRMATIONS,
     }
 
 }

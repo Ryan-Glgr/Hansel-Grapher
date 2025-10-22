@@ -107,7 +107,7 @@ public class RuleNode {
         printTreeHelper(this, 0, printSize, classification);
     }
 
-    private static final String indent (int depth) {
+    private static String indent (int depth) {
         return new StringBuilder()
             .append("\t".repeat(depth - 1))
             .append("|----")
@@ -148,9 +148,9 @@ public class RuleNode {
             RuleNode cur = node;
             boolean first = true;
             while (cur != null) {
-                String attr = cur.attributeIndex == null ? "ROOT" : String.valueOf(cur.attributeIndex);
+                String attr = cur.attributeIndex == null ? "ROOT" : String.valueOf(cur.attributeIndex + 1);
                 String val = cur.attributeValue == null ? "ROOT" : String.valueOf(cur.attributeValue);
-                if (!first) line.append(" v ");
+                if (!first) line.append(" & ");
                 line.append("X").append(attr).append(" >= ").append(val);
                 first = false;
 
@@ -196,4 +196,20 @@ public class RuleNode {
             .mapToInt(ruleTree -> subtreeSize(ruleTree))
             .sum();
     }
+
+    public int getNumberOfClauses(RuleNode node) {
+        if (node == null)
+            return 0;
+
+        // Count this node as one clause (since it represents a comparison)
+        int count = 1;
+
+        if (node.children != null) {
+            count += Arrays.stream(node.children)
+                    .mapToInt(this::getNumberOfClauses)
+                    .sum();
+        }
+        return count;
+    }
+
 }

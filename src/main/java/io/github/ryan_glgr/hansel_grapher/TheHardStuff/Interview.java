@@ -1,15 +1,6 @@
 package io.github.ryan_glgr.hansel_grapher.TheHardStuff;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -22,7 +13,7 @@ public class Interview {
     
     public static boolean DEBUG = false;
     // if we set this false, we are going to call upon some ML interviewer instead.
-    public static boolean EXPERT_MODE = true;
+    public static boolean MAGIC_FUNCTION_MODE = true;
 
     private final Integer[] kVals;
     private final Float[] kValueWeights;
@@ -62,6 +53,8 @@ public class Interview {
             ArrayList<ArrayList<Node>> hanselChains,
             InterviewMode mode,
             int numClasses){
+
+        inputScanner = new Scanner(System.in);
 
         this.kVals = kVals;
         this.kValueWeights = weights;
@@ -173,22 +166,74 @@ public class Interview {
             hanselChains.size(),
             data.size(),
             mode,
-            EXPERT_MODE,
+                MAGIC_FUNCTION_MODE,
             stats.nodesAsked,
             stats.permeationStatsForEachNodeAsked);
     }
 
     // asks the "expert" what the classification of this datapoint is.
-    private int questionExpert(Node datapoint){
-        int sum = 0;
-        for (int i = 0; i < Node.dimension; i++){
-            sum += (int)(datapoint.values[i] * kValueWeights[i]);
-        }
-        return sum / Node.dimension;
+    private int magicFunction(Node datapoint){
+//        int sum = 0;
+//        for (int i = 0; i < Node.dimension; i++){
+//            sum += (int)(datapoint.values[i] * kValueWeights[i]);
+//        }
+//        return sum / Node.dimension;
+        // Hardcoded Boolean function f1(x)
+        Integer[] x = datapoint.values;
+
+        // HARDCODED f(1) from https://www.researchgate.net/publication/12402645_Consistent_knowledge_discovery_in_medical_diagnosis
+        // this is the BIOPSY CASE
+//        int result =
+//                (x[1] * x[2]) |  // x2x3
+//                (x[1] * x[3]) |  // x2x4
+//                (x[0] * x[1]) |  // x1x2
+//                (x[0] * x[3]) |  // x1x4
+//                (x[0] * x[2]) |  // x1x3
+//                (x[2] * x[3]) |  // x3x4
+//                (x[2])        |  // x3
+//                (x[1] * x[4]) |  // x2x5
+//                (x[0] * x[4]) |  // x1x5
+//                (x[4]);          // x5
+//        return result;  // 1 if true, 0 if false
+
+
+        // HARDCODED f2(x) = x2x3 ∨ x1x2x4 ∨ x1x2 ∨ x1x3x4 ∨ x1x3 ∨ x3x4 ∨ x3 ∨ x2x5 ∨ x1x5 ∨ x4x5
+        // THIS IS THE CANCER CASE FROM THAT SAME STUDY ^^^
+//        int result =
+//            (x[1] * x[2]) |            // x2x3
+//            (x[0] * x[1] * x[3]) |     // x1x2x4
+//            (x[0] * x[1]) |            // x1x2
+//            (x[0] * x[2] * x[3]) |     // x1x3x4
+//            (x[0] * x[2]) |            // x1x3
+//            (x[2] * x[3]) |            // x3x4
+//            (x[2]) |                   // x3
+//            (x[1] * x[4]) |            // x2x5
+//            (x[0] * x[4]) |            // x1x5
+//            (x[3] * x[4]);             // x4x5
+
+
+        // ψ(x)=x2∨x1∨x3x4x5. the simplified expression from 'Consistent and complete data and "expert” mining in medicine'
+        int result =
+                (x[1]) |            // x2
+                (x[0]) |            // x1
+                (x[2] * x[3] * x[4]); // x3x4x5
+
+        return result;  // 1 if true, 0 if false
     }
-    
-    private int questionML(Node datapoint){
-        return -1;
+    private Scanner inputScanner;
+    private int questionExpert(Node datapoint){
+
+        System.out.println("WHAT IS THE CLASSIFICATION FOR THIS DATAPOINT?");
+        System.out.println(Arrays.toString(datapoint.values));
+        System.out.println("\tCURRENT MINIMUM:\t" + datapoint.classification);
+        System.out.println("\tCURRENT MAXIMUM:\t" + datapoint.maxPossibleValue);
+        System.out.println("INPUT:\t");
+        int expertInput = inputScanner.nextInt();
+        if (expertInput < datapoint.classification || expertInput > datapoint.maxPossibleValue){
+            System.out.println("MONOTONICITY VIOLATION!");
+            throw new RuntimeException("MONOTONICITY RUINED!"); // use Runtime exception so that it blows up the program. we want it unchecked.
+        }
+        return expertInput;
     }
 
     // Sort nodes based on umbrella strategy
@@ -225,7 +270,7 @@ public class Interview {
                 continue;
 
             // get our value either from expert or ML
-            int classification = (EXPERT_MODE) ? questionExpert(n) : questionML(n);
+            int classification = (MAGIC_FUNCTION_MODE) ? magicFunction(n) : questionExpert(n);
 
             // this sets all the upper bounds below, and all the lower bounds above.
             PermeationStats stats = n.permeateClassification(classification);
@@ -277,9 +322,9 @@ public class Interview {
                 nodeToQuestion = chunkToQuestion.get(middleIndex);
 
             // ask the expert or ML
-            int classification = (EXPERT_MODE)
-                ? questionExpert(nodeToQuestion)
-                : questionML(nodeToQuestion);
+            int classification = (MAGIC_FUNCTION_MODE)
+                ? magicFunction(nodeToQuestion)
+                : questionExpert(nodeToQuestion);
 
             PermeationStats permStats = nodeToQuestion.permeateClassification(classification);
             questionsAsked.add(nodeToQuestion);
@@ -424,9 +469,9 @@ public class Interview {
             Node middleNode = longestChain.get(longestChain.size() / 2);
 
             // Query expert or ML
-            int classification = (EXPERT_MODE)
-                ? questionExpert(middleNode)
-                : questionML(middleNode);
+            int classification = (MAGIC_FUNCTION_MODE)
+                ? magicFunction(middleNode)
+                : questionExpert(middleNode);
 
             // Permeate classification
             PermeationStats permeationStatsForNode = middleNode.permeateClassification(classification);
@@ -482,9 +527,9 @@ public class Interview {
                 }
 
                 // ask the expert or ML
-                int classification = (EXPERT_MODE)
-                        ? questionExpert(nodeToQuestion)
-                        : questionML(nodeToQuestion);
+                int classification = (MAGIC_FUNCTION_MODE)
+                        ? magicFunction(nodeToQuestion)
+                        : questionExpert(nodeToQuestion);
 
                 PermeationStats permStats = nodeToQuestion.permeateClassification(classification);
                 questionsAsked.add(nodeToQuestion);
@@ -606,7 +651,7 @@ public class Interview {
             nodesAsked.add(nodeToAsk);
 
             // get our value either from expert or ML
-            int classification = (EXPERT_MODE) ? questionExpert(nodeToAsk) : questionML(nodeToAsk);
+            int classification = (MAGIC_FUNCTION_MODE) ? magicFunction(nodeToAsk) : questionExpert(nodeToAsk);
 
             // this sets all the upper bounds below, and all the lower bounds above.
             PermeationStats thisNodeStats = nodeToAsk.permeateClassification(classification);

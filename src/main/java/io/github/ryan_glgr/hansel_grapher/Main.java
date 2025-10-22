@@ -17,15 +17,15 @@ import io.github.ryan_glgr.hansel_grapher.Visualizations.VisualizationDOT;
 
 public class Main {
 
-    public static Integer[] kValues = {3, 4, 3, 3, 2, 4};
+    public static Integer[] kValues = {2, 2, 2, 2, 2};
     public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f, 4.5f}; // will be used when we are just doing a magic linear function interview for testing.
     static {
         int maxSum = 0;
         for (int i = 0; i < kValues.length; i++) {
             maxSum += (int)((kValues[i] - 1) * weights[i]);
         }
-        highestPossibleClassification = maxSum / kValues.length;
-
+//        highestPossibleClassification = maxSum / kValues.length;
+        highestPossibleClassification = 1;
         Node.dimension = kValues.length; // TODO: Node.dimension shouldn't be set here.
     }
     // Calculate the highest possible classification at compile time
@@ -38,6 +38,9 @@ public class Main {
 //        }
         makeClassifyAndSaveNodes(Interview.InterviewMode.NONBINARY_SEARCH_CHAINS);
         makeClassifyAndSaveNodes(Interview.InterviewMode.BEST_MINIMUM_CONFIRMED);
+        makeClassifyAndSaveNodes(Interview.InterviewMode.BINARY_SEARCH_CHAINS);
+        makeClassifyAndSaveNodes(Interview.InterviewMode.BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS);
+        makeClassifyAndSaveNodes(Interview.InterviewMode.NONBINARY_SEARCH_COMPLETING_SQUARE_BEST_MIN_CONFIRMED);
         System.exit(0);
     }
 
@@ -59,12 +62,12 @@ public class Main {
             // find our low units
             ArrayList<ArrayList<Node>> lowUnits = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
             int numberOfLowUnits = lowUnits.stream().mapToInt(ArrayList::size).sum();
-            System.out.println("TOTAL NUMBER OF LOW UNITS:\t" + numberOfLowUnits);
+//            System.out.println("TOTAL NUMBER OF LOW UNITS:\t" + numberOfLowUnits);
 
             for (int classification = 0; classification < numClasses; classification++) {
-                 System.out.println("NUMBER OF LOW UNITS FOR CLASS " + classification + ":\t" + lowUnits.get(classification).size());
-                 System.out.println("LOW UNITS FOR CLASS " + classification + ":\n");
-                 printListOfNodes(lowUnits.get(classification));
+//                 System.out.println("NUMBER OF LOW UNITS FOR CLASS " + classification + ":\t" + lowUnits.get(classification).size());
+//                 System.out.println("LOW UNITS FOR CLASS " + classification + ":\n");
+//                 printListOfNodes(lowUnits.get(classification));
             }
 
             ArrayList<ArrayList<Node>> adjustedLowUnits = HanselChains.removeUselessLowUnits(lowUnits);
@@ -72,9 +75,9 @@ public class Main {
             System.out.println("\nTOTAL NUMBER OF ADJUSTED LOW UNITS:\t" + numberOfAdjustedLowUnits);
 
             for (int classification = 0; classification < numClasses; classification++) {
-                 System.out.println("NUMBER OF ADJUSTED LOW UNITS FOR CLASS " + classification + ":\t" + adjustedLowUnits.get(classification).size());
-                 System.out.println("ADJUSTED LOW UNITS FOR CLASS " + classification + ":\n");
-                 printListOfNodes(adjustedLowUnits.get(classification));
+//                 System.out.println("NUMBER OF ADJUSTED LOW UNITS FOR CLASS " + classification + ":\t" + adjustedLowUnits.get(classification).size());
+//                 System.out.println("ADJUSTED LOW UNITS FOR CLASS " + classification + ":\n");
+//                 printListOfNodes(adjustedLowUnits.get(classification));
             }
             
             RuleNode[] ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnits);
@@ -83,7 +86,7 @@ public class Main {
             }
 
             int totalClauses = Arrays.stream(ruleTrees)
-                .mapToInt(ruleTree -> ruleTree.subtreeSize(ruleTree))
+                .mapToInt(ruleTree -> ruleTree.getNumberOfClauses(ruleTree))
                 .sum();
              System.out.println("\nTOTAL NUMBER OF CLAUSES NEEDED:\t" + totalClauses);
 
