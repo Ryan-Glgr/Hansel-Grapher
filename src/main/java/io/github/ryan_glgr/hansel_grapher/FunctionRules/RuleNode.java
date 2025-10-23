@@ -1,13 +1,6 @@
 package io.github.ryan_glgr.hansel_grapher.FunctionRules;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -16,9 +9,9 @@ import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
 public class RuleNode {
     public final Integer attributeIndex;
     public final Integer attributeValue;
-    public final RuleNode[] children; // grouped children (one per attribute value)
+    public RuleNode[] children; // grouped children (one per attribute value)
     public final Set<Integer> attributesAlreadyUsed; // immutable for a node (copy-per-node)
-
+    private RuleNode parent;
 
     /**
      * Create the full decision-rule tree for the supplied nodes.
@@ -30,7 +23,9 @@ public class RuleNode {
             return null;
 
         // attributeIndex and attributeValue are null for the root (no attribute was used to get here)
-        return new RuleNode(null, null, nodes, new HashSet<>());
+        RuleNode root = new RuleNode(null, null, nodes, new HashSet<>());
+        removeDeadbeatParents(root);
+        return root;
     }
 
     // Constructor requires the set of attributes already used along the path.
@@ -46,6 +41,60 @@ public class RuleNode {
         // get to this node. If you want this node's attribute to be considered "used"
         // for its children, add it when creating children below.
         this.children = findChildren(childrenNodes);
+        // take control of my children
+        if (children != null)
+            for(RuleNode kid : children){
+                kid.parent = this;
+            }
+    }
+
+    private static void removeDeadbeatParents(RuleNode root){
+        separateKidsFromParents(root);
+    }
+
+    // takes nodes which had 0 value, and gives their kids to the grandparents.
+    private static RuleNode[] separateKidsFromParents(RuleNode node){
+
+        if (node == null)
+            return null;
+
+        // Leaf node: just keep or drop based on value
+        if (node.children == null) {
+            // if this node was an attribute with value 0, just delete it.
+            if (node.parent != null && node.attributeValue == 0) {
+                return null; // remove zero leaf
+            } else {
+                return new RuleNode[]{node}; // keep non-zero leaf
+            }
+        }
+
+        // Process children first (bottom-up)
+        List<RuleNode> newChildrenList = new ArrayList<>();
+        for (RuleNode child : node.children) {
+
+            // recursive call! get all kids from belowm and slap those onto our list.
+            RuleNode[] replacement = separateKidsFromParents(child);
+            if (replacement == null)
+                continue;
+
+            for (RuleNode r : replacement) {
+                r.parent = node; // rehome to current node
+                newChildrenList.add(r);
+            }
+        }
+
+        // If this node itself is zero, we don’t remove it here (only its children are lifted)
+        if (node.parent != null && node.attributeValue == 0) {
+            // node is zero: replace itself with its children for parent
+            return newChildrenList.toArray(new RuleNode[0]);
+        }
+        else {
+            // node is non-zero: update its children
+            node.children = newChildrenList.isEmpty()
+                    ? null
+                    : newChildrenList.toArray(new RuleNode[0]);
+            return new RuleNode[]{node};
+        }
     }
 
     private final static Comparator<AttributeStats> greedyLeastBranchesComparison = Comparator
@@ -56,7 +105,7 @@ public class RuleNode {
     private RuleNode[] findChildren(ArrayList<Node> childrenNodes) {
 
         if (childrenNodes == null || childrenNodes.isEmpty()) {
-            return null; // consistent: empty array
+            return null; // leaf node
         }
 
         // Build stats for each unused attribute. Use sequential if Node.dimension small.
@@ -82,12 +131,12 @@ public class RuleNode {
         if (best == null) 
             return null;
 
-        ArrayList<RuleNode> children = new ArrayList<>(best.branches);
+        ArrayList<RuleNode> newChildren = new ArrayList<>(best.branches);
         List<Integer> distinctValues = new ArrayList<>(best.counts.keySet());
         Collections.sort(distinctValues);
 
         for (int val : distinctValues) {
-            ArrayList<Node> subset = new ArrayList<>(best.counts.get(val));
+            ArrayList<Node> subset = new ArrayList<>();
             for (Node n : childrenNodes) {
                 if (n.values[best.index] == val) subset.add(n);
             }
@@ -97,12 +146,12 @@ public class RuleNode {
             childUsed.add(best.index);
 
             RuleNode child = new RuleNode(best.index, val, subset, childUsed);
-            children.add(child);
+            newChildren.add(child);
         }
 
-        return children.toArray(new RuleNode[0]);
+        return newChildren.toArray(new RuleNode[0]);
     }
-                
+
     public void printTree(boolean printSize, int classification) {
         printTreeHelper(this, 0, printSize, classification);
     }
@@ -148,8 +197,8 @@ public class RuleNode {
             RuleNode cur = node;
             boolean first = true;
             while (cur != null) {
-                String attr = cur.attributeIndex == null ? "ROOT" : String.valueOf(cur.attributeIndex + 1);
-                String val = cur.attributeValue == null ? "ROOT" : String.valueOf(cur.attributeValue);
+                String attr = cur.parent == null ? "ROOT" : String.valueOf(cur.attributeIndex + 1);
+                String val = cur.parent == null ? "ROOT" : String.valueOf(cur.attributeValue);
                 if (!first) line.append(" & ");
                 line.append("X").append(attr).append(" >= ").append(val);
                 first = false;
@@ -171,7 +220,7 @@ public class RuleNode {
         // regular-printing for nodes with multiple leaves in subtree
         StringBuilder line = new StringBuilder();
         line.append(indent(depth))
-            .append("X").append(String.valueOf(node.attributeIndex))
+            .append("X").append(String.valueOf(node.attributeIndex + 1))
             .append(" >= ").append(String.valueOf(node.attributeValue));
         if (printSize) {
             line.append(" [size: ").append(subtreeSize(node)).append("]");
@@ -201,8 +250,8 @@ public class RuleNode {
         if (node == null)
             return 0;
 
-        // Count this node as one clause (since it represents a comparison)
-        int count = 1;
+        // Count this node as one clause (since it represents a comparison) IFF it is not null attributeIndex, since that would be the rootnode which is just a container.
+        int count = node.attributeIndex == null ? 0 : 1;
 
         if (node.children != null) {
             count += Arrays.stream(node.children)

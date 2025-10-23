@@ -36,11 +36,7 @@ public class Main {
 //        for (Interview.InterviewMode mode : Interview.InterviewMode.values()){
 //            makeClassifyAndSaveNodes(mode);
 //        }
-        makeClassifyAndSaveNodes(Interview.InterviewMode.NONBINARY_SEARCH_CHAINS);
         makeClassifyAndSaveNodes(Interview.InterviewMode.BEST_MINIMUM_CONFIRMED);
-        makeClassifyAndSaveNodes(Interview.InterviewMode.BINARY_SEARCH_CHAINS);
-        makeClassifyAndSaveNodes(Interview.InterviewMode.BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS);
-        makeClassifyAndSaveNodes(Interview.InterviewMode.NONBINARY_SEARCH_COMPLETING_SQUARE_BEST_MIN_CONFIRMED);
         System.exit(0);
     }
 
