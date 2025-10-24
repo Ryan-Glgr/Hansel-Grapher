@@ -1,16 +1,15 @@
 ## PROJECT GOALS ##
-The goal of this project is very simple. It serves as a simplistic, understandable, much faster port of the CWU-VKD-LAB MOEKA project. We continue on this task of creating hansel chains and reducing the number of questions asked to an expert by using the properties of monotonicity.
+The goal of this project is very simple. It serves as a simplistic, understandable, much faster port of the CWU-VKD-LAB MOEKA project. We continue on this task of creating hansel chains and reducing the number of questions asked to an expert by using the properties of monotonicity. We explore new question ordering techniques, and new ways of reducing our final Disjunctive Normal Form function to reduce complexity to an SME.
 
 ## TASKS ## 
-- An interactive Interview implementation, and a ML interview implementation.
-- A way to make the outputs interactive. This can be quite simple actually. just don't end the program after making the pdf's. Then you look at them, and call some function which updates the nodes you want to update, by looking them up in the map, and then on said node, we call the permeate classification method.
-- More advanced heuristics which maybe combine different heuristics which work well in different times.
 - Find a way to apply our problem where "asking a question" is a big heavy operation/and or when asking what we are modeling is a very hard domain, where it makes sense to need to classify all possible Nodes, not just find a min/max.
-- Different heuristics which will help us reduce clauses needed in the RuleTree implementation.
-- Implementing using the adjacent node concept in the Interview phase. if we are grabbing a particular node, determine if there are any adjacent nodes which can cover it's whole chain instead.
-  - If a node is present in the chosen nodes, above/below nodes up and down expansions respectively, it is a viable suitor to replace said chosen node.
-  - This can be useful in any time where we are doing a binary search.
-- Implement binary search (with or without chain of expansions) which can stop binary searching and do a fallback
+- Create a "standard binary search"
+- Refactor k values to use a structure which allows functions and sub functions
+- implement even better clause reduction technique(s) than the greedy search.
+- implement full end to end functionality for gui. fire it up, make an interview, specify a mode or modes, see question graphs, save outputs
+- simple visualization of "new points"
+    - perhaps visualize all the low units, and correspondingly, the "high unit" or highest value UNDER each low unit. so that we can show the borders. maybe show each low unit, and their direct underneath neighbors and above neighbors?
+
 
 ## RUNNING ##
 - Requires modern maven to run so install maven for your system (package manager/ installer).
