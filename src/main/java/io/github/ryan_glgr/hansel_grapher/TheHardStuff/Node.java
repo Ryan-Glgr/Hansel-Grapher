@@ -346,7 +346,8 @@ public class Node {
             Node[] neighbors = countUpwards ? current.upExpansions : current.downExpansions;
             
             for (Node neighbor : neighbors) {
-                if (neighbor != null && !neighbor.classificationConfirmed && !visited.contains(neighbor)) {
+                if (neighbor != null && !neighbor.classificationConfirmed && !visited.contains(neighbor) 
+                    && (countUpwards ? this.maxPossibleValue > neighbor.classification : this.classification > neighbor.maxPossibleValue)) {
                     visited.add(neighbor);
                     queue.add(neighbor);
 
