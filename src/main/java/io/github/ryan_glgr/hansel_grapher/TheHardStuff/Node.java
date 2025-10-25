@@ -1,8 +1,6 @@
 package io.github.ryan_glgr.hansel_grapher.TheHardStuff;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.*;
 import java.util.stream.IntStream;
 
 import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats;
@@ -133,9 +131,7 @@ public class Node {
     // Returns array filled with 0s except first element is -1, so first increment gives [0,0,0,...]
     public static Integer[] counterInitializer() {
         Integer[] counter = new Integer[kValues.length];
-        for(int i = 0; i < counter.length; i++) {
-            counter[i] = 0;
-        }
+        Arrays.fill(counter, 0);
         counter[0] = -1;
         return counter;
     }
@@ -167,96 +163,65 @@ public class Node {
         return nodes;
     }
 
-    // BFS-based expansion to set floor (classification) for nodes above
-    private PermeationStats expandUp(int lowerBound){
-        
-        java.util.Queue<Node> queue = new java.util.LinkedList<>();
-        java.util.Set<Node> visited = new java.util.HashSet<>();
+    private PermeationStats expand(final int bound, final boolean countUpwards) {
+        // BFS-based expansion to set ceiling of below nodes, and floor of above nodes.
+        final Queue<Node> queue = new LinkedList<>();
+        final Set<Node> visited = new HashSet<>();
         Integer numberOfConfirmations = 0;
         Integer numberOfNodesTouched = 0;
-
         queue.add(this);
         visited.add(this);
-        
-        while (!queue.isEmpty()) {
-            Node current = queue.poll();
-            // Skip if current node is already confirmed - we've already processed its implications
-            if (current.classificationConfirmed) {    
-                continue;
-            }
-            
-            for (Node upstairsNeighbor : current.upExpansions) {
-                // if we have a neighbor, who needs their floor raised, where we haven't been, and importantly, WHO IS NOT CONFIRMED.
-                if (upstairsNeighbor != null 
-                && upstairsNeighbor.classification < lowerBound          // if they have a minimum set as less than what we are carrying up, we update. 
-                && !visited.contains(upstairsNeighbor)                   // if we haven't already done this node.
-                && upstairsNeighbor.classificationConfirmed == false) {
-                    
-                    // Update the floor (classification) of upstairs neighbor
-                    upstairsNeighbor.classification = lowerBound;
-                    numberOfNodesTouched++;
 
-                    queue.add(upstairsNeighbor);
-                    visited.add(upstairsNeighbor);
-                }
-            }
-        }
-        
-        // Confirm nodes after propagation - check if floor equals ceiling
-        for (Node node : visited) {
-            if (node.classification == node.maxPossibleValue && node != this) {
-                node.classificationConfirmed = true;
-                numberOfConfirmations++;
-            }
-        }
-        return new PermeationStats(numberOfConfirmations, numberOfNodesTouched, 0);
-    }
+         while (!queue.isEmpty()) { final Node current = queue.poll();
+             // Skip if current node is already confirmed - we've already processed its implications
+              if (current.classificationConfirmed) {
+                  continue;
+              }
+              final Node[] neighbors = countUpwards
+                      ? current.upExpansions
+                      : current.downExpansions;
 
-    // BFS-based expansion to set ceiling (maxPossibleValue) for nodes below
-    private PermeationStats expandDown(int upperBound){
-        
-        java.util.Queue<Node> queue = new java.util.LinkedList<>();
-        java.util.Set<Node> visited = new java.util.HashSet<>();
-        Integer numberOfConfirmations = 0;
-        Integer numberOfNodesTouched = 0;
+              for (final Node neighbor : neighbors) {
+                  if (countUpwards) {
+                      // if we have a neighbor, who needs their floor raised, where we haven't been, and importantly, WHO IS NOT CONFIRMED.
+                      final boolean neighborNeedsUpdate = neighbor != null && !neighbor.classificationConfirmed && neighbor.classification < bound && !visited.contains(neighbor);
+                      if (neighborNeedsUpdate){
+                          neighbor.classification = bound;
+                          numberOfNodesTouched++;
+                          queue.add(neighbor);
+                          visited.add(neighbor);
+                      }
+                  }
+                  else {
+                      final boolean neighborNeedsUpdate = neighbor != null && !neighbor.classificationConfirmed && neighbor.maxPossibleValue > bound && !visited.contains(neighbor);
+                      if (neighborNeedsUpdate) {
+                          neighbor.maxPossibleValue = bound;
+                          numberOfNodesTouched++;
+                          queue.add(neighbor);
+                          visited.add(neighbor);
+                      }
+                  }
+              }
+         }
 
-        queue.add(this);
-        visited.add(this);
-        
-        while (!queue.isEmpty()) {
-            Node current = queue.poll();
-            
-            // Skip if current node is already confirmed - we've already processed its implications
-            if (current.classificationConfirmed) {
-                continue;
-            }
-            
-            for (Node downstairsNeighbor : current.downExpansions) {
-                
-                // if we have a neighbor, who needs their ceiling lowered, where we haven't been, and importantly, WHO IS NOT CONFIRMED.
-                if (downstairsNeighbor != null 
-                && downstairsNeighbor.maxPossibleValue > upperBound 
-                && !visited.contains(downstairsNeighbor) 
-                && downstairsNeighbor.classificationConfirmed == false) {
-                    
-                    // lower the ceiling (maxPossibleValue) of downstairs neighbor
-                    downstairsNeighbor.maxPossibleValue = upperBound;
-                    numberOfNodesTouched++;
-                    
-                    queue.add(downstairsNeighbor);
-                    visited.add(downstairsNeighbor);
-                }
-            }
-        }
+         // Confirm nodes after propagation - check if floor equals ceiling
+         for (final Node node : visited) {
+             final boolean nodeWasConfirmed = node.classification == node.maxPossibleValue && node != this;
+             if (nodeWasConfirmed) {
+                 node.classificationConfirmed = true;
+                 numberOfConfirmations++;
+             }
+         }
 
-        // Confirm nodes after propagation - check if floor equals ceiling
-        for (Node node : visited) {
-            if (node.classification == node.maxPossibleValue && node != this) {
-                node.classificationConfirmed = true;
-                numberOfConfirmations++;
-            }
-        }
-        return new PermeationStats(numberOfConfirmations, 0, numberOfNodesTouched);
+         Integer numberOfNodesTouchedAbove = 0;
+         Integer numberOfNodesTouchedBelow = 0;
+         if (countUpwards){
+             numberOfNodesTouchedAbove = numberOfNodesTouched;
+         }
+         else {
+             numberOfNodesTouchedBelow = numberOfNodesTouched;
+         }
+         return new PermeationStats(numberOfConfirmations, numberOfNodesTouchedAbove, numberOfNodesTouchedBelow);
     }
 
     // each node gets this new classification. it sends the effects of the classification up and down. (not just within one HC, but to all expansions up and down.)
@@ -267,10 +232,10 @@ public class Node {
         this.maxPossibleValue = this.classification;
 
         // Set the floor of everyone above to AT LEAST this value
-        PermeationStats aboveStats = expandUp(this.classification);
+        PermeationStats aboveStats = expand(this.classification, true);
         
         // Set the ceiling of everyone below to AT MOST this value
-        PermeationStats belowStats = expandDown(this.classification);
+        PermeationStats belowStats = expand(this.classification, false);
 
         // Confirm this node since it was directly asked to expert
         this.classificationConfirmed = true;
@@ -296,7 +261,7 @@ public class Node {
     public static final Integer NOT_SET = Integer.MAX_VALUE;
 
     // does a BFS from each node, updating rankings as we go. Ranking are umbrella size and the minimum classifications.
-    public static void updateAllNodeRankings(ArrayList<Node> allNodes, int numClasses) {
+    public static void updateAllNodeRankings(ArrayList<Node> allNodes) {
 
         for(Node n : allNodes) {
             n.aboveUmbrellaCases = 0;
@@ -311,9 +276,9 @@ public class Node {
         }
         // update the node stats for above and below cases.
         allNodes.parallelStream()
-            .forEach(n -> n.updateNodeStatistics(false, numClasses));
+            .forEach(n -> n.updateNodeStatistics(false));
         allNodes.parallelStream()
-            .forEach(n -> n.updateNodeStatistics(true, numClasses));
+            .forEach(n -> n.updateNodeStatistics(true));
         
         allNodes.parallelStream()
             .forEach(n -> n.totalUmbrellaCases = n.aboveUmbrellaCases + n.underneathUmbrellaCases);
@@ -334,7 +299,7 @@ public class Node {
     }
 
     // Calculate umbrella size using proper graph traversal to avoid double counting
-    private void updateNodeStatistics(boolean countUpwards, int numClasses) {
+    private void updateNodeStatistics(final boolean countUpwards) {
         java.util.Set<Node> visited = new java.util.HashSet<>();
         java.util.Queue<Node> queue = new java.util.LinkedList<>();
         
@@ -345,17 +310,25 @@ public class Node {
             Node current = queue.poll();
             Node[] neighbors = countUpwards ? current.upExpansions : current.downExpansions;
             
-            for (Node neighbor : neighbors) {
-                if (neighbor != null && !neighbor.classificationConfirmed && !visited.contains(neighbor) 
-                    && (countUpwards ? this.maxPossibleValue > neighbor.classification : this.classification > neighbor.maxPossibleValue)) {
-                    visited.add(neighbor);
-                    queue.add(neighbor);
+            for (final Node neighbor : neighbors) {
 
-                    // if "this" node were assigned a hypothetical class how does that affect neighbor.
-                    for(int hypotheticalClass = this.classification; hypotheticalClass <= this.maxPossibleValue; hypotheticalClass++){
-                        if (neighbor.wouldBeConfirmedForClass(hypotheticalClass, countUpwards)) {
-                            this.possibleConfirmationsByClass[hypotheticalClass]++;
-                        }
+                final boolean neighborToCheck = neighbor != null && !neighbor.classificationConfirmed && !visited.contains(neighbor);
+                if (!neighborToCheck)
+                    continue;
+
+                final boolean canUpdateNeighbor = countUpwards
+                        ? this.maxPossibleValue > neighbor.classification
+                        : this.classification > neighbor.maxPossibleValue;
+                if (!canUpdateNeighbor)
+                    continue;
+
+                visited.add(neighbor);
+                queue.add(neighbor);
+
+                // if "this" node were assigned a hypothetical class how does that affect neighbor.
+                for (int hypotheticalClass = this.classification; hypotheticalClass <= this.maxPossibleValue; hypotheticalClass++) {
+                    if (neighbor.wouldBeConfirmedForClass(hypotheticalClass, countUpwards)) {
+                        this.possibleConfirmationsByClass[hypotheticalClass]++;
                     }
                 }
             }
@@ -439,7 +412,7 @@ public class Node {
         s.append("DATAPOINT:\n\t");
         s.append(Arrays.toString(values)).append("\n");
 
-        s.append("CLASSIFICATION:\t" + classification + "\n");
+        s.append("CLASSIFICATION:\t").append(classification).append("\n");
 
         if (DEBUG_PRINTING){
             s.append("UP EXPANSIONS:\n");
@@ -460,10 +433,10 @@ public class Node {
                     s.append("\t").append(Arrays.toString(t.values)).append("\n");
             }
         
-            s.append("CLASSIFICATION CONFIRMED? :" + (classificationConfirmed ? "\tYES\n" : "\tNO\n"));
-            s.append("TOTAL UMBRELLA SIZE:\t" + totalUmbrellaCases + "\n");
-            s.append("UNDER UMBRELLA SIZE:\t" + underneathUmbrellaCases + "\n");
-            s.append("ABOVE UMBRELLA SIZE:\t" + aboveUmbrellaCases + "\n");
+            s.append("CLASSIFICATION CONFIRMED? :").append(classificationConfirmed ? "\tYES\n" : "\tNO\n");
+            s.append("TOTAL UMBRELLA SIZE:\t").append(totalUmbrellaCases).append("\n");
+            s.append("UNDER UMBRELLA SIZE:\t").append(underneathUmbrellaCases).append("\n");
+            s.append("ABOVE UMBRELLA SIZE:\t").append(aboveUmbrellaCases).append("\n");
 
             s.append("POSSIBLE CONFIRMATIONS:\n");
             for(int i = 0; i < possibleConfirmationsByClass.length; i++){

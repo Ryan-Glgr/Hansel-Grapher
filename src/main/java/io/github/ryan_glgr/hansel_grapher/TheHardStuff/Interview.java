@@ -173,13 +173,13 @@ public class Interview {
 
     // asks the "expert" what the classification of this datapoint is.
     private int magicFunction(Node datapoint){
-//        int sum = 0;
-//        for (int i = 0; i < Node.dimension; i++){
-//            sum += (int)(datapoint.values[i] * kValueWeights[i]);
-//        }
-//        return sum / Node.dimension;
+        int sum = 0;
+        for (int i = 0; i < Node.dimension; i++){
+            sum += (int)(datapoint.values[i] * kValueWeights[i]);
+        }
+        return sum / Node.dimension;
         // Hardcoded Boolean function f1(x)
-        Integer[] x = datapoint.values;
+//        Integer[] x = datapoint.values;
 
         // HARDCODED f(1) from https://www.researchgate.net/publication/12402645_Consistent_knowledge_discovery_in_medical_diagnosis
         // this is the BIOPSY CASE
@@ -213,12 +213,12 @@ public class Interview {
 
 
         // ψ(x)=x2∨x1∨x3x4x5. the simplified expression from 'Consistent and complete data and "expert” mining in medicine'
-        int result =
-                (x[1]) |            // x2
-                (x[0]) |            // x1
-                (x[2] * x[3] * x[4]); // x3x4x5
+//        int result =
+//                (x[1]) |            // x2
+//                (x[0]) |            // x1
+//                (x[2] * x[3] * x[4]); // x3x4x5
 
-        return result;  // 1 if true, 0 if false
+//        return result;  // 1 if true, 0 if false
     }
     private Scanner inputScanner;
     private int questionExpert(Node datapoint){
@@ -256,7 +256,7 @@ public class Interview {
             // if we are sorting by umbrella metrics, sort using our strategy.
             // this is useful if we want to find which node may impact the most other nodes at a given time.
             // go through all the nodes, and update their umbrella sizes.
-            Node.updateAllNodeRankings(nodesToAsk, numClasses);
+            Node.updateAllNodeRankings(nodesToAsk);
 
             Node n = useMin 
             ? Collections.min(nodesToAsk, umbrellaSortingStrategy) 
@@ -413,7 +413,7 @@ public class Interview {
         }
 
         // THIS IS VERY IMPORTANT! WE NEED TO UPDATE THE NODE RANKINGS FOR THESE NODES!!!!
-        Node.updateAllNodeRankings(intersection, numClasses);
+        Node.updateAllNodeRankings(intersection);
 
         // safe min/max selection
         Node selectedNode = useMaxComparison
@@ -434,7 +434,7 @@ public class Interview {
             union.add(selectedNode);
             
             // AGAIN IMPORTANT TO UPDATE THE RANKINGS BEFORE WE COMPARE!!!
-            Node.updateAllNodeRankings(union, numClasses);
+            Node.updateAllNodeRankings(union);
             selectedNode = useMaxComparison
                 ? Collections.max(union, choosingAlternateMiddleNodeTechnique)
                 : Collections.min(union, choosingAlternateMiddleNodeTechnique);
@@ -545,8 +545,6 @@ public class Interview {
         return new InterviewStats(questionsAsked, permeationStats);
     }
 
-
-
     // ALL NODES IS ONLY THE UNCONFIRMED NODES AT THIS STEP OF INTERVIEW!
     // This returns the longest possible chain of expansions at this stage of our interview. IMPORTANT: this is NOT a hansel chain, but rather just a chain of Nodes which are + 1 from one another. They could and will be all in different chains all over the place.
     private ArrayList<Node> findLongestStringOfExpansions(List<Node> allNodes) {
@@ -644,7 +642,7 @@ public class Interview {
 
             // now sort decreasing, using our strategy. we sort descending, by a nodes minimum guaranteed classifications.
             // that is, of it's classes, whichever is the worst, we choose the one with the best floor. we are guaranteed to confirm that many at least.
-            Node.updateAllNodeRankings(nodesToAsk, numClasses);            
+            Node.updateAllNodeRankings(nodesToAsk);
             
             Node nodeToAsk = Collections.max(nodesToAsk, NodeComparisons.BY_MIN_CLASSIFICATIONS);
             nodesToAsk.remove(nodeToAsk);

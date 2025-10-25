@@ -17,15 +17,14 @@ import io.github.ryan_glgr.hansel_grapher.Visualizations.VisualizationDOT;
 
 public class Main {
 
-    public static Integer[] kValues = {2, 2, 2, 2, 2};
-    public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f, 4.5f}; // will be used when we are just doing a magic linear function interview for testing.
+    public static Integer[] kValues = {3, 4, 3, 5, 4, 4};
+    public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f, 1.5f}; // will be used when we are just doing a magic linear function interview for testing.
     static {
         int maxSum = 0;
         for (int i = 0; i < kValues.length; i++) {
             maxSum += (int)((kValues[i] - 1) * weights[i]);
         }
-//        highestPossibleClassification = maxSum / kValues.length;
-        highestPossibleClassification = 1;
+        highestPossibleClassification = maxSum / kValues.length;
         Node.dimension = kValues.length; // TODO: Node.dimension shouldn't be set here.
     }
     // Calculate the highest possible classification at compile time
@@ -33,10 +32,9 @@ public class Main {
     
     public static void main(String[] args) {
 
-//        for (Interview.InterviewMode mode : Interview.InterviewMode.values()){
-//            makeClassifyAndSaveNodes(mode);
-//        }
-        makeClassifyAndSaveNodes(Interview.InterviewMode.BEST_MINIMUM_CONFIRMED);
+        for (Interview.InterviewMode mode : Interview.InterviewMode.values()){
+            makeClassifyAndSaveNodes(mode);
+        }
         System.exit(0);
     }
 
