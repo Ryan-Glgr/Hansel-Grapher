@@ -17,8 +17,8 @@ import io.github.ryan_glgr.hansel_grapher.Visualizations.VisualizationDOT;
 
 public class Main {
 
-    public static Integer[] kValues = {3, 4, 3, 5, 4, 4};
-    public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f, 1.5f}; // will be used when we are just doing a magic linear function interview for testing.
+    public static Integer[] kValues = {3, 4, 5, 5, 4};
+    public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f}; // will be used when we are just doing a magic linear function interview for testing.
     static {
         int maxSum = 0;
         for (int i = 0; i < kValues.length; i++) {
@@ -48,7 +48,7 @@ public class Main {
             ArrayList<ArrayList<Node>> hanselChains = HanselChains.generateHanselChainSet(kValues, nodes);
 
             // classify all our data
-            InterviewStats interviewStats = new Interview(kValues, weights, nodes, hanselChains, interviewMode, numClasses).interviewStats;
+            InterviewStats interviewStats = new Interview(kValues, weights, nodes, hanselChains, interviewMode).interviewStats;
 
             System.out.println(interviewMode + " INTERVIEW COMPLETE!");
             System.out.println("NUMBER OF QUESTIONS ASKED: " + interviewStats.nodesAsked.size());
@@ -56,12 +56,12 @@ public class Main {
             // find our low units
             ArrayList<ArrayList<Node>> lowUnits = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
             int numberOfLowUnits = lowUnits.stream().mapToInt(ArrayList::size).sum();
-//            System.out.println("TOTAL NUMBER OF LOW UNITS:\t" + numberOfLowUnits);
+            System.out.println("TOTAL NUMBER OF LOW UNITS:\t" + numberOfLowUnits);
 
             for (int classification = 0; classification < numClasses; classification++) {
-//                 System.out.println("NUMBER OF LOW UNITS FOR CLASS " + classification + ":\t" + lowUnits.get(classification).size());
-//                 System.out.println("LOW UNITS FOR CLASS " + classification + ":\n");
-//                 printListOfNodes(lowUnits.get(classification));
+                 System.out.println("NUMBER OF LOW UNITS FOR CLASS " + classification + ":\t" + lowUnits.get(classification).size());
+                 System.out.println("LOW UNITS FOR CLASS " + classification + ":\n");
+                 printListOfNodes(lowUnits.get(classification));
             }
 
             ArrayList<ArrayList<Node>> adjustedLowUnits = HanselChains.removeUselessLowUnits(lowUnits);
@@ -69,9 +69,9 @@ public class Main {
             System.out.println("\nTOTAL NUMBER OF ADJUSTED LOW UNITS:\t" + numberOfAdjustedLowUnits);
 
             for (int classification = 0; classification < numClasses; classification++) {
-//                 System.out.println("NUMBER OF ADJUSTED LOW UNITS FOR CLASS " + classification + ":\t" + adjustedLowUnits.get(classification).size());
-//                 System.out.println("ADJUSTED LOW UNITS FOR CLASS " + classification + ":\n");
-//                 printListOfNodes(adjustedLowUnits.get(classification));
+                 System.out.println("NUMBER OF ADJUSTED LOW UNITS FOR CLASS " + classification + ":\t" + adjustedLowUnits.get(classification).size());
+                 System.out.println("ADJUSTED LOW UNITS FOR CLASS " + classification + ":\n");
+                 printListOfNodes(adjustedLowUnits.get(classification));
             }
             
             RuleNode[] ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnits);
@@ -90,7 +90,6 @@ public class Main {
             if (outputDir != null && !outputDir.exists()) {
                 outputDir.mkdirs();
             }
-
             // visualize our results
             VisualizationDOT.makeHanselChainDOT(hanselChains, adjustedLowUnits);
 
@@ -98,7 +97,7 @@ public class Main {
             VisualizationDOT.makeExpansionsDOT(nodes, adjustedLowUnits);
 
             String interviewStatsOutputString = interviewMode + " Interview Stats";
-            InterviewStatsVisualizer.savePDF(interviewStats, 
+            InterviewStatsVisualizer.savePDF(interviewStats,
                 "out/" + interviewStatsOutputString + ".pdf",
                 interviewMode);
         }

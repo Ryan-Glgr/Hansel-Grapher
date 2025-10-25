@@ -20,13 +20,25 @@ public class Interview {
     public final InterviewStats interviewStats;
 
     public enum InterviewMode {
-        BINARY_SEARCH_CHAINS,                       // method where we just query midpoint of the chain each time. thus chopping each chain in half. we work on the longest chain at a time.
-        BINARY_SEARCH_COMPLETING_SQUARE_SMALLEST_DIFFERENCE,
-        BINARY_SEARCH_COMPLETING_SQUARE_BEST_MIN_CONFIRMED,
-        BINARY_SEARCH_COMPLETING_SQUARE_HIGHEST_TOTAL_UMBRELLA_SORT,
-        BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_UNITY,
-        BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_SHANNON_ENTROPY,
-        BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_QUADRATIC,
+
+        // methods which use a more traditional binary search. meaning that we are going to fully classify one chain, before
+        // we go on and binary search the next one. BINARY_SEARCH_CHUNKS will simply grab the middle node of the longest chunk of a
+        // chain which isn't classified yet.
+        TRADITIONAL_BINARY_SEARCH,
+        TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_SMALLEST_DIFFERENCE,
+        TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_BEST_MIN_CONFIRMED,
+        TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_HIGHEST_TOTAL_UMBRELLA_SORT,
+        TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_UNITY,
+        TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_SHANNON_ENTROPY,
+        TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_QUADRATIC,
+
+        BINARY_SEARCH_CHUNKS,                       // method where we just query midpoint of the chain each time. thus chopping each chain in half. we work on the longest chain at a time.
+        BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_SMALLEST_DIFFERENCE,
+        BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_BEST_MIN_CONFIRMED,
+        BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_HIGHEST_TOTAL_UMBRELLA_SORT,
+        BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_BALANCE_RATIO_UNITY,
+        BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_BALANCE_RATIO_SHANNON_ENTROPY,
+        BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_BALANCE_RATIO_QUADRATIC,
         BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS, // basically finds the longest expansion chain, + 1 in some attribute, as far as we can go, and binary searches that chain at each step.
 
         NONBINARY_SEARCH_CHAINS,
@@ -51,100 +63,128 @@ public class Interview {
             Float[] weights,
             HashMap<Integer, Node> data,
             ArrayList<ArrayList<Node>> hanselChains,
-            InterviewMode mode,
-            int numClasses){
+            InterviewMode mode){
 
         inputScanner = new Scanner(System.in);
 
         this.kVals = kVals;
         this.kValueWeights = weights;
-        this.interviewStats = conductInterview(data, hanselChains, mode, numClasses);
+        this.interviewStats = conductInterview(data, hanselChains, mode);
     }
 
     // mega function which determines how we are going to ask questions.
     // mode determines the question asking heuristics. umbrellaBased determines if we sort by umbrella metrics.
     private InterviewStats conductInterview(HashMap<Integer, Node> data,
            ArrayList<ArrayList<Node>> hanselChains,
-           InterviewMode mode,
-           int numClasses) {
+           InterviewMode mode) {
 
         ArrayList<Node> allNodes = new ArrayList<>(data.values());
         InterviewStats stats = switch(mode) {
 
             case HIGHEST_TOTAL_UMBRELLA_SORT ->
-                umbrellaSortInterview(allNodes, NodeComparisons.HIGHEST_TOTAL_UMBRELLA, numClasses);
+                umbrellaSortInterview(allNodes, NodeComparisons.HIGHEST_TOTAL_UMBRELLA);
 
             case SMALLEST_DIFFERENCE_UMBRELLA_SORT ->
-                umbrellaSortInterview(allNodes, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA, numClasses);
+                umbrellaSortInterview(allNodes, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
 
             case BEST_BALANCE_RATIO_UNITY -> {
                 Node.BALANCE_RATIO = BalanceRatio.UNITY_BALANCE_RATIO;
-                yield umbrellaSortInterview(allNodes, NodeComparisons.BEST_BALANCE_RATIO, numClasses);
+                yield umbrellaSortInterview(allNodes, NodeComparisons.BEST_BALANCE_RATIO);
             }
             case BEST_BALANCE_RATIO_SHANNON_ENTROPY -> {
                 Node.BALANCE_RATIO = BalanceRatio.SHANNON_ENTROPY_BALANCE_RATIO;
-                yield umbrellaSortInterview(allNodes, NodeComparisons.BEST_BALANCE_RATIO, numClasses);
+                yield umbrellaSortInterview(allNodes, NodeComparisons.BEST_BALANCE_RATIO);
             }
             case BEST_BALANCE_RATIO_QUADRATIC -> {
                 Node.BALANCE_RATIO = BalanceRatio.QUADRATIC_BALANCE_RATIO;
-                yield umbrellaSortInterview(allNodes, NodeComparisons.BEST_BALANCE_RATIO, numClasses);
+                yield umbrellaSortInterview(allNodes, NodeComparisons.BEST_BALANCE_RATIO);
             }
-            case BINARY_SEARCH_CHAINS ->
+
+            case TRADITIONAL_BINARY_SEARCH ->
                 // extra args after hansel chains don't matter for regular binary search.
-                binarySearchHCsInterview(hanselChains, false, null, numClasses);
+                    traditionalBinarySearchInterview(hanselChains, false, null);
 
-            case BINARY_SEARCH_COMPLETING_SQUARE_SMALLEST_DIFFERENCE ->
+            case TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_SMALLEST_DIFFERENCE ->
                 // we use the MIN for smallest difference
-                binarySearchHCsInterview(hanselChains, true, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA, numClasses);
+                    traditionalBinarySearchInterview(hanselChains, true, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
 
-            case BINARY_SEARCH_COMPLETING_SQUARE_HIGHEST_TOTAL_UMBRELLA_SORT ->
-                binarySearchHCsInterview(hanselChains, true, NodeComparisons.HIGHEST_TOTAL_UMBRELLA, numClasses);
+            case TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_HIGHEST_TOTAL_UMBRELLA_SORT ->
+                    traditionalBinarySearchInterview(hanselChains, true, NodeComparisons.HIGHEST_TOTAL_UMBRELLA);
 
-            case BINARY_SEARCH_COMPLETING_SQUARE_BEST_MIN_CONFIRMED ->
-                binarySearchHCsInterview(hanselChains, true, NodeComparisons.BY_MIN_CLASSIFICATIONS, numClasses);
+            case TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_BEST_MIN_CONFIRMED ->
+                    traditionalBinarySearchInterview(hanselChains, true, NodeComparisons.BY_MIN_CLASSIFICATIONS);
 
-            case BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_UNITY -> {
+            case TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_UNITY -> {
                 Node.BALANCE_RATIO = BalanceRatio.UNITY_BALANCE_RATIO;
-                yield binarySearchHCsInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO, numClasses);
+                yield traditionalBinarySearchInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO);
             }
 
-            case BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_SHANNON_ENTROPY -> {
+            case TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_SHANNON_ENTROPY -> {
                 Node.BALANCE_RATIO = BalanceRatio.SHANNON_ENTROPY_BALANCE_RATIO;
-                yield binarySearchHCsInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO, numClasses);
+                yield traditionalBinarySearchInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO);
             }
 
-            case BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_QUADRATIC -> {
+            case TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_QUADRATIC -> {
                 Node.BALANCE_RATIO = BalanceRatio.QUADRATIC_BALANCE_RATIO;
-                yield binarySearchHCsInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO, numClasses);
+                yield traditionalBinarySearchInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO);
+            }
+
+            case BINARY_SEARCH_CHUNKS ->
+                // extra args after hansel chains don't matter for regular binary search.
+                binarySearchChunksInterview(hanselChains, false, null);
+
+            case BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_SMALLEST_DIFFERENCE ->
+                // we use the MIN for smallest difference
+                binarySearchChunksInterview(hanselChains, true, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
+
+            case BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_HIGHEST_TOTAL_UMBRELLA_SORT ->
+                binarySearchChunksInterview(hanselChains, true, NodeComparisons.HIGHEST_TOTAL_UMBRELLA);
+
+            case BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_BEST_MIN_CONFIRMED ->
+                binarySearchChunksInterview(hanselChains, true, NodeComparisons.BY_MIN_CLASSIFICATIONS);
+
+            case BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_BALANCE_RATIO_UNITY -> {
+                Node.BALANCE_RATIO = BalanceRatio.UNITY_BALANCE_RATIO;
+                yield binarySearchChunksInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO);
+            }
+
+            case BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_BALANCE_RATIO_SHANNON_ENTROPY -> {
+                Node.BALANCE_RATIO = BalanceRatio.SHANNON_ENTROPY_BALANCE_RATIO;
+                yield binarySearchChunksInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO);
+            }
+
+            case BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_BALANCE_RATIO_QUADRATIC -> {
+                Node.BALANCE_RATIO = BalanceRatio.QUADRATIC_BALANCE_RATIO;
+                yield binarySearchChunksInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO);
             }
 
             case NONBINARY_SEARCH_CHAINS ->
                 // extra args after hansel chains don't matter for regular binary search.
-                    nonBinarySearchHCsInterview(hanselChains, false, null, numClasses);
+                    nonBinarySearchHCsInterview(hanselChains, false, null);
 
             case NONBINARY_SEARCH_COMPLETING_SQUARE_SMALLEST_DIFFERENCE ->
                     // we use the MIN for smallest difference
-                    nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA, numClasses);
+                    nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
 
             case NONBINARY_SEARCH_COMPLETING_SQUARE_HIGHEST_TOTAL_UMBRELLA_SORT ->
-                    nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.HIGHEST_TOTAL_UMBRELLA, numClasses);
+                    nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.HIGHEST_TOTAL_UMBRELLA);
 
             case NONBINARY_SEARCH_COMPLETING_SQUARE_BEST_MIN_CONFIRMED ->
-                    nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.BY_MIN_CLASSIFICATIONS, numClasses);
+                    nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.BY_MIN_CLASSIFICATIONS);
 
             case NONBINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_UNITY -> {
                 Node.BALANCE_RATIO = BalanceRatio.UNITY_BALANCE_RATIO;
-                yield nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO, numClasses);
+                yield nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO);
             }
 
             case NONBINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_SHANNON_ENTROPY -> {
                 Node.BALANCE_RATIO = BalanceRatio.SHANNON_ENTROPY_BALANCE_RATIO;
-                yield nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO, numClasses);
+                yield nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO);
             }
 
             case NONBINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_QUADRATIC -> {
                 Node.BALANCE_RATIO = BalanceRatio.QUADRATIC_BALANCE_RATIO;
-                yield nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO, numClasses);
+                yield nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO);
             }
 
             case BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS ->
@@ -153,20 +193,14 @@ public class Interview {
                 binarySearchStringOfExpansionsInterview(allNodes);
 
             case BEST_MINIMUM_CONFIRMED ->
-                bestMinConfirmedInterview(allNodes, numClasses);
-
-            default -> {
-                System.out.println("PROGRAMMER IS AN IDIOT!");
-                System.exit(0);
-                yield null; // required inside a block
-            }
+                bestMinConfirmedInterview(allNodes);
         };
 
         return new InterviewStats(kVals,
             hanselChains.size(),
             data.size(),
             mode,
-                MAGIC_FUNCTION_MODE,
+            MAGIC_FUNCTION_MODE,
             stats.nodesAsked,
             stats.permeationStatsForEachNodeAsked);
     }
@@ -220,7 +254,7 @@ public class Interview {
 
 //        return result;  // 1 if true, 0 if false
     }
-    private Scanner inputScanner;
+    private final Scanner inputScanner;
     private int questionExpert(Node datapoint){
 
         System.out.println("WHAT IS THE CLASSIFICATION FOR THIS DATAPOINT?");
@@ -239,8 +273,7 @@ public class Interview {
     // Sort nodes based on umbrella strategy
     // umbrella strategy considers how many nodes are reachable underneath/above a given node. for example:
     private InterviewStats umbrellaSortInterview(ArrayList<Node> allNodes,
-            Comparator<Node> umbrellaSortingStrategy, 
-            int numClasses) {
+            Comparator<Node> umbrellaSortingStrategy) {
 
         List<Node> nodesAsked = new ArrayList<>();
         List<PermeationStats> permeationStatsForEachNodeAsked = new ArrayList<>();
@@ -286,47 +319,45 @@ public class Interview {
     }
 
     // function where we search through chains, which get recursively split into chunks.
-    private InterviewStats binarySearchHCsInterview(ArrayList<ArrayList<Node>> hanselChainSet,
-            boolean completingTheSquareTechnique,
-            Comparator<Node> choosingAlternateMiddleNodeTechnique,
-            int numClasses) {
+    private InterviewStats binarySearchChunksInterview(ArrayList<ArrayList<Node>> hanselChainSet,
+                                                       boolean completingTheSquareTechnique,
+                                                       Comparator<Node> choosingAlternateMiddleNodeTechnique) {
 
-        List<Node> questionsAsked = new ArrayList<>();
-        List<PermeationStats> permeationStats = new ArrayList<>();
+        final List<Node> questionsAsked = new ArrayList<>();
+        final List<PermeationStats> permeationStats = new ArrayList<>();
 
-        boolean useMaxComparison = (choosingAlternateMiddleNodeTechnique == NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
+        final boolean useMaxComparison = (choosingAlternateMiddleNodeTechnique == NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
 
         // we have to keep a list of chunks of the chain which are not confirmed. basically we chop the chain
-        // each time that we confirm a node. we could confirm a whole bunch with one question, and we have to investigate all the
+        // each time that we confirm a node. we could confirm a bunch with one question, and we have to investigate all the
         // chains/chunks to determine that. a chain
         ArrayList<ArrayList<Node>> chunks = new ArrayList<>(hanselChainSet);
-        while (chunks.size() > 0){
+        while (!chunks.isEmpty()){
 
             // get our biggest chunk
-            ArrayList<Node> chunkToQuestion = Collections.max(chunks, Comparator.comparingInt(List::size));
+            final ArrayList<Node> chunkToQuestion = Collections.max(chunks, Comparator.comparingInt(List::size));
 
             // get the middle node
-            int middleIndex = chunkToQuestion.size() / 2;
+            final int middleIndex = chunkToQuestion.size() / 2;
 
             // if we are completing the square to find a potential better node than just the middle node.
-            Node nodeToQuestion;
+            final Node nodeToQuestion;
             if (completingTheSquareTechnique){
                 // now that our nodes have been updated with their umbrella sizes and min classifications and such, we can determine if there is a better node than our middle node.
                 nodeToQuestion = getBestSquareCompletion(chunkToQuestion,
                     middleIndex,
                     choosingAlternateMiddleNodeTechnique,
-                    useMaxComparison,
-                    numClasses);
+                    useMaxComparison);
             }
             else
                 nodeToQuestion = chunkToQuestion.get(middleIndex);
 
             // ask the expert or ML
-            int classification = (MAGIC_FUNCTION_MODE)
+            final int classification = (MAGIC_FUNCTION_MODE)
                 ? magicFunction(nodeToQuestion)
                 : questionExpert(nodeToQuestion);
 
-            PermeationStats permStats = nodeToQuestion.permeateClassification(classification);
+            final PermeationStats permStats = nodeToQuestion.permeateClassification(classification);
             questionsAsked.add(nodeToQuestion);
             permeationStats.add(permStats);
 
@@ -338,6 +369,84 @@ public class Interview {
 
         return new InterviewStats(questionsAsked, permeationStats);
     }
+
+    private InterviewStats traditionalBinarySearchInterview(ArrayList<ArrayList<Node>> hanselChainSet,
+                                                            boolean completingTheSquareTechnique,
+                                                            Comparator<Node> choosingAlternateMiddleNodeTechnique) {
+
+        final List<Node> questionsAsked = new ArrayList<>();
+        final List<PermeationStats> permeationStats = new ArrayList<>();
+
+        final boolean useMaxComparison = (choosingAlternateMiddleNodeTechnique == NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
+
+        // we have to keep a list of chunks of the chain which are not confirmed. basically we chop the chain
+        // each time that we confirm a node. we could confirm a bunch with one question, and we have to investigate all the
+        // chains/chunks to determine that. a chain
+        ArrayList<ArrayList<Node>> chunks = new ArrayList<>(hanselChainSet);
+        while (!chunks.isEmpty()){
+
+            // get our biggest chunk (piece of Hansel chain)
+            ArrayList<Node> chunkToBinarySearch = Collections.max(chunks, Comparator.comparingInt(List::size));
+
+            // we have to keep track of our list of chains individually. so they don't get chopped up until it is time for us to query a particular chain.
+            // one particular chain may get chopped into many chunks, each of which you would want to binary search.
+            // this starts as a list of list of nodes, but just one list. then it may blow up into several pieces.
+            ArrayList<ArrayList<Node>> chainToQuestion = new ArrayList<>();
+            chainToQuestion.add(new ArrayList<>(chunkToBinarySearch));
+
+            // while we still have remaining pieces of this chain:
+            while(!chainToQuestion.isEmpty()) {
+
+                // for each chunk we have remaining of each chain, we are going to chop them up, splitting on parts where they are confirmed.
+                chainToQuestion = chainToQuestion.parallelStream()
+                        .flatMap(chunk -> splitChunkIntoPiecesHelper(chunk)
+                                .stream())
+                        .collect(Collectors.toCollection(ArrayList::new));
+
+                // chain is done.
+                if (chainToQuestion.isEmpty())
+                    break;
+
+                // get the longest chunk of this HC
+                ArrayList<Node> longestPartOfThisChainNotYetConfirmed = Collections.max(chainToQuestion, Comparator.comparingInt(List::size));
+
+                // get the middle node
+                final int middleIndex = longestPartOfThisChainNotYetConfirmed.size() / 2;
+
+                // if we are completing the square to find a potential better node than just the middle node.
+                final Node nodeToQuestion;
+                if (completingTheSquareTechnique){
+                    // now that our nodes have been updated with their umbrella sizes and min classifications and such, we can determine if there is a better node than our middle node.
+                    nodeToQuestion = getBestSquareCompletion(longestPartOfThisChainNotYetConfirmed,
+                            middleIndex,
+                            choosingAlternateMiddleNodeTechnique,
+                            useMaxComparison);
+                }
+                else
+                    nodeToQuestion = longestPartOfThisChainNotYetConfirmed.get(middleIndex);
+
+                // ask the expert or ML
+                int classification = (MAGIC_FUNCTION_MODE)
+                        ? magicFunction(nodeToQuestion)
+                        : questionExpert(nodeToQuestion);
+
+                PermeationStats permStats = nodeToQuestion.permeateClassification(classification);
+                questionsAsked.add(nodeToQuestion);
+                permeationStats.add(permStats);
+            }
+
+            // update all our HCs with the results now that we are done with that chain.
+            chunks = chunks.parallelStream()
+                    .flatMap(chunk -> splitChunkIntoPiecesHelper(chunk).stream())
+                    .collect(Collectors.toCollection(ArrayList::new));
+        }
+
+        return new InterviewStats(questionsAsked, permeationStats);
+
+
+
+    }
+
 
     // splits a list of nodes (part or whole hansel chain) on nodes which are confirmed
     private ArrayList<ArrayList<Node>> splitChunkIntoPiecesHelper(ArrayList<Node> chunk) {
@@ -368,8 +477,7 @@ public class Interview {
             ArrayList<Node> chunkToQuestion,
             int middleIndex,
             Comparator<Node> choosingAlternateMiddleNodeTechnique,
-            boolean useMaxComparison,
-            int numClasses) {
+            boolean useMaxComparison) {
 
         Node middleNode = chunkToQuestion.get(middleIndex);
 
@@ -382,7 +490,7 @@ public class Interview {
             : chunkToQuestion.get(middleIndex - 1);
 
         // determine our intersection. if we have above and below, intersect them. if we had one or the other, use just that set.
-        ArrayList<Node> intersection = new ArrayList<>();
+        ArrayList<Node> intersection;
         if (aboveNode != null && belowNode != null) {
             // filter nulls from expansions
             Set<Node> upSet = Arrays.stream(belowNode.upExpansions)
@@ -484,8 +592,7 @@ public class Interview {
 
     private InterviewStats nonBinarySearchHCsInterview(ArrayList<ArrayList<Node>> hanselChainSet,
             boolean completingTheSquareTechnique,
-            Comparator<Node> choosingAlternateMiddleNodeTechnique,
-            int numClasses) {
+            Comparator<Node> choosingAlternateMiddleNodeTechnique) {
 
         List<Node> questionsAsked = new ArrayList<>();
         List<PermeationStats> permeationStats = new ArrayList<>();
@@ -496,7 +603,7 @@ public class Interview {
         // each time that we confirm a node. we could confirm a whole bunch with one question, and we have to investigate all the
         // chains/chunks to determine that. a chain
         ArrayList<ArrayList<Node>> chunks = new ArrayList<>(hanselChainSet);
-        while (chunks.size() > 0){
+        while (!chunks.isEmpty()){
 
             // get our biggest chunk
             ArrayList<Node> chunkToQuestion = Collections.max(chunks, Comparator.comparingInt(List::size));
@@ -522,8 +629,7 @@ public class Interview {
                     nodeToQuestion = getBestSquareCompletion(chunkToQuestion,
                             indexToQuestion,
                             choosingAlternateMiddleNodeTechnique,
-                            useMaxComparison,
-                            numClasses);
+                            useMaxComparison);
                 }
 
                 // ask the expert or ML
@@ -613,12 +719,10 @@ public class Interview {
             path.add(current);
 
             // pick the next node from my down expansions. We want that with the highest count at each step This is the DP approach.
-            Node next = Arrays.stream(current.upExpansions)
+            current = Arrays.stream(current.upExpansions)
                 .filter(nb -> nb != null && !nb.classificationConfirmed)
                 .max(Comparator.comparingInt(nb -> longestPossibleChainOfExpansionsForEachNodeMap.getOrDefault(nb, 0)))
                 .orElse(null);
-
-            current = next;
         }
 
         return path;
@@ -631,14 +735,14 @@ public class Interview {
      *      in a three class problem, we would use the minimum number of confirmed nodes, if a given class of the three were assigned.
      *      thus we take that node which had the largest number of confirmations (using the worst case)
      */
-    private InterviewStats bestMinConfirmedInterview(ArrayList<Node> allNodes, int numClasses){
+    private InterviewStats bestMinConfirmedInterview(ArrayList<Node> allNodes){
         
         // interview stats we need later.
         List<Node> nodesAsked = new ArrayList<>();
         List<PermeationStats> permeationStatsForEachNodeAsked = new ArrayList<>();
 
         ArrayList<Node> nodesToAsk = new ArrayList<>(allNodes);
-        while(nodesToAsk.size() != 0){
+        while(!nodesToAsk.isEmpty()){
 
             // now sort decreasing, using our strategy. we sort descending, by a nodes minimum guaranteed classifications.
             // that is, of it's classes, whichever is the worst, we choose the one with the best floor. we are guaranteed to confirm that many at least.
