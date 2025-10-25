@@ -318,13 +318,18 @@ public class Node {
 
                 final boolean canUpdateNeighbor = countUpwards
                         ? this.maxPossibleValue > neighbor.classification
-                        : this.classification > neighbor.maxPossibleValue;
-                if (!canUpdateNeighbor)
+                        : this.classification < neighbor.maxPossibleValue;
+                if (canUpdateNeighbor)
+                    visited.add(neighbor);
+
+                final boolean canConfirmNeighbor = countUpwards
+                        ? this.maxPossibleValue == neighbor.maxPossibleValue
+                        : this.classification == neighbor.classification;
+                if(!canConfirmNeighbor)
                     continue;
 
-                visited.add(neighbor);
                 queue.add(neighbor);
-
+                
                 // if "this" node were assigned a hypothetical class how does that affect neighbor.
                 for (int hypotheticalClass = this.classification; hypotheticalClass <= this.maxPossibleValue; hypotheticalClass++) {
                     if (neighbor.wouldBeConfirmedForClass(hypotheticalClass, countUpwards)) {
@@ -333,7 +338,7 @@ public class Node {
                 }
             }
         }
-        
+
         if (countUpwards) {
             this.aboveUmbrellaCases = visited.size() - 1;
         } else {
