@@ -2,22 +2,21 @@ package io.github.ryan_glgr.hansel_grapher;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 
-import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleCreation;
-import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleNode;
 import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.HanselChains;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
+import io.github.ryan_glgr.hansel_grapher.Visualizations.GUI.MainScreen;
 import io.github.ryan_glgr.hansel_grapher.Visualizations.InterviewStatsVisualizer;
 import io.github.ryan_glgr.hansel_grapher.Visualizations.VisualizationDOT;
 
+import javax.swing.*;
+import java.awt.Dimension;
+
 public class Main {
 
-    public static Integer[] kValues = {3, 4, 5, 5, 4};
+    public static Integer[] kValues = {3, 4, 5, 2, 4};
     public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f}; // will be used when we are just doing a magic linear function interview for testing.
     static {
         int maxSum = 0;
@@ -32,57 +31,45 @@ public class Main {
     
     public static void main(String[] args) {
 
-        for (Interview.InterviewMode mode : Interview.InterviewMode.values()){
-            makeClassifyAndSaveNodes(mode);
-        }
-        System.exit(0);
+//        for (Interview.InterviewMode mode : Interview.InterviewMode.values()){
+//            makeClassifyAndSaveNodes(mode);
+//        }
+//        makeClassifyAndSaveNodes(Interview.InterviewMode.BEST_MINIMUM_CONFIRMED);
+        SwingUtilities.invokeLater(() -> {
+            try {
+                UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+                // Make Swing decorations (titlebar, borders) use the L&F
+                JFrame.setDefaultLookAndFeelDecorated(true);
+                JDialog.setDefaultLookAndFeelDecorated(true);
+            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException ex) {
+                ex.printStackTrace();
+            }
+
+            MainScreen mainScreen = new MainScreen();
+
+            JFrame frame = new JFrame("Hansel Grapher");
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setContentPane(mainScreen.getMainPanel());
+            frame.setMinimumSize(new Dimension(960, 640));
+            frame.setPreferredSize(new Dimension(960, 640));
+            frame.pack();
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
+        });
     }
 
-    public static void makeClassifyAndSaveNodes(Interview.InterviewMode interviewMode){
+    public static void makeClassifyAndSaveNodes(Interview.InterviewMode interviewMode) {
 
-            int numClasses = highestPossibleClassification + 1;
+        int numClasses = highestPossibleClassification + 1;
 
-            // make all our nodes.
-            HashMap<Integer, Node> nodes = Node.makeNodes(kValues, numClasses);
-            // make the chains
-            ArrayList<ArrayList<Node>> hanselChains = HanselChains.generateHanselChainSet(kValues, nodes);
+        // classify all our data
+        Interview interview = new Interview(kValues, weights, interviewMode, numClasses, null, null);
+        InterviewStats interviewStats = interview.interviewStats;
+        ArrayList<ArrayList<Node>> hanselChains = interview.hanselChains;
+        HashMap<Integer, Node> nodes = interview.data;
 
-            // classify all our data
-            InterviewStats interviewStats = new Interview(kValues, weights, nodes, hanselChains, interviewMode).interviewStats;
-
-            System.out.println(interviewMode + " INTERVIEW COMPLETE!");
-            System.out.println("NUMBER OF QUESTIONS ASKED: " + interviewStats.nodesAsked.size());
-
-            // find our low units
-            ArrayList<ArrayList<Node>> lowUnits = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
-            int numberOfLowUnits = lowUnits.stream().mapToInt(ArrayList::size).sum();
-            System.out.println("TOTAL NUMBER OF LOW UNITS:\t" + numberOfLowUnits);
-
-            for (int classification = 0; classification < numClasses; classification++) {
-                 System.out.println("NUMBER OF LOW UNITS FOR CLASS " + classification + ":\t" + lowUnits.get(classification).size());
-                 System.out.println("LOW UNITS FOR CLASS " + classification + ":\n");
-                 printListOfNodes(lowUnits.get(classification));
-            }
-
-            ArrayList<ArrayList<Node>> adjustedLowUnits = HanselChains.removeUselessLowUnits(lowUnits);
-            int numberOfAdjustedLowUnits = adjustedLowUnits.stream().mapToInt(ArrayList::size).sum();
-            System.out.println("\nTOTAL NUMBER OF ADJUSTED LOW UNITS:\t" + numberOfAdjustedLowUnits);
-
-            for (int classification = 0; classification < numClasses; classification++) {
-                 System.out.println("NUMBER OF ADJUSTED LOW UNITS FOR CLASS " + classification + ":\t" + adjustedLowUnits.get(classification).size());
-                 System.out.println("ADJUSTED LOW UNITS FOR CLASS " + classification + ":\n");
-                 printListOfNodes(adjustedLowUnits.get(classification));
-            }
-            
-            RuleNode[] ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnits);
-            for (int classification = 0; classification < numClasses; classification++) {
-                 ruleTrees[classification].printTree(false, classification);
-            }
-
-            int totalClauses = Arrays.stream(ruleTrees)
-                .mapToInt(ruleTree -> ruleTree.getNumberOfClauses(ruleTree))
-                .sum();
-             System.out.println("\nTOTAL NUMBER OF CLAUSES NEEDED:\t" + totalClauses);
+        System.out.println(interviewMode + " INTERVIEW COMPLETE!");
+        System.out.println(interview);
 
         try{
             // ensure output directory exists
@@ -91,10 +78,10 @@ public class Main {
                 outputDir.mkdirs();
             }
             // visualize our results
-            VisualizationDOT.makeHanselChainDOT(hanselChains, adjustedLowUnits);
+            VisualizationDOT.makeHanselChainDOT(hanselChains, interview.adjustedLowUnitsByClass);
 
             // make the expansions picture
-            VisualizationDOT.makeExpansionsDOT(nodes, adjustedLowUnits);
+            VisualizationDOT.makeExpansionsDOT(nodes, interview.adjustedLowUnitsByClass);
 
             String interviewStatsOutputString = interviewMode + " Interview Stats";
             InterviewStatsVisualizer.savePDF(interviewStats,
@@ -105,12 +92,4 @@ public class Main {
             e.printStackTrace();
         }
     }
-
-    public static void printListOfNodes(ArrayList<Node> nodes){
-        List<String> valuesStrings = nodes.stream()
-            .map(node -> "\n" + Arrays.toString(node.values))
-            .toList();
-        System.out.println(valuesStrings);
-    }
-
 }

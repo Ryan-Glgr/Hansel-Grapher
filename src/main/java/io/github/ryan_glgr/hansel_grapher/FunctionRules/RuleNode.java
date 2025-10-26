@@ -152,8 +152,15 @@ public class RuleNode {
         return newChildren.toArray(new RuleNode[0]);
     }
 
-    public void printTree(boolean printSize, int classification) {
-        printTreeHelper(this, 0, printSize, classification);
+    public String toString(boolean printSize, int classification) {
+        StringBuilder sb = new StringBuilder();
+        buildTreeString(sb, this, 0, printSize, classification);
+        return sb.toString();
+    }
+
+    @Override
+    public String toString() {
+        return toString(false, -1);
     }
 
     private static String indent (int depth) {
@@ -165,21 +172,28 @@ public class RuleNode {
     
     // Recursive helper for indentation-based printing (single-line format)
     // Indentation: each level adds "|- - " so it visually flows down
-    private void printTreeHelper(RuleNode node, int depth, boolean printSize, int classification) {
+    private void buildTreeString(StringBuilder sb, RuleNode node, int depth, boolean printSize, int classification) {
         if (node == null) return;
 
         // root line
         if (depth == 0) {
-            StringBuilder rootLine = new StringBuilder("CLASS: " + classification + " ROOT");
+            StringBuilder rootLine = new StringBuilder();
+            if (classification >= 0) {
+                rootLine.append("CLASS: ")
+                    .append(classification)
+                    .append(" ROOT");
+            } else {
+                rootLine.append("ROOT");
+            }
             if (printSize) 
                 rootLine.append(" [size: ")
                     .append(subtreeSize(node))
                     .append("]");
-            System.out.println(rootLine.toString());
+            sb.append(rootLine).append('\n');
 
             if (node.children != null) {
                 for (RuleNode child : node.children) {
-                    printTreeHelper(child, depth + 1, printSize, classification);
+                    buildTreeString(sb, child, depth + 1, printSize, classification);
                 }
             }
             return;
@@ -212,7 +226,7 @@ public class RuleNode {
             if (printSize) {
                 line.append(" [size: ").append(subtreeSize(node)).append("]");
             }
-            System.out.println(line.toString());
+            sb.append(line).append('\n');
             // don't recurse down the collapsed chain
             return;
         }
@@ -225,11 +239,11 @@ public class RuleNode {
         if (printSize) {
             line.append(" [size: ").append(subtreeSize(node)).append("]");
         }
-        System.out.println(line.toString());
+        sb.append(line).append('\n');
 
         if (node.children != null) {
             for (RuleNode child : node.children) {
-                printTreeHelper(child, depth + 1, printSize, classification);
+                buildTreeString(sb, child, depth + 1, printSize, classification);
             }
         }
     }

@@ -3,7 +3,6 @@ The goal of this project is very simple. It serves as a simplistic, understandab
 
 ## TASKS ## 
 - Find a way to apply our problem where "asking a question" is a big heavy operation/and or when asking what we are modeling is a very hard domain, where it makes sense to need to classify all possible Nodes, not just find a min/max.
-- Create a "standard binary search"
 - Refactor k values to use a structure which allows functions and sub functions
 - implement even better clause reduction technique(s) than the greedy search.
 - implement full end to end functionality for gui. fire it up, make an interview, specify a mode or modes, see question graphs, save outputs

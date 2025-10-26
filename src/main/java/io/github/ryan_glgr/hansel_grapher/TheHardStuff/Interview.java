@@ -5,19 +5,33 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleCreation;
+import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleNode;
 import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats;
+
+import static java.lang.Math.min;
 
 // this class is where we are going to handle anything classification related.
 public class Interview {
     
     public static boolean DEBUG = false;
     // if we set this false, we are going to call upon some ML interviewer instead.
-    public static boolean MAGIC_FUNCTION_MODE = true;
+    public static boolean MAGIC_FUNCTION_MODE = true; // TODO: make this an instace field and then we can specify weights in the GUI.
+    private int highestPossibleClassification; // needed when we are doing these magic function interviews in GUI, since the user may put in less classes than the function wants to make.
+
 
     private final Integer[] kVals;
     private final Float[] kValueWeights;
     public final InterviewStats interviewStats;
+    public final HashMap<Integer, Node> data;
+    public final ArrayList<ArrayList<Node>> hanselChains;
+    public final ArrayList<ArrayList<Node>> lowUnitsByClass;
+    public final ArrayList<ArrayList<Node>> adjustedLowUnitsByClass;
+    public final RuleNode[] ruleTrees;
+
+    public final String[] classificationNames;
+    public final String[] attributeNames;
 
     public enum InterviewMode {
 
@@ -61,22 +75,41 @@ public class Interview {
 
     public Interview(Integer[] kVals,
             Float[] weights,
-            HashMap<Integer, Node> data,
-            ArrayList<ArrayList<Node>> hanselChains,
-            InterviewMode mode){
+            InterviewMode mode,
+            int numClasses,
+            String[] attributeNames,
+            String[] classificationNames){
+
+        data = Node.makeNodes(kVals, numClasses);
+        hanselChains = HanselChains.generateHanselChainSet(kVals, data);
 
         inputScanner = new Scanner(System.in);
 
         this.kVals = kVals;
         this.kValueWeights = weights;
-        this.interviewStats = conductInterview(data, hanselChains, mode);
+        this.interviewStats = conductInterview(mode);
+
+        lowUnitsByClass = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
+        adjustedLowUnitsByClass = HanselChains.removeUselessLowUnits(lowUnitsByClass);
+        ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnitsByClass);
+
+        this.attributeNames = attributeNames;
+        this.classificationNames = classificationNames;
+
+        if (MAGIC_FUNCTION_MODE) {
+            int maxSum = 0;
+            for (int i = 0; i < kVals.length; i++) {
+                maxSum += (int) ((kVals[i] - 1) * weights[i]);
+            }
+            highestPossibleClassification = maxSum / kVals.length;
+            Node.dimension = kVals.length; // TODO: Node.dimension shouldn't be set here.
+        }
+
     }
 
     // mega function which determines how we are going to ask questions.
     // mode determines the question asking heuristics. umbrellaBased determines if we sort by umbrella metrics.
-    private InterviewStats conductInterview(HashMap<Integer, Node> data,
-           ArrayList<ArrayList<Node>> hanselChains,
-           InterviewMode mode) {
+    private InterviewStats conductInterview(InterviewMode mode) {
 
         ArrayList<Node> allNodes = new ArrayList<>(data.values());
         InterviewStats stats = switch(mode) {
@@ -211,7 +244,9 @@ public class Interview {
         for (int i = 0; i < Node.dimension; i++){
             sum += (int)(datapoint.values[i] * kValueWeights[i]);
         }
-        return sum / Node.dimension;
+        // need this because our magic function may try and spit out more classes than the user specifies.
+        return min((sum / Node.dimension), highestPossibleClassification);
+
         // Hardcoded Boolean function f1(x)
 //        Integer[] x = datapoint.values;
 
@@ -765,6 +800,80 @@ public class Interview {
         }
 
         return new InterviewStats(nodesAsked, permeationStatsForEachNodeAsked);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(interviewStats.interviewMode)
+            .append(" INTERVIEW COMPLETE!\n");
+        sb.append("NUMBER OF QUESTIONS ASKED: ")
+            .append(interviewStats.nodesAsked.size())
+            .append('\n');
+
+        int totalLowUnits = lowUnitsByClass.stream()
+            .mapToInt(List::size)
+            .sum();
+        sb.append("TOTAL NUMBER OF LOW UNITS:\t")
+            .append(totalLowUnits)
+            .append('\n');
+
+        for (int classification = 0; classification < lowUnitsByClass.size(); classification++) {
+            List<Node> lowUnits = lowUnitsByClass.get(classification);
+            sb.append("NUMBER OF LOW UNITS FOR CLASS ")
+                .append(classification)
+                .append(":\t")
+                .append(lowUnits.size())
+                .append('\n');
+            sb.append("LOW UNITS FOR CLASS ")
+                .append(classification)
+                .append(":\n")
+                .append(Node.printListOfNodes(lowUnits))
+                .append('\n');
+        }
+
+        int totalAdjustedLowUnits = adjustedLowUnitsByClass.stream()
+            .mapToInt(List::size)
+            .sum();
+        sb.append("\nTOTAL NUMBER OF ADJUSTED LOW UNITS:\t")
+            .append(totalAdjustedLowUnits)
+            .append('\n');
+
+        for (int classification = 0; classification < adjustedLowUnitsByClass.size(); classification++) {
+            List<Node> adjustedLowUnits = adjustedLowUnitsByClass.get(classification);
+            sb.append("NUMBER OF ADJUSTED LOW UNITS FOR CLASS ")
+                .append(classification)
+                .append(":\t")
+                .append(adjustedLowUnits.size())
+                .append('\n');
+            sb.append("ADJUSTED LOW UNITS FOR CLASS ")
+                .append(classification)
+                .append(":\n")
+                .append(Node.printListOfNodes(adjustedLowUnits))
+                .append('\n');
+        }
+
+        if (ruleTrees != null && ruleTrees.length > 0) {
+            sb.append('\n');
+            for (int classification = 0; classification < ruleTrees.length; classification++) {
+                RuleNode tree = ruleTrees[classification];
+                if (tree != null) {
+                    sb.append(tree.toString(false, classification));
+                }
+            }
+
+            int totalClauses = Arrays.stream(ruleTrees)
+                .filter(Objects::nonNull)
+                .mapToInt(tree -> tree.getNumberOfClauses(tree))
+                .sum();
+            sb.append("\nTOTAL NUMBER OF CLAUSES NEEDED:\t")
+                .append(totalClauses)
+                .append('\n');
+        }
+        sb.append("\nNote: Visualizations (Hansel chains, expansions, statistics PDFs) can be generated via `VisualizationDOT` and `InterviewStatsVisualizer`.\n");
+
+        return sb.toString();
     }
 
 }

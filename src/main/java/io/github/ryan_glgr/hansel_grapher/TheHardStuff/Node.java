@@ -81,6 +81,13 @@ public class Node {
         sum = sumUpDataPoint();
     }
 
+    public static String printListOfNodes(List<Node> nodes){
+        List<String> valuesStrings = nodes.stream()
+            .map(node -> "\n" + Arrays.toString(node.values))
+            .toList();
+        return valuesStrings.toString();
+    }
+
     private void findExpansions(HashMap<Integer, Node> nodes){
 
         // Parallel computation of expansions for each attribute

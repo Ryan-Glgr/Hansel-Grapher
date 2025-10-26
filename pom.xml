@@ -12,17 +12,32 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        
         <main.class>io.github.ryan_glgr.hansel_grapher.Main</main.class>
+
+        <!-- IntelliJ build version used for the ant tasks / runtime -->
+        <intellij.version>232.8660.185</intellij.version>
     </properties>
 
+    <!-- JetBrains repositories (where IntelliJ modules are published) -->
+    <repositories>
+        <repository>
+            <id>jetbrains.releases</id>
+            <name>JetBrains Releases</name>
+            <url>https://www.jetbrains.com/intellij-repository/releases</url>
+        </repository>
+        <repository>
+            <id>intellij-deps</id>
+            <name>IntelliJ Dependencies</name>
+            <url>https://packages.jetbrains.team/maven/p/ij/intellij-dependencies/</url>
+        </repository>
+    </repositories>
+
     <dependencies>
-        <!-- dependencies will be added here -->
         <!-- XChart -->
         <dependency>
             <groupId>org.knowm.xchart</groupId>
             <artifactId>xchart</artifactId>
-            <version>3.8.8</version> <!-- or latest -->
+            <version>3.8.8</version>
         </dependency>
 
         <!-- VectorGraphics2D (vector export backend used by XChart) -->
@@ -31,10 +46,57 @@
             <artifactId>VectorGraphics2D</artifactId>
             <version>0.13</version>
         </dependency>
+
+        <!-- IntelliJ runtime for forms (to be bundled / used at runtime if needed) -->
+        <dependency>
+            <groupId>com.jetbrains.intellij.java</groupId>
+            <artifactId>java-gui-forms-rt</artifactId>
+            <version>${intellij.version}</version>
+        </dependency>
+
+        <!-- IntelliJ ant tasks that include Javac2 form compilation -->
+        <dependency>
+            <groupId>com.jetbrains.intellij.java</groupId>
+            <artifactId>java-compiler-ant-tasks</artifactId>
+            <version>${intellij.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <!-- Run the IntelliJ Ant Javac2 task during the compile phase -->
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>compile-ij-forms</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <!-- src path -->
+                                <path id="j2sp">
+                                    <pathelement location="${project.basedir}/src/main/java"/>
+                                </path>
+
+                                <!-- define the Ant task (class is provided by java-compiler-ant-tasks dependency) -->
+                                <taskdef name="javac2"
+                                         classname="com.intellij.ant.Javac2"
+                                         classpathref="maven.runtime.classpath"/>
+                                <!-- run the Ant task: it will compile .form files into classes/resources -->
+                                <javac2 destdir="${project.basedir}/target/classes">
+                                    <src refid="j2sp"/>
+                                </javac2>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Shade + manifest -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -42,9 +104,7 @@
                 <executions>
                     <execution>
                         <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
+                        <goals><goal>shade</goal></goals>
                         <configuration>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
@@ -66,6 +126,7 @@
                 </executions>
             </plugin>
 
+            <!-- exec plugin for running -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
