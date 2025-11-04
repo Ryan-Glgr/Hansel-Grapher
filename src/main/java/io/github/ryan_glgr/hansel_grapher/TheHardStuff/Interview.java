@@ -20,7 +20,6 @@ public class Interview {
     public static boolean MAGIC_FUNCTION_MODE = true; // TODO: make this an instace field and then we can specify weights in the GUI.
     private int highestPossibleClassification; // needed when we are doing these magic function interviews in GUI, since the user may put in less classes than the function wants to make.
 
-
     private final Integer[] kVals;
     private final Float[] kValueWeights;
     public final InterviewStats interviewStats;
@@ -78,7 +77,9 @@ public class Interview {
             InterviewMode mode,
             int numClasses,
             String[] attributeNames,
-            String[] classificationNames){
+            String[] classificationNames) {
+
+        highestPossibleClassification = numClasses - 1;
 
         data = Node.makeNodes(kVals, numClasses);
         hanselChains = HanselChains.generateHanselChainSet(kVals, data);
@@ -91,20 +92,10 @@ public class Interview {
 
         lowUnitsByClass = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
         adjustedLowUnitsByClass = HanselChains.removeUselessLowUnits(lowUnitsByClass);
-        ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnitsByClass);
+        ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnitsByClass, kVals.length);
 
         this.attributeNames = attributeNames;
         this.classificationNames = classificationNames;
-
-        if (MAGIC_FUNCTION_MODE) {
-            int maxSum = 0;
-            for (int i = 0; i < kVals.length; i++) {
-                maxSum += (int) ((kVals[i] - 1) * weights[i]);
-            }
-            highestPossibleClassification = maxSum / kVals.length;
-            Node.dimension = kVals.length; // TODO: Node.dimension shouldn't be set here.
-        }
-
     }
 
     // mega function which determines how we are going to ask questions.
@@ -241,11 +232,11 @@ public class Interview {
     // asks the "expert" what the classification of this datapoint is.
     private int magicFunction(Node datapoint){
         int sum = 0;
-        for (int i = 0; i < Node.dimension; i++){
+        for (int i = 0; i < datapoint.values.length; i++){
             sum += (int)(datapoint.values[i] * kValueWeights[i]);
         }
         // need this because our magic function may try and spit out more classes than the user specifies.
-        return min((sum / Node.dimension), highestPossibleClassification);
+        return min((sum / datapoint.values.length), highestPossibleClassification);
 
         // Hardcoded Boolean function f1(x)
 //        Integer[] x = datapoint.values;
@@ -312,7 +303,6 @@ public class Interview {
 
         List<Node> nodesAsked = new ArrayList<>();
         List<PermeationStats> permeationStatsForEachNodeAsked = new ArrayList<>();
-
 
         // Instead of sorting every time, just find the best node according to the chosen comparator
         boolean useMin = (umbrellaSortingStrategy == NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);

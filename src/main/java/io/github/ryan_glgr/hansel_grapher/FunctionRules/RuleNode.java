@@ -18,12 +18,12 @@ public class RuleNode {
      * Returns the root RuleNode (attributeIndex and attributeValue will be null at root).
      * If nodes is null or empty, returns null.
      */
-    public static RuleNode createRuleNodes(ArrayList<Node> nodes) {
+    public static RuleNode createRuleNodes(ArrayList<Node> nodes, int numAttributes) {
         if (nodes == null || nodes.isEmpty()) 
             return null;
 
         // attributeIndex and attributeValue are null for the root (no attribute was used to get here)
-        RuleNode root = new RuleNode(null, null, nodes, new HashSet<>());
+        RuleNode root = new RuleNode(null, null, nodes, new HashSet<>(), numAttributes);
         removeDeadbeatParents(root);
         return root;
     }
@@ -32,7 +32,8 @@ public class RuleNode {
     private RuleNode(Integer attributeIndex,
                     Integer attributeValue,
                     ArrayList<Node> childrenNodes,
-                    Set<Integer> attributesAlreadyUsed) {
+                    Set<Integer> attributesAlreadyUsed,
+                    int numAttributes) {
         this.attributeIndex = attributeIndex;
         this.attributeValue = attributeValue;
         // store an unmodifiable copy for this node (or just a private copy)
@@ -40,7 +41,7 @@ public class RuleNode {
         // Note: don't add attributeIndex here — attributeIndex is the attribute used to
         // get to this node. If you want this node's attribute to be considered "used"
         // for its children, add it when creating children below.
-        this.children = findChildren(childrenNodes);
+        this.children = findChildren(childrenNodes, numAttributes);
         // take control of my children
         if (children != null)
             for(RuleNode kid : children){
@@ -102,14 +103,14 @@ public class RuleNode {
         .thenComparingInt(a -> -a.maxGroupSize)
         .thenComparingInt(a -> a.index);
 
-    private RuleNode[] findChildren(ArrayList<Node> childrenNodes) {
+    private RuleNode[] findChildren(ArrayList<Node> childrenNodes, int dimension) {
 
         if (childrenNodes == null || childrenNodes.isEmpty()) {
             return null; // leaf node
         }
 
         // Build stats for each unused attribute. Use sequential if Node.dimension small.
-        List<AttributeStats> stats = IntStream.range(0, Node.dimension)
+        List<AttributeStats> stats = IntStream.range(0, dimension)
             .parallel() // remove .parallel() if Node.dimension is small
             .filter(i -> !attributesAlreadyUsed.contains(i))
             .mapToObj(i -> {
@@ -145,7 +146,7 @@ public class RuleNode {
             Set<Integer> childUsed = new HashSet<>(this.attributesAlreadyUsed);
             childUsed.add(best.index);
 
-            RuleNode child = new RuleNode(best.index, val, subset, childUsed);
+            RuleNode child = new RuleNode(best.index, val, subset, childUsed, dimension);
             newChildren.add(child);
         }
 

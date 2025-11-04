@@ -16,6 +16,8 @@
 
         <!-- IntelliJ build version used for the ant tasks / runtime -->
         <intellij.version>232.8660.185</intellij.version>
+
+        <flatlaf.version>3.6.2</flatlaf.version> <!-- or latest version -->
     </properties>
 
     <!-- JetBrains repositories (where IntelliJ modules are published) -->
@@ -60,6 +62,21 @@
             <artifactId>java-compiler-ant-tasks</artifactId>
             <version>${intellij.version}</version>
         </dependency>
+
+        <!-- flatlaf for not ridiculous looking GUI -->
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>${flatlaf.version}</version>
+        </dependency>
+
+        <!-- for embedded pdf viewing in a jframe. can be removed if we make our own vis in openGL.        -->
+        <dependency>
+            <groupId>com.github.pcorless.icepdf</groupId>
+            <artifactId>icepdf-viewer</artifactId>
+            <version>7.3.0</version>
+        </dependency>
+
     </dependencies>
 
     <build>

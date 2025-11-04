@@ -65,7 +65,7 @@
                   <contentAreaFilled value="false"/>
                   <foreground color="-16777216"/>
                   <opaque value="true"/>
-                  <text value="View Expansions"/>
+                  <text value="TOGGLE HANSEL CHAINS OR EXPANSIONS"/>
                 </properties>
               </component>
             </children>

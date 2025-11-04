@@ -103,18 +103,21 @@ public class VisualizationDOT {
 
 
     // --- makeExpansionsDOT ---
-    public static void makeExpansionsDOT(HashMap<Integer, Node> allNodes, ArrayList<ArrayList<Node>> lowUnitsByClass) throws IOException {
+    public static void makeExpansionsDOT(HashMap<Integer, Node> allNodes,
+                                         ArrayList<ArrayList<Node>> lowUnitsByClass,
+                                         Integer[] kValues,
+                                         int dimension) throws IOException {
         HashSet<Node> lowSet = new HashSet<>();
         if (lowUnitsByClass != null)
             for (ArrayList<Node> listForClass : lowUnitsByClass)
                 if (listForClass != null) lowSet.addAll(listForClass);
 
-        Integer[] kValsToMakeNode = Node.counterInitializer();
+        Integer[] kValsToMakeNode = Node.counterInitializer(kValues);
         HashMap<Node, Node> usedNodes = new HashMap<>();
         FileWriter fw = new FileWriter("out/Expansions.dot");
         fw.write("digraph G {\n\trankdir = BT;\n\tbgcolor = white;\n\t");
 
-        while (Node.incrementCounter(kValsToMakeNode)) {
+        while (Node.incrementCounter(kValsToMakeNode, kValues)) {
             Node temp = allNodes.get(Node.hash(kValsToMakeNode));
             if (!usedNodes.containsKey(temp)) {
                 usedNodes.put(temp, temp);

@@ -10,10 +10,6 @@ public class Node {
     public static boolean DEBUG_PRINTING = false;
 
     public static BalanceRatio BALANCE_RATIO = BalanceRatio.UNITY_BALANCE_RATIO;
-    
-    // list of max possible value of each attribute
-    public static Integer[] kValues;
-    public static Integer dimension;
 
     // the datapoint this point represents
     public Integer[] values;
@@ -57,7 +53,7 @@ public class Node {
     public double umbrellaMagnitude;
 
     // takes in a datapoint, and makes a copy of that and stores that as our "point"
-    private Node(Integer[] datapoint, int numClasses){
+    private Node(Integer[] datapoint, int numClasses, int dimension){
         // copy the passed in datapoint to this node's point.
         values = Arrays.copyOf(datapoint, datapoint.length);
         
@@ -88,7 +84,7 @@ public class Node {
         return valuesStrings.toString();
     }
 
-    private void findExpansions(HashMap<Integer, Node> nodes){
+    private void findExpansions(HashMap<Integer, Node> nodes, int dimension){
 
         // Parallel computation of expansions for each attribute
         IntStream.range(0, dimension).parallel().forEach(attribute -> {
@@ -115,7 +111,7 @@ public class Node {
 
     // Helper method to increment a counter array based on kValues bounds
     // Returns true if increment was successful, false if we've wrapped around completely
-    public static boolean incrementCounter(Integer[] counter) {
+    public static boolean incrementCounter(Integer[] counter, Integer[] kValues) {
         int attribute = 0;
         
         // incrementing logic to go through all digits, all k vals.
@@ -136,7 +132,7 @@ public class Node {
 
     // Helper method to create a properly initialized counter array for use with incrementCounter
     // Returns array filled with 0s except first element is -1, so first increment gives [0,0,0,...]
-    public static Integer[] counterInitializer() {
+    public static Integer[] counterInitializer(Integer[] kValues) {
         Integer[] counter = new Integer[kValues.length];
         Arrays.fill(counter, 0);
         counter[0] = -1;
@@ -145,27 +141,23 @@ public class Node {
 
     // makes all our nodes and populates the map
     public static HashMap<Integer, Node> makeNodes(Integer[] kVals, int numClasses) {
-    
+
+        int dimension = kVals.length;
         HashMap<Integer, Node> nodes = new HashMap<Integer, Node>();
 
-        Node.kValues = kVals;
-
-        // set the dimension we are going to use all over
-        dimension = kValues.length;
-
-        Integer[] kValsToMakeNode = counterInitializer();
+        Integer[] kValsToMakeNode = counterInitializer(kVals);
 
         // iterate through all the digits, and make all the nodes. 
-        while(incrementCounter(kValsToMakeNode)){
+        while(incrementCounter(kValsToMakeNode, kVals)){
             // just make a new node and put it in the map.
-            nodes.put(Node.hash(kValsToMakeNode), new Node(kValsToMakeNode, numClasses));
+            nodes.put(Node.hash(kValsToMakeNode), new Node(kValsToMakeNode, numClasses, dimension));
         }
     
         // re initialize so we can copy paste
-        Integer[] finalKValsToMakeNode = counterInitializer();
-        while(incrementCounter(finalKValsToMakeNode)){
+        Integer[] finalKValsToMakeNode = counterInitializer(kVals);
+        while(incrementCounter(finalKValsToMakeNode, kVals)){
             Node temp = nodes.get(hash(finalKValsToMakeNode));
-            temp.findExpansions(nodes);
+            temp.findExpansions(nodes, dimension);
         }
         return nodes;
     }

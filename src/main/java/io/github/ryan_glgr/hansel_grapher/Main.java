@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import com.formdev.flatlaf.FlatIntelliJLaf;
 import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
@@ -12,36 +13,27 @@ import io.github.ryan_glgr.hansel_grapher.Visualizations.InterviewStatsVisualize
 import io.github.ryan_glgr.hansel_grapher.Visualizations.VisualizationDOT;
 
 import javax.swing.*;
-import java.awt.Dimension;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import javax.swing.border.Border;
 
 public class Main {
 
-    public static Integer[] kValues = {3, 4, 5, 2, 4};
-    public static Float[] weights = {2.25f, 1.0f, 0.75f, 2.65f, .80f}; // will be used when we are just doing a magic linear function interview for testing.
-    static {
-        int maxSum = 0;
-        for (int i = 0; i < kValues.length; i++) {
-            maxSum += (int)((kValues[i] - 1) * weights[i]);
-        }
-        highestPossibleClassification = maxSum / kValues.length;
-        Node.dimension = kValues.length; // TODO: Node.dimension shouldn't be set here.
-    }
     // Calculate the highest possible classification at compile time
-    public static Integer highestPossibleClassification;
-    
+
     public static void main(String[] args) {
 
-//        for (Interview.InterviewMode mode : Interview.InterviewMode.values()){
-//            makeClassifyAndSaveNodes(mode);
-//        }
-//        makeClassifyAndSaveNodes(Interview.InterviewMode.BEST_MINIMUM_CONFIRMED);
+//        makeClassifyAndSaveNodes(Interview.InterviewMode.BEST_MINIMUM_CONFIRMED,
+//                new Integer[]{5, 3, 2, 4},
+//                new Float[]{1.0f, 1.0f, 1.0f, 1.0f});
+
         SwingUtilities.invokeLater(() -> {
             try {
-                UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+                UIManager.setLookAndFeel(new FlatIntelliJLaf());
                 // Make Swing decorations (titlebar, borders) use the L&F
                 JFrame.setDefaultLookAndFeelDecorated(true);
                 JDialog.setDefaultLookAndFeelDecorated(true);
-            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException ex) {
+            } catch (UnsupportedLookAndFeelException ex) {
                 ex.printStackTrace();
             }
 
@@ -58,8 +50,14 @@ public class Main {
         });
     }
 
-    public static void makeClassifyAndSaveNodes(Interview.InterviewMode interviewMode) {
+    public static void makeClassifyAndSaveNodes(Interview.InterviewMode interviewMode, Integer[] kValues, Float[] weights) {
 
+
+        int maxSum = 0;
+        for (int i = 0; i < kValues.length; i++) {
+            maxSum += (int) ((kValues[i] - 1) * weights[i]);
+        }
+        int highestPossibleClassification = maxSum / kValues.length;
         int numClasses = highestPossibleClassification + 1;
 
         // classify all our data
@@ -81,7 +79,7 @@ public class Main {
             VisualizationDOT.makeHanselChainDOT(hanselChains, interview.adjustedLowUnitsByClass);
 
             // make the expansions picture
-            VisualizationDOT.makeExpansionsDOT(nodes, interview.adjustedLowUnitsByClass);
+            VisualizationDOT.makeExpansionsDOT(nodes, interview.adjustedLowUnitsByClass, kValues, kValues.length);
 
             String interviewStatsOutputString = interviewMode + " Interview Stats";
             InterviewStatsVisualizer.savePDF(interviewStats,
