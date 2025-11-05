@@ -2,6 +2,7 @@ package io.github.ryan_glgr.hansel_grapher.Visualizations.GUI;
 
 import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.InterviewMode;
 import io.github.ryan_glgr.hansel_grapher.Visualizations.InterviewStatsDisplay;
 import io.github.ryan_glgr.hansel_grapher.Visualizations.InterviewStatsVisualizer;
 import io.github.ryan_glgr.hansel_grapher.Visualizations.VisualizationDOT;
@@ -86,7 +87,7 @@ public class MainScreen {
 
     private void handleNewInterview() {
         CreateFunctionWindow functionWindow = new CreateFunctionWindow();
-        CompletableFuture<Interview> interviewFuture = functionWindow.createFunctionAndReturnInterviewObject();
+        CompletableFuture<Interview> interviewFuture = functionWindow.createFunctionAndReturnInterviewObject("Create Interview");
 
         interviewFuture.thenAccept(createdInterview -> {
             if (createdInterview == null) {
@@ -192,7 +193,7 @@ public class MainScreen {
 
     private void exportInterviewStatistics() {
         InterviewStats interviewStats = interview.interviewStats;
-        Interview.InterviewMode interviewMode = interviewStats.interviewMode;
+        InterviewMode interviewMode = interviewStats.interviewMode;
         String interviewStatsOutputString = interviewMode + " InterviewStats.pdf";
         try {
             InterviewStatsVisualizer.savePDF(interviewStats, 

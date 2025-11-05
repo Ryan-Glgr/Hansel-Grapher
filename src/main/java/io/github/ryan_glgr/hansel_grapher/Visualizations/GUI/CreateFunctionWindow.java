@@ -2,6 +2,7 @@ package io.github.ryan_glgr.hansel_grapher.Visualizations.GUI;
 
 import com.formdev.flatlaf.FlatIntelliJLaf;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.InterviewMode;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -28,18 +29,22 @@ public class CreateFunctionWindow {
     private JButton questionAskingTechniqueButton;
     private JButton interviewModeButton;
     private JSplitPane mainArea;
+    private JButton subFunctionsButton;
 
     // our four panels which correspond to each button we can hit.
     private JPanel classificationPanel;
     private JPanel attributePanel;
     private JPanel questionAskingTechniquePanel;
     private JPanel interviewModePanel;
+    private JPanel subFunctionsPanel;
 
     private String[] classificationNames;
     private String[] attributeNames;
     private Integer[] attributeKValues;
-    private Interview.InterviewMode interviewMode;
+    private InterviewMode interviewMode;
     private Float[] attributeWeights;
+    private boolean[] subFunctionsForEachAttributeEnabled;
+    private Interview[] subFunctionsForEachAttribute;
 
     private boolean classificationNamesConfirmed;
     private boolean weightsConfirmed;
@@ -48,15 +53,15 @@ public class CreateFunctionWindow {
     private CompletableFuture<Interview> interviewCreationTask;
     private JDialog dialog;
 
-    public CompletableFuture<Interview> createFunctionAndReturnInterviewObject(){
+    public CompletableFuture<Interview> createFunctionAndReturnInterviewObject(String title){
 
         if (SwingUtilities.isEventDispatchThread()) {
-            openDialog();
+            openDialog(title);
             return interviewFuture;
         }
 
         try {
-            SwingUtilities.invokeAndWait(this::openDialog);
+            SwingUtilities.invokeAndWait(() -> openDialog(title));
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Interrupted while displaying CreateFunctionWindow", ex);
@@ -67,7 +72,7 @@ public class CreateFunctionWindow {
         return interviewFuture;
     }
 
-    private void openDialog() {
+    private void openDialog(String title) {
         if (interviewFuture != null && !interviewFuture.isDone()) {
             interviewFuture.cancel(true);
         }
@@ -93,7 +98,7 @@ public class CreateFunctionWindow {
             owner = (Frame) activeWindow;
         }
 
-        dialog = new JDialog(owner, "Create Interview", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog = new JDialog(owner, title, Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         dialog.addWindowListener(new WindowAdapter() {
             @Override
@@ -190,7 +195,7 @@ public class CreateFunctionWindow {
 
         // Add components to main panel using split pane
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, controlPanel, displayPanel);
-        splitPane.setDividerLocation(400);
+        splitPane.setDividerLocation(300);
         splitPane.setResizeWeight(0.3);
         panel.add(splitPane, BorderLayout.CENTER);
         
@@ -388,7 +393,7 @@ public class CreateFunctionWindow {
 
         // Add components to main panel using split pane
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, controlPanel, displayPanel);
-        splitPane.setDividerLocation(400);
+        splitPane.setDividerLocation(250);
         splitPane.setResizeWeight(0.3);
         panel.add(splitPane, BorderLayout.CENTER);
         
@@ -412,7 +417,11 @@ public class CreateFunctionWindow {
                 fieldsPanel.removeAll();
                 attributeNames = new String[numAttrs];
                 attributeKValues = new Integer[numAttrs];
-                
+
+                // create the array to contain all the subfunctions. all the interview are null obviously, but all of the subfunction flags are disabled to start, since boolean initializes false.
+                subFunctionsForEachAttribute = new Interview[numAttrs];
+                subFunctionsForEachAttributeEnabled = new boolean[numAttrs];
+
                 // Create a panel for the form
                 JPanel formPanel = new JPanel(new GridBagLayout());
                 GridBagConstraints gbcForm = new GridBagConstraints();
@@ -614,16 +623,22 @@ public class CreateFunctionWindow {
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Create dropdown label
+        // Create label
         JLabel modeLabel = new JLabel("Select Interview Mode:");
         modeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(modeLabel);
 
-        // Create dropdown with interview modes
-        JComboBox<Interview.InterviewMode> modeComboBox = new JComboBox<>(Interview.InterviewMode.values());
-        modeComboBox.setMaximumSize(new Dimension(200, 30));
-        modeComboBox.setAlignmentX(Component.CENTER_ALIGNMENT);
-        panel.add(modeComboBox);
+        // Scrollable list of interview modes (better for many entries)
+        JList<InterviewMode> modeList = new JList<>(InterviewMode.values());
+        modeList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        modeList.setVisibleRowCount(8); // show several entries by default
+        modeList.setLayoutOrientation(JList.VERTICAL);
+        modeList.setAlignmentX(Component.CENTER_ALIGNMENT);
+        modeList.setSelectedIndex(0); // default selection
+        JScrollPane modeScroll = new JScrollPane(modeList);
+        modeScroll.setAlignmentX(Component.CENTER_ALIGNMENT);
+        modeScroll.setPreferredSize(new Dimension(260, 160));
+        panel.add(modeScroll);
         panel.add(Box.createRigidArea(new Dimension(0, 10))); // Add spacing
 
         // Create submit button
@@ -633,9 +648,17 @@ public class CreateFunctionWindow {
 
         // Add action listener for the submit button
         submitButton.addActionListener(e -> {
-            Interview.InterviewMode selectedMode = (Interview.InterviewMode) modeComboBox.getSelectedItem();
+            InterviewMode selectedMode = modeList.getSelectedValue();
+            if (selectedMode == null) {
+                JOptionPane.showMessageDialog(panel, "Please select an interview mode.",
+                        "Missing Selection", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
             interviewMode = selectedMode;
-            JOptionPane.showMessageDialog(panel, "Interview mode set to: " + selectedMode,
+            // Proceed to Interview Mode configuration after successful selection
+            interviewModeButton.doClick();
+            JOptionPane.showMessageDialog(panel, "Interview mode set to: " + selectedMode +
+                    "\nProceeding to Interview Mode setup...",
                     "Success", JOptionPane.INFORMATION_MESSAGE);
         });
 
@@ -731,6 +754,10 @@ public class CreateFunctionWindow {
                     JOptionPane.showMessageDialog(panel, "Weights saved successfully!",
                             "Success", JOptionPane.INFORMATION_MESSAGE);
                     weightsConfirmed = true;
+                    // proceed to Sub-Functions setup
+                    if (subFunctionsButton != null) {
+                        subFunctionsButton.doClick();
+                    }
                 } else {
                     JOptionPane.showMessageDialog(panel, "Please enter valid numbers for all weights",
                             "Invalid Input", JOptionPane.ERROR_MESSAGE);
@@ -746,6 +773,62 @@ public class CreateFunctionWindow {
         return panel;
     }
 
+    private JPanel createSubFunctionsPanel() {
+        // Panel structure similar to others: left could be future controls; for now, a single scrollable list
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JPanel displayPanel = new JPanel(new BorderLayout());
+        displayPanel.setBorder(BorderFactory.createTitledBorder("Sub-Functions"));
+
+        JPanel fieldsPanel = new JPanel();
+        fieldsPanel.setLayout(new BoxLayout(fieldsPanel, BoxLayout.Y_AXIS));
+        fieldsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        if (attributeNames == null || attributeNames.length == 0) {
+            fieldsPanel.add(new JLabel("Please configure attributes first."));
+        } else {
+            for (int i = 0; i < attributeNames.length; i++) {
+                final int attributeIndex = i; // Capture loop variable for lambda
+                String attrName = attributeNames[i] != null ? attributeNames[i] : ("Attribute " + i);
+                JPanel row = new JPanel(new BorderLayout(10, 0));
+                JLabel nameLabel = new JLabel(attrName);
+                JButton createButton = new JButton("CREATE SUB FUNCTION");
+                
+                createButton.addActionListener(e -> {
+                    // Launch sub-function creation for this attribute
+                    String title = "Create Sub-Function For: " + attrName;
+                    CreateFunctionWindow subFunctionWindow = new CreateFunctionWindow();
+                    CompletableFuture<Interview> subFunctionFuture = subFunctionWindow.createFunctionAndReturnInterviewObject(title);
+                    
+                    // When the sub-function is created, store it
+                    subFunctionFuture.thenAccept(subInterview -> {
+                        if (subInterview != null) {
+                            subFunctionsForEachAttribute[attributeIndex] = subInterview;
+                            subFunctionsForEachAttributeEnabled[attributeIndex] = true;
+                            SwingUtilities.invokeLater(() -> {
+                                createButton.setText("EDIT SUB FUNCTION");
+                                JOptionPane.showMessageDialog(panel, 
+                                    "Sub-function created for: " + attrName,
+                                    "Success", JOptionPane.INFORMATION_MESSAGE);
+                            });
+                        }
+                    });
+                });
+
+                row.add(nameLabel, BorderLayout.CENTER);
+                row.add(createButton, BorderLayout.EAST);
+                row.setBorder(BorderFactory.createEmptyBorder(4, 0, 4, 0));
+                fieldsPanel.add(row);
+            }
+        }
+
+        JScrollPane scrollPane = new JScrollPane(fieldsPanel);
+        displayPanel.add(scrollPane, BorderLayout.CENTER);
+
+        panel.add(displayPanel, BorderLayout.CENTER);
+        return panel;
+    }
 
     public CreateFunctionWindow(){
 
@@ -762,17 +845,20 @@ public class CreateFunctionWindow {
         attributesButton = new JButton("Attributes");
         questionAskingTechniqueButton = new JButton("Question Picking Technique");
         interviewModeButton = new JButton("Interview Mode");
+        subFunctionsButton = new JButton("Sub-Functions");
 
-        inputTypePanel = new JPanel(new GridLayout(1, 4, 10, 0));
+        inputTypePanel = new JPanel(new GridLayout(1, 5, 10, 0));
         inputTypePanel.add(enterClassesButton);
         inputTypePanel.add(attributesButton);
         inputTypePanel.add(questionAskingTechniqueButton);
         inputTypePanel.add(interviewModeButton);
+        inputTypePanel.add(subFunctionsButton);
 
         classificationPanel = createClassificationPanel();
         attributePanel = createAttributePanel();
         questionAskingTechniquePanel = createQuestionAskingTechniquePanel();
         interviewModePanel = createInterviewModePanel();
+        subFunctionsPanel = createSubFunctionsPanel();
 
         userInputPanel = new JPanel(new BorderLayout());
         userInputScrollPane = new JScrollPane(classificationPanel);
@@ -818,6 +904,14 @@ public class CreateFunctionWindow {
 
         interviewModeButton.addActionListener(e -> {
             userInputScrollPane.setViewportView(interviewModePanel);
+            userInputPanel.revalidate();
+            userInputPanel.repaint();
+        });
+
+        subFunctionsButton.addActionListener(e -> {
+            // Rebuild the panel each time to reflect latest attribute names
+            subFunctionsPanel = createSubFunctionsPanel();
+            userInputScrollPane.setViewportView(subFunctionsPanel);
             userInputPanel.revalidate();
             userInputPanel.repaint();
         });
@@ -885,8 +979,8 @@ public class CreateFunctionWindow {
                     return;
                 }
 
-                for (int i = 0; i < attributeWeights.length; i++) {
-                    if (attributeWeights[i] == null) {
+                for (Float attributeWeight : attributeWeights) {
+                    if (attributeWeight == null) {
                         JOptionPane.showMessageDialog(mainPanel,
                                 "Attribute weights cannot be empty.",
                                 "Invalid Data", JOptionPane.ERROR_MESSAGE);
@@ -899,7 +993,7 @@ public class CreateFunctionWindow {
 
                 interviewCreationTask = CompletableFuture.supplyAsync(() ->
                         new Interview(attributeKValues, attributeWeights, interviewMode,
-                                classificationNames.length, attributeNames, classificationNames));
+                                classificationNames.length, attributeNames, classificationNames, subFunctionsForEachAttributeEnabled, subFunctionsForEachAttribute));
 
                 interviewCreationTask.whenComplete((result, throwable) ->
                         SwingUtilities.invokeLater(() -> {
@@ -947,6 +1041,9 @@ public class CreateFunctionWindow {
         attributesButton.setEnabled(enabled);
         questionAskingTechniqueButton.setEnabled(enabled);
         interviewModeButton.setEnabled(enabled);
+        if (subFunctionsButton != null) {
+            subFunctionsButton.setEnabled(enabled);
+        }
         submitButton.setEnabled(enabled);
     }
 

@@ -3,16 +3,14 @@ package io.github.ryan_glgr.hansel_grapher.Visualizations;
 import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats;
 import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats.PermeationStatistic;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.InterviewMode;
 
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.Styler;
 
-import javax.swing.*;
 import java.util.*;
 import java.io.IOException;
 
-import org.knowm.xchart.BitmapEncoder.BitmapFormat;
 import org.knowm.xchart.VectorGraphicsEncoder.VectorGraphicsFormat;
 
 /**
