@@ -14,9 +14,9 @@ fi
 
 out_dir="$(dirname "$dotfile")"
 base="$(basename "$dotfile" .dot)"
-pdf="${out_dir}/${base}.pdf"
+svg="${out_dir}/${base}.svg"
 
 mkdir -p "$out_dir"
 
-dot -Tpdf "$dotfile" -o "$pdf"
+dot -Tsvg "$dotfile" -o "$svg"
 rm "$dotfile"

@@ -6,17 +6,21 @@ import io.github.ryan_glgr.hansel_grapher.TheHardStuff.InterviewMode;
 import io.github.ryan_glgr.hansel_grapher.Visualizations.InterviewStatsDisplay;
 import io.github.ryan_glgr.hansel_grapher.Visualizations.InterviewStatsVisualizer;
 import io.github.ryan_glgr.hansel_grapher.Visualizations.VisualizationDOT;
-import org.icepdf.ri.common.MyAnnotationCallback;
-import org.icepdf.ri.common.SwingController;
-import org.icepdf.ri.common.SwingViewBuilder;
-import org.icepdf.ri.common.views.DocumentViewControllerImpl;
 import org.knowm.xchart.XChartPanel;
 import org.knowm.xchart.XYChart;
 
+import com.kitfox.svg.SVGDiagram;
+import com.kitfox.svg.SVGException;
+import com.kitfox.svg.SVGUniverse;
+
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.*;
+import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
@@ -35,15 +39,11 @@ public class MainScreen {
 
     private Interview interview;
 
-    // track the current ICEpdf controller so we can close documents and free resources
-    private SwingController currentPdfController = null;
-    private JPanel currentPdfViewerPanel = null;
-
+    // track the current SVG viewer panel so we can remove and free references
+    private JPanel currentSvgViewerPanel = null;
 
     public MainScreen(){
-
         setUpButtons();
-
     }
 
     public JPanel getMainPanel() {
@@ -52,9 +52,9 @@ public class MainScreen {
 
     private final static String hanselChainsView = "HANSEL CHAINS VIEWING";
     private final static String expansionsView = "EXPANSIONS VIEWING";
-    // file paths the helper produces
-    private final String hanselPdfPath = "out/HanselChains.pdf";
-    private final String expansionsPdfPath = "out/Expansions.pdf";
+    // file paths the helper produces (now using SVG)
+    private final String hanselSvgPath = "./out/HanselChains.svg";
+    private final String expansionsSvgPath = "./out/Expansions.svg";
 
     public void setUpButtons() {
         setupHanselChainsButton();
@@ -72,10 +72,10 @@ public class MainScreen {
                 boolean switchingToExpansions = hanselChainsOrExpansionsButton.getText().equals(hanselChainsView);
                 if (switchingToExpansions) {
                     hanselChainsOrExpansionsButton.setText(expansionsView);
-                    loadPdfIntoPanelAsync(expansionsPdfPath);
+                    loadSvgIntoPanelAsync(expansionsSvgPath);
                 } else {
                     hanselChainsOrExpansionsButton.setText(hanselChainsView);
-                    loadPdfIntoPanelAsync(hanselPdfPath);
+                    loadSvgIntoPanelAsync(hanselSvgPath);
                 }
             });
         });
@@ -120,15 +120,15 @@ public class MainScreen {
         if (interview != null && interview.interviewStats != null) {
             // Display the statistics in a new window with toggle buttons
             InterviewStatsDisplay.display(
-                interview.interviewStats,
-                interview.interviewStats.interviewMode
+                    interview.interviewStats,
+                    interview.interviewStats.interviewMode
             );
         } else {
             JOptionPane.showMessageDialog(
-                mainPanel,
-                "No interview data available. Please run an interview first.",
-                "No Data",
-                JOptionPane.INFORMATION_MESSAGE
+                    mainPanel,
+                    "No interview data available. Please run an interview first.",
+                    "No Data",
+                    JOptionPane.INFORMATION_MESSAGE
             );
         }
     }
@@ -142,8 +142,8 @@ public class MainScreen {
         //       probably easiest to do however we do the expansions and chains.
         // create the XChart panel
         XChartPanel<XYChart> chartPanel = InterviewStatsVisualizer.getChartPanel(
-            interview.interviewStats, 
-            interview.interviewStats.interviewMode
+                interview.interviewStats,
+                interview.interviewStats.interviewMode
         );
 
         // remove everything currently on the panel
@@ -174,10 +174,10 @@ public class MainScreen {
 
     private void exportChainsAndExpansions() {
         try {
-            VisualizationDOT.makeExpansionsDOT(interview.data, 
-                interview.adjustedLowUnitsByClass, 
-                interview.interviewStats.kValues, 
-                interview.interviewStats.kValues.length);
+            VisualizationDOT.makeExpansionsDOT(interview.data,
+                    interview.adjustedLowUnitsByClass,
+                    interview.interviewStats.kValues,
+                    interview.interviewStats.kValues.length);
             VisualizationDOT.makeHanselChainDOT(interview.hanselChains, interview.adjustedLowUnitsByClass);
             compileDotAsync("out/Expansions.dot");
             compileDotAsync("out/HanselChains.dot");
@@ -196,9 +196,9 @@ public class MainScreen {
         InterviewMode interviewMode = interviewStats.interviewMode;
         String interviewStatsOutputString = interviewMode + " InterviewStats.pdf";
         try {
-            InterviewStatsVisualizer.savePDF(interviewStats, 
-                "out/" + interviewStatsOutputString, 
-                interviewStats.interviewMode);
+            InterviewStatsVisualizer.savePDF(interviewStats,
+                    "out/" + interviewStatsOutputString,
+                    interviewStats.interviewMode);
         } catch (IOException ioException) {
             System.out.println("Saving interview stats failed!");
             ioException.printStackTrace();
@@ -206,99 +206,63 @@ public class MainScreen {
     }
 
     /**
-     * Load a PDF in the background and put the viewer into mainDisplayPanel on the EDT.
-     * This method disposes the previous controller/viewer safely before swapping.
+     * Load an SVG in the background and put the viewer into mainDisplayPanel on the EDT.
+     * This method disposes the previous viewer safely before swapping.
      */
-    private void loadPdfIntoPanelAsync(String pdfPath) {
-        // If file missing, you can detect and report here
-        File f = new File(pdfPath);
+    private void loadSvgIntoPanelAsync(String svgPath) {
+        File f = new File(svgPath);
         if (!f.exists()) {
-            // Show placeholder on EDT
-            SwingUtilities.invokeLater(() -> {
-                showPlaceholder("PDF not found: " + pdfPath);
-            });
+            SwingUtilities.invokeLater(() -> showPlaceholder("SVG not found: " + svgPath));
             return;
         }
 
-        // Show loading message
-        SwingUtilities.invokeLater(() -> {
-            showPlaceholder("Loading PDF...");
-        });
+        // Show loading message immediately
+        SwingUtilities.invokeLater(() -> showPlaceholder("Loading SVG..."));
 
-        // Background loading + parsing (avoid blocking EDT)
+        // Parse and prepare the viewer off the EDT, then swap in the panel on the EDT
         CompletableFuture.supplyAsync(() -> {
             try {
-                SwingController controller = new SwingController();
-                // Configure controller for better performance with large PDFs
-                controller.getDocumentViewController()
-                        .setAnnotationCallback(new MyAnnotationCallback(new DocumentViewControllerImpl(controller)));
-
-                // Build the viewer panel with the controller
-                SwingViewBuilder factory = new SwingViewBuilder(controller);
-                JPanel viewerPanel = factory.buildViewerPanel();
-                
-                // Configure the viewer panel for better performance
-                viewerPanel.setDoubleBuffered(true);
-                
-                // Open the document
-                controller.openDocument(pdfPath);
-                
-                // Set the document view type (show single page at a time)
-                controller.setPageViewMode(controller.getDocumentViewController()
-                        .getDocumentViewModel().getViewCurrentPageIndex(), false);
-                
-                // Set the document to fit the window
-                controller.setPageFitMode(controller.getDocumentViewController().getDocumentViewModel().getPageBoundary(), true);
-                
-                return new Object[] { controller, viewerPanel };
+                // parse SVG and build an SvgViewerPanel (parsing may be moderately heavy)
+                SvgViewerPanel panel = new SvgViewerPanel(f);
+                return panel;
             } catch (Exception e) {
                 e.printStackTrace();
-                throw new RuntimeException("Failed to load PDF: " + e.getMessage(), e);
+                throw new RuntimeException("Failed to load SVG: " + e.getMessage(), e);
             }
-        }).thenAccept(arr -> {
-            if (arr == null) return;
-            
-            SwingController newController = (SwingController) arr[0];
-            JPanel newViewerPanel = (JPanel) arr[1];
-
-            // Swap on EDT
+        }).thenAccept(panel -> {
+            if (panel == null) return;
             SwingUtilities.invokeLater(() -> {
                 try {
-                    // clean up previous controller/viewer (if any)
-                    disposeCurrentPdfViewer();
+                    disposeCurrentSvgViewer();
 
-                    // install the new viewer into mainDisplayPanel
                     mainDisplayPanel.removeAll();
-                    
-                    // Create a scroll pane for the PDF viewer with no border
-                    JScrollPane scrollPane = new JScrollPane(newViewerPanel);
+
+                    JScrollPane scrollPane = new JScrollPane(panel);
+                    scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+                    scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
                     scrollPane.setBorder(null);
                     scrollPane.getVerticalScrollBar().setUnitIncrement(16);
                     scrollPane.getHorizontalScrollBar().setUnitIncrement(16);
-                    
-                    // Add the scroll pane to the main display panel
                     mainDisplayPanel.setLayout(new BorderLayout());
                     mainDisplayPanel.add(scrollPane, BorderLayout.CENTER);
-                    
-                    // Force the PDF to fit the available space
-                    newController.setPageFitMode(newController.getDocumentViewController().getFitMode(), true);
-                    
+
+                    mainDisplayPanel.setLayout(new BorderLayout());
+                    mainDisplayPanel.add(scrollPane, BorderLayout.CENTER);
+
                     mainDisplayPanel.revalidate();
                     mainDisplayPanel.repaint();
 
-                    // store references for later cleanup
-                    currentPdfController = newController;
-                    currentPdfViewerPanel = newViewerPanel;
+                    currentSvgViewerPanel = panel;
                 } catch (Exception e) {
                     e.printStackTrace();
-                    showPlaceholder("Error displaying PDF: " + e.getMessage());
+                    showPlaceholder("Error displaying SVG: " + e.getMessage());
                 }
             });
         }).exceptionally(ex -> {
             ex.printStackTrace();
-            SwingUtilities.invokeLater(() -> 
-                showPlaceholder("Failed to load PDF: " + 
-                    (ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage()))
+            SwingUtilities.invokeLater(() ->
+                    showPlaceholder("Failed to load SVG: " +
+                            (ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage()))
             );
             return null;
         });
@@ -313,18 +277,12 @@ public class MainScreen {
         mainDisplayPanel.repaint();
     }
 
-    private void disposeCurrentPdfViewer() {
-        if (currentPdfController != null) {
+    private void disposeCurrentSvgViewer() {
+        if (currentSvgViewerPanel != null) {
             try {
-                // closeDocument frees resources (streams, caches)
-                currentPdfController.closeDocument();
+                mainDisplayPanel.remove(currentSvgViewerPanel);
             } catch (Exception ignored) {}
-            currentPdfController = null;
-        }
-        if (currentPdfViewerPanel != null) {
-            // remove the panel and let GC collect UI components
-            mainDisplayPanel.remove(currentPdfViewerPanel);
-            currentPdfViewerPanel = null;
+            currentSvgViewerPanel = null;
         }
     }
 
@@ -346,4 +304,100 @@ public class MainScreen {
         });
     }
 
+    /**
+     * Small, self-contained SVG viewer panel using svgSalamander.
+     * - Parses SVG once in the constructor (called off-EDT above).
+     * - Caches a raster for the current zoom/size/offset and re-renders only on view changes.
+     * - Simple mouse wheel zoom and drag-to-pan.
+     */
+    private static class SvgViewerPanel extends JPanel {
+        private final SVGUniverse universe = new SVGUniverse();
+        private final SVGDiagram diagram;
+
+        // view state
+        private double zoom = 1.0;
+        private double offsetX = 0;
+        private double offsetY = 0;
+
+        // simple cache
+        private BufferedImage cacheImage;
+        private double cacheZoom = Double.NaN;
+        private Dimension cacheSize = new Dimension();
+
+        public SvgViewerPanel(File svgFile) throws Exception {
+            // Parsing the SVG can be moderately heavy, so caller should call this off the EDT.
+            URI uri = universe.loadSVG(svgFile.toURI().toURL());
+            diagram = universe.getDiagram(uri);
+
+            // Set preferred size to something reasonable; actual panel will be in a scroll pane
+            Rectangle view = diagram != null ? diagram.getDeviceViewport() : null;
+            if (view != null) {
+                setPreferredSize(new Dimension(Math.max(800, view.width), Math.max(600, view.height)));
+            } else {
+                setPreferredSize(new Dimension(800, 600));
+            }
+        }
+
+        private void invalidateCacheAndRepaint() {
+            cacheImage = null;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g0) {
+            super.paintComponent(g0);
+            if (diagram == null) return;
+            Graphics2D g = (Graphics2D) g0.create();
+
+            int w = getWidth(), h = getHeight();
+
+            // If cache is invalid or viewport changed, re-create cached raster
+            if (cacheImage == null || Double.isNaN(cacheZoom) || cacheZoom != zoom
+                    || cacheSize.width != w || cacheSize.height != h) {
+
+                // create raster buffer sized to panel (simple approach: one buffer for whole view)
+                BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D cg = img.createGraphics();
+                cg.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                cg.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+
+                // clear background
+                cg.setColor(getBackground());
+                cg.fillRect(0, 0, w, h);
+
+                // apply transform: translate (pixel offsets) then scale
+                AffineTransform at = new AffineTransform();
+                at.translate(offsetX, offsetY);
+                at.scale(zoom, zoom);
+                cg.transform(at);
+
+                try {
+                    diagram.render(cg);
+                } catch (SVGException ex) {
+                    ex.printStackTrace();
+                } finally {
+                    cg.dispose();
+                }
+
+                cacheImage = img;
+                cacheZoom = zoom;
+                cacheSize.setSize(w, h);
+            }
+
+            // paint cached raster
+            g.drawImage(cacheImage, 0, 0, null);
+            g.dispose();
+        }
+
+        public void fitToPanel() {
+            Rectangle view = diagram != null ? diagram.getDeviceViewport() : null;
+            if (view == null) return;
+            double zx = getWidth() / (double) view.width;
+            double zy = getHeight() / (double) view.height;
+            zoom = Math.min(zx, zy);
+            offsetX = (getWidth() - view.width * zoom) / 2.0;
+            offsetY = (getHeight() - view.height * zoom) / 2.0;
+            invalidateCacheAndRepaint();
+        }
+    }
 }

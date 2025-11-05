@@ -70,11 +70,10 @@
             <version>${flatlaf.version}</version>
         </dependency>
 
-        <!-- for embedded pdf viewing in a jframe. can be removed if we make our own vis in openGL.        -->
         <dependency>
-            <groupId>com.github.pcorless.icepdf</groupId>
-            <artifactId>icepdf-viewer</artifactId>
-            <version>7.3.0</version>
+            <groupId>io.github.blackears</groupId>
+            <artifactId>svg-salamander</artifactId>
+            <version>1.1.5.3</version>
         </dependency>
 
     </dependencies>

@@ -8,8 +8,9 @@
 ### Maven ###
 target/
 
-src/*.pdf
-src/*.png
-src/*.dot
+out/
+.gitignore
+*.xml
+
 debug
 src/*.class
