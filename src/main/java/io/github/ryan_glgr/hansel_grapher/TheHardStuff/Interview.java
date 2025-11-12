@@ -18,6 +18,7 @@ public class Interview {
     
     public static boolean DEBUG = false;
     // if we set this false, we are going to call upon some ML interviewer instead.
+    public static Set<Node> magicLowUnits = null; // set these to make the magicFunction use low units to define function
     public static boolean MAGIC_FUNCTION_MODE = true; // TODO: make this an instace field and then we can specify weights in the GUI.
     private int highestPossibleClassification; // needed when we are doing these magic function interviews in GUI, since the user may put in less classes than the function wants to make.
 
@@ -207,6 +208,15 @@ public class Interview {
 
     // asks the "expert" what the classification of this datapoint is.
     private int magicFunction(Node datapoint){
+        // if low units are used to define the function
+        if(magicLowUnits != null) {
+            boolean result = true; // false = 1, true = 0 do not be fooled
+            for(Node n : magicLowUnits) {
+                result &= datapoint.isDominatedBy(n, true);
+            }
+            return result ? 0 : 1;
+        }
+
         int sum = 0;
         for (int i = 0; i < datapoint.values.length; i++){
             sum += (int)(datapoint.values[i] * kValueWeights[i]);

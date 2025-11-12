@@ -77,6 +77,10 @@ public class Node {
         sum = sumUpDataPoint();
     }
 
+    public Node(Node n) {
+        this(n.values, n.maxPossibleValue + 1, n.upExpansions.length);
+    }
+
     public static String printListOfNodes(List<Node> nodes){
         List<String> valuesStrings = nodes.stream()
             .map(node -> "\n" + Arrays.toString(node.values))
