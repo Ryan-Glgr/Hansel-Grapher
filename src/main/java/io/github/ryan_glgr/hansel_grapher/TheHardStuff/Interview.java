@@ -16,11 +16,10 @@ import static java.lang.Math.min;
 // this class is where we are going to handle anything classification related.
 public class Interview {
     
-    public static boolean DEBUG = false;
     // if we set this false, we are going to call upon some ML interviewer instead.
     public static Set<Node> magicLowUnits = null; // set these to make the magicFunction use low units to define function
-    public static boolean MAGIC_FUNCTION_MODE = true; // TODO: make this an instace field and then we can specify weights in the GUI.
-    private int highestPossibleClassification; // needed when we are doing these magic function interviews in GUI, since the user may put in less classes than the function wants to make.
+    private boolean magicFunctionMode = true; // TODO: make this an instace field and then we can specify weights in the GUI.
+    private final int highestPossibleClassification; // needed when we are doing these magic function interviews in GUI, since the user may put in less classes than the function wants to make.
 
     private final Integer[] kVals;
     private final Float[] kValueWeights;
@@ -31,6 +30,7 @@ public class Interview {
     public final ArrayList<ArrayList<Node>> lowUnitsByClass;
     public final ArrayList<ArrayList<Node>> adjustedLowUnitsByClass;
     public final RuleNode[] ruleTrees;
+    public final RuleNode[][] subFunctionRuleTrees;
 
     public final String[] classificationNames;
     public final Attribute[] attributes;
@@ -43,7 +43,8 @@ public class Interview {
             String[] attributeNames,
             String[] classificationNames,
             boolean[] subFunctionsEnabledForEachAttribute,
-            Interview[] subFunctionsForEachAttribute) {
+            Interview[] subFunctionsForEachAttribute,
+            boolean magicFunctionMode) {
 
         this.highestPossibleClassification = numClasses - 1;
         this.kVals = kVals;
@@ -51,6 +52,7 @@ public class Interview {
         this.attributeNames = attributeNames;
         this.classificationNames = classificationNames;
         this.inputScanner = new Scanner(System.in);
+        this.magicFunctionMode = magicFunctionMode;
 
         // TODO: enable sub functions. this wouldn't be too hard. basically we would have to at some point get the information from a user
         //       we would need to know which attribute had the sub function, and then what this sub functions values are. once we have that,
@@ -68,11 +70,20 @@ public class Interview {
 
         this.data = Node.makeNodes(this.kVals, numClasses);
         this.hanselChains = HanselChains.generateHanselChainSet(this.kVals, data);
+
+        // this is where the magic happens
         this.interviewStats = conductInterview(mode);
 
+        // once the interview is conducted, we are in the Monotone ordinal function recreation stage:
         this.lowUnitsByClass = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
         this.adjustedLowUnitsByClass = HanselChains.removeUselessLowUnits(lowUnitsByClass);
         this.ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnitsByClass, this.kVals.length);
+
+        // now we need to make our rule trees from each sub function.
+        subFunctionRuleTrees = Arrays.stream(subFunctionsForEachAttribute)
+                .parallel()
+                .map(RuleCreation::createRuleNodesForSubFunctions)
+                .toArray(RuleNode[][]::new);
     }
 
     // mega function which determines how we are going to ask questions.
@@ -201,7 +212,7 @@ public class Interview {
             hanselChains.size(),
             data.size(),
             mode,
-            MAGIC_FUNCTION_MODE,
+                magicFunctionMode,
             stats.nodesAsked,
             stats.permeationStatsForEachNodeAsked);
     }
@@ -314,7 +325,7 @@ public class Interview {
                 continue;
 
             // get our value either from expert or ML
-            int classification = (MAGIC_FUNCTION_MODE) ? magicFunction(n) : questionExpert(n);
+            int classification = (magicFunctionMode) ? magicFunction(n) : questionExpert(n);
 
             // this sets all the upper bounds below, and all the lower bounds above.
             PermeationStats stats = n.permeateClassification(classification);
@@ -364,7 +375,7 @@ public class Interview {
                 nodeToQuestion = chunkToQuestion.get(middleIndex);
 
             // ask the expert or ML
-            final int classification = (MAGIC_FUNCTION_MODE)
+            final int classification = (magicFunctionMode)
                 ? magicFunction(nodeToQuestion)
                 : questionExpert(nodeToQuestion);
 
@@ -437,7 +448,7 @@ public class Interview {
                     nodeToQuestion = longestPartOfThisChainNotYetConfirmed.get(middleIndex);
 
                 // ask the expert or ML
-                int classification = (MAGIC_FUNCTION_MODE)
+                int classification = (magicFunctionMode)
                         ? magicFunction(nodeToQuestion)
                         : questionExpert(nodeToQuestion);
 
@@ -588,7 +599,7 @@ public class Interview {
             Node middleNode = longestChain.get(longestChain.size() / 2);
 
             // Query expert or ML
-            int classification = (MAGIC_FUNCTION_MODE)
+            int classification = (magicFunctionMode)
                 ? magicFunction(middleNode)
                 : questionExpert(middleNode);
 
@@ -644,7 +655,7 @@ public class Interview {
                 }
 
                 // ask the expert or ML
-                int classification = (MAGIC_FUNCTION_MODE)
+                int classification = (magicFunctionMode)
                         ? magicFunction(nodeToQuestion)
                         : questionExpert(nodeToQuestion);
 
@@ -764,7 +775,7 @@ public class Interview {
             nodesAsked.add(nodeToAsk);
 
             // get our value either from expert or ML
-            int classification = (MAGIC_FUNCTION_MODE) ? magicFunction(nodeToAsk) : questionExpert(nodeToAsk);
+            int classification = (magicFunctionMode) ? magicFunction(nodeToAsk) : questionExpert(nodeToAsk);
 
             // this sets all the upper bounds below, and all the lower bounds above.
             PermeationStats thisNodeStats = nodeToAsk.permeateClassification(classification);
@@ -784,6 +795,7 @@ public class Interview {
 
         sb.append(interviewStats.interviewMode)
             .append(" INTERVIEW COMPLETE!\n");
+        sb.append("TOTAL NUMBER OF NODES: " + interviewStats.numberOfNodes + "\n");
         sb.append("NUMBER OF QUESTIONS ASKED: ")
             .append(interviewStats.nodesAsked.size())
             .append('\n');
@@ -809,7 +821,7 @@ public class Interview {
                 .append('\n');
         }
 
-        int totalAdjustedLowUnits = adjustedLowUnitsByClass.stream()
+        final int totalAdjustedLowUnits = adjustedLowUnitsByClass.stream()
             .mapToInt(List::size)
             .sum();
         sb.append("\nTOTAL NUMBER OF ADJUSTED LOW UNITS:\t")
@@ -838,17 +850,27 @@ public class Interview {
                     sb.append(tree.toString(false, classification));
                 }
             }
-
-            int totalClauses = Arrays.stream(ruleTrees)
-                .filter(Objects::nonNull)
-                .mapToInt(tree -> tree.getNumberOfClauses(tree))
-                .sum();
-            sb.append("\nTOTAL NUMBER OF CLAUSES NEEDED:\t")
-                .append(totalClauses)
-                .append('\n');
         }
-        sb.append("\nNote: Visualizations (Hansel chains, expansions, statistics PDFs) can be generated via `VisualizationDOT` and `InterviewStatsVisualizer`.\n");
 
+        final int totalClauses = Arrays.stream(ruleTrees)
+            .filter(Objects::nonNull)
+            .mapToInt(tree -> tree.getNumberOfClauses(tree))
+            .sum();
+
+        sb.append("\nTOTAL NUMBER OF CLAUSES NEEDED:\t")
+            .append(totalClauses)
+            .append('\n');
+
+        // child functions logic
+        for (int attribute = 0; attribute < subFunctionRuleTrees.length; attribute++) {
+            RuleNode[] subFunctionRules = subFunctionRuleTrees[attribute];
+            if (subFunctionRules == null)
+                continue;
+
+            sb.append("------------------------------------------------------\n\n\n");
+            sb.append("SUB-FUNCTION FOR " + attributeNames[attribute] + ":\n");
+            sb.append(subFunctionRules.toString());
+        }
         return sb.toString();
     }
 

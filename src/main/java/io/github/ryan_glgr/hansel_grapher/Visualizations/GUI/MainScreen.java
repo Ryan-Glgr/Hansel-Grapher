@@ -179,8 +179,8 @@ public class MainScreen {
                     interview.interviewStats.kValues,
                     interview.interviewStats.kValues.length);
             VisualizationDOT.makeHanselChainDOT(interview.hanselChains, interview.adjustedLowUnitsByClass);
-            compileDotAsync("out/Expansions.dot");
-            compileDotAsync("out/HanselChains.dot");
+            VisualizationDOT.compileDotAsync("out/Expansions.dot");
+            VisualizationDOT.compileDotAsync("out/HanselChains.dot");
         } catch (IOException ex) {
             System.out.println("Making expansion file failed!");
             ex.printStackTrace();
@@ -286,24 +286,6 @@ public class MainScreen {
         }
     }
 
-    private void compileDotAsync(String dotPath) {
-        CompletableFuture.runAsync(() -> {
-            try {
-                ProcessBuilder pb = new ProcessBuilder("./Visualizations/compile_dot.sh", dotPath);
-                pb.directory(new File("."));
-                Process process = pb.start();
-                process.onExit().thenAccept(p -> {
-                    if (p.exitValue() != 0) {
-                        System.err.println("compile_dot.sh exited with code " + p.exitValue() + " for " + dotPath);
-                    }
-                });
-            } catch (IOException ex) {
-                System.err.println("Failed to compile DOT file: " + dotPath);
-                ex.printStackTrace();
-            }
-        });
-    }
-
     /**
      * Small, self-contained SVG viewer panel using svgSalamander.
      * - Parses SVG once in the constructor (called off-EDT above).
@@ -318,6 +300,8 @@ public class MainScreen {
         private double zoom = 1.0;
         private double offsetX = 0;
         private double offsetY = 0;
+
+        private Point lastDragPoint;
 
         // simple cache
         private BufferedImage cacheImage;
@@ -336,6 +320,55 @@ public class MainScreen {
             } else {
                 setPreferredSize(new Dimension(800, 600));
             }
+
+            // Enable key focus for fit-to-panel shortcut
+            setFocusable(true);
+            requestFocusInWindow();
+
+            // ---- MOUSE WHEEL ZOOM ----
+            addMouseWheelListener(e -> {
+                double delta = 0.1 * e.getPreciseWheelRotation();
+                double oldZoom = zoom;
+                zoom *= (1 - delta);
+                zoom = Math.max(0.01, Math.min(zoom, 100)); // clamp zoom
+
+                // Keep mouse position stable while zooming
+                double mx = e.getX();
+                double my = e.getY();
+                offsetX = mx - (mx - offsetX) * (zoom / oldZoom);
+                offsetY = my - (my - offsetY) * (zoom / oldZoom);
+
+                invalidateCacheAndRepaint();
+            });
+
+            // ---- CLICK-AND-DRAG PAN ----
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mousePressed(MouseEvent e) {
+                    lastDragPoint = e.getPoint();
+                }
+            });
+
+            addMouseMotionListener(new MouseMotionAdapter() {
+                @Override
+                public void mouseDragged(MouseEvent e) {
+                    Point p = e.getPoint();
+                    offsetX += p.x - lastDragPoint.x;
+                    offsetY += p.y - lastDragPoint.y;
+                    lastDragPoint = p;
+                    invalidateCacheAndRepaint();
+                }
+            });
+
+            // ---- FIT-TO-PANEL KEY SHORTCUT ----
+            addKeyListener(new KeyAdapter() {
+                @Override
+                public void keyPressed(KeyEvent e) {
+                    if (e.getKeyCode() == KeyEvent.VK_F) {
+                        fitToPanel();
+                    }
+                }
+            });
         }
 
         private void invalidateCacheAndRepaint() {
@@ -351,11 +384,10 @@ public class MainScreen {
 
             int w = getWidth(), h = getHeight();
 
-            // If cache is invalid or viewport changed, re-create cached raster
+            // Recreate cached raster if zoom/size changed
             if (cacheImage == null || Double.isNaN(cacheZoom) || cacheZoom != zoom
                     || cacheSize.width != w || cacheSize.height != h) {
 
-                // create raster buffer sized to panel (simple approach: one buffer for whole view)
                 BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
                 Graphics2D cg = img.createGraphics();
                 cg.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -365,7 +397,7 @@ public class MainScreen {
                 cg.setColor(getBackground());
                 cg.fillRect(0, 0, w, h);
 
-                // apply transform: translate (pixel offsets) then scale
+                // apply transform: translate (offsets) then scale
                 AffineTransform at = new AffineTransform();
                 at.translate(offsetX, offsetY);
                 at.scale(zoom, zoom);
@@ -389,15 +421,21 @@ public class MainScreen {
             g.dispose();
         }
 
+        /**
+         * Fit the entire SVG to the panel, centering it and adjusting zoom.
+         */
         public void fitToPanel() {
             Rectangle view = diagram != null ? diagram.getDeviceViewport() : null;
             if (view == null) return;
+
             double zx = getWidth() / (double) view.width;
             double zy = getHeight() / (double) view.height;
             zoom = Math.min(zx, zy);
+
             offsetX = (getWidth() - view.width * zoom) / 2.0;
             offsetY = (getHeight() - view.height * zoom) / 2.0;
             invalidateCacheAndRepaint();
         }
     }
+
 }

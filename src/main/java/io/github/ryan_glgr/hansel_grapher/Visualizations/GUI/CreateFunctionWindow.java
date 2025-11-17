@@ -45,6 +45,7 @@ public class CreateFunctionWindow {
     private Float[] attributeWeights;
     private boolean[] subFunctionsForEachAttributeEnabled;
     private Interview[] subFunctionsForEachAttribute;
+    private boolean magicFunctionMode = false;
 
     private boolean classificationNamesConfirmed;
     private boolean weightsConfirmed;
@@ -727,6 +728,7 @@ public class CreateFunctionWindow {
             }
 
             weightsPanel.revalidate();
+            magicFunctionMode = true;
         });
 
         // Submit action
@@ -992,8 +994,15 @@ public class CreateFunctionWindow {
                 submitButton.setText("Creating Interview...");
 
                 interviewCreationTask = CompletableFuture.supplyAsync(() ->
-                        new Interview(attributeKValues, attributeWeights, interviewMode,
-                                classificationNames.length, attributeNames, classificationNames, subFunctionsForEachAttributeEnabled, subFunctionsForEachAttribute));
+                        new Interview(attributeKValues,
+                                attributeWeights,
+                                interviewMode,
+                                classificationNames.length,
+                                attributeNames,
+                                classificationNames,
+                                subFunctionsForEachAttributeEnabled,
+                                subFunctionsForEachAttribute,
+                                magicFunctionMode));
 
                 interviewCreationTask.whenComplete((result, throwable) ->
                         SwingUtilities.invokeLater(() -> {
@@ -1026,6 +1035,8 @@ public class CreateFunctionWindow {
             });
         });
 
+
+        magicFunctionMode = false;
     }
 
     private void applyLookAndFeel() {

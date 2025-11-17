@@ -1,5 +1,6 @@
 package io.github.ryan_glgr.hansel_grapher.Visualizations;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -10,6 +11,7 @@ import java.util.HashSet;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
 
 import java.awt.Color;
+import java.util.concurrent.CompletableFuture;
 
 public class VisualizationDOT {
     
@@ -174,6 +176,30 @@ public class VisualizationDOT {
 
         fw.write("}");
         fw.close();
+    }
+
+    public static void compileDotAsync(String dotPath) {
+        CompletableFuture.runAsync(() -> {
+            try {
+
+                // ensure output directory exists
+                File outputDir = new File("out/phony.txt").getParentFile();
+                if (outputDir != null && !outputDir.exists()) {
+                    outputDir.mkdirs();
+                }
+                ProcessBuilder pb = new ProcessBuilder("./Visualizations/compile_dot.sh", dotPath);
+                pb.directory(new File("."));
+                Process process = pb.start();
+                process.onExit().thenAccept(p -> {
+                    if (p.exitValue() != 0) {
+                        System.err.println("compile_dot.sh exited with code " + p.exitValue() + " for " + dotPath);
+                    }
+                });
+            } catch (IOException ex) {
+                System.err.println("Failed to compile DOT file: " + dotPath);
+                ex.printStackTrace();
+            }
+        });
     }
 
 }

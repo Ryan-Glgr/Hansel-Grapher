@@ -1,5 +1,6 @@
 package io.github.ryan_glgr.hansel_grapher;
 
+import java.awt.*;
 import java.io.File;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -49,7 +50,8 @@ public class Main {
         HashSet<HashSet<Node>> lowUnits = new HashSet<>();
         int[] sizes = defaultChains.stream().mapToInt(ArrayList::size).toArray();
         int[] lowValueIndices = new int[sizes.length];
-        
+        final boolean magicFunctionMode = true;
+
         long count = 0;
 
         while (true) {
@@ -101,16 +103,18 @@ public class Main {
         for(Set<Node> nodes: lowUnits) {
             Interview.magicLowUnits = nodes;
             for(int i = 0; i < modes.length; i++) {
-                    Interview interview = new Interview(kVals,
+                Interview interview = new Interview(kVals,
                     fakeWeights,
                     modes[i],
                     numClasses,
                     fakeNames,
                     fakeNames,
                     subFunctionsForEachAttributeEnabled,
-                    subFunctionsForEachAttribute);
-                    InterviewStats interviewStats = interview.interviewStats;
-                    questions[i] += interviewStats.nodesAsked.size();
+                    subFunctionsForEachAttribute,
+                    magicFunctionMode);
+
+                InterviewStats interviewStats = interview.interviewStats;
+                questions[i] += interviewStats.nodesAsked.size();
             }
             count++;
             System.out.printf("%d/%d\n", count, lowUnits.size());
@@ -123,35 +127,35 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        Integer[] kVals = new Integer[] {2, 2, 2, 2, 2};
-        int numClasses = 2;
-        generateChains(kVals, numClasses);
+//        Integer[] kVals = new Integer[] {2, 2, 2, 2, 2};
+//        int numClasses = 2;
+//        generateChains(kVals, numClasses);
 
-//        makeClassifyAndSaveNodes(Interview.InterviewMode.BEST_MINIMUM_CONFIRMED,
-//                new Integer[]{5, 3, 2, 4},
-//                new Float[]{1.0f, 1.0f, 1.0f, 1.0f});
+        makeClassifyAndSaveNodes(InterviewMode.BEST_MINIMUM_CONFIRMED,
+                new Integer[]{5, 3, 3, 4, 2, 5},
+                new Float[]{.75f, 2.25f, 3.4f, 2.1f, 4.6f, 3.25f});
 
-        // SwingUtilities.invokeLater(() -> {
-        //     try {
-        //         UIManager.setLookAndFeel(new FlatIntelliJLaf());
-        //         // Make Swing decorations (titlebar, borders) use the L&F
-        //         JFrame.setDefaultLookAndFeelDecorated(true);
-        //         JDialog.setDefaultLookAndFeelDecorated(true);
-        //     } catch (UnsupportedLookAndFeelException ex) {
-        //         ex.printStackTrace();
-        //     }
-
-        //     MainScreen mainScreen = new MainScreen();
-
-        //     JFrame frame = new JFrame("Hansel Grapher");
-        //     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        //     frame.setContentPane(mainScreen.getMainPanel());
-        //     frame.setMinimumSize(new Dimension(960, 640));
-        //     frame.setPreferredSize(new Dimension(960, 640));
-        //     frame.pack();
-        //     frame.setLocationRelativeTo(null);
-        //     frame.setVisible(true);
-        // });
+//        SwingUtilities.invokeLater(() -> {
+//            try {
+//                UIManager.setLookAndFeel(new FlatIntelliJLaf());
+//                // Make Swing decorations (titlebar, borders) use the L&F
+//                JFrame.setDefaultLookAndFeelDecorated(true);
+//                JDialog.setDefaultLookAndFeelDecorated(true);
+//            } catch (UnsupportedLookAndFeelException ex) {
+//                ex.printStackTrace();
+//            }
+//
+//            MainScreen mainScreen = new MainScreen();
+//
+//            JFrame frame = new JFrame("Hansel Grapher");
+//            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+//            frame.setContentPane(mainScreen.getMainPanel());
+//            frame.setMinimumSize(new Dimension(960, 640));
+//            frame.setPreferredSize(new Dimension(960, 640));
+//            frame.pack();
+//            frame.setLocationRelativeTo(null);
+//            frame.setVisible(true);
+//        });
     }
 
     public static void makeClassifyAndSaveNodes(InterviewMode interviewMode, Integer[] kValues, Float[] weights) {
@@ -181,6 +185,8 @@ public class Main {
 
         Interview[] subFunctionsForEachAttribute = new Interview[kValues.length];
 
+
+        final boolean magicFunctionMode = true;
         // classify all our data
         Interview interview = new Interview(kValues,
                 weights,
@@ -189,7 +195,8 @@ public class Main {
                 attributeNames,
                 classificationNames,
                 subFunctionsForEachAttributeEnabled,
-                subFunctionsForEachAttribute);
+                subFunctionsForEachAttribute,
+                magicFunctionMode);
 
         InterviewStats interviewStats = interview.interviewStats;
         ArrayList<ArrayList<Node>> hanselChains = interview.hanselChains;
@@ -214,6 +221,9 @@ public class Main {
             InterviewStatsVisualizer.savePDF(interviewStats,
                 "out/" + interviewStatsOutputString + ".pdf",
                 interviewMode);
+
+            VisualizationDOT.compileDotAsync("out/HanselChains.dot");
+            VisualizationDOT.compileDotAsync("out/Expansions.dot");
         }
         catch (Exception e){
             e.printStackTrace();
