@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.MagicFunctionMode;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
 
 // data class used to track how we did on a particular run of an interview.
@@ -14,7 +15,7 @@ public class InterviewStats {
     public int numberOfHanselChains;
     public int numberOfNodes;
     public InterviewMode interviewMode;
-    public boolean expertMode; 
+    public MagicFunctionMode magicFunctionMode;
 
     public List<Node> nodesAsked;
     public List<PermeationStats> permeationStatsForEachNodeAsked;
@@ -23,15 +24,15 @@ public class InterviewStats {
             int numHanselChains,
             int numNodes,
             InterviewMode interviewMode,
-            boolean expertMode,
+            MagicFunctionMode magicFunctionMode,
             List<Node> nodesAsked,
             List<PermeationStats> permeationStatsForEachNodeAsked) {
 
-        this.kValues = Arrays.copyOf(kValues, kValues.length); // copying because we pass from the static field.
+        this.kValues = Arrays.copyOf(kValues, kValues.length);
         this.numberOfHanselChains = numHanselChains;
-        this.numberOfNodes = numNodes;        
+        this.numberOfNodes = numNodes;
         this.interviewMode = interviewMode;
-        this.expertMode = expertMode;
+        this.magicFunctionMode = magicFunctionMode;
         this.nodesAsked = nodesAsked;
         this.permeationStatsForEachNodeAsked = permeationStatsForEachNodeAsked;
     }
@@ -50,7 +51,7 @@ public class InterviewStats {
         sb.append("numberOfNodes: ").append(numberOfNodes).append("\n");
         sb.append("numberOfQuestions: ").append(nodesAsked.size()).append("\n");
         sb.append("interviewMode: ").append(interviewMode).append("\n");
-        sb.append("expertMode: ").append(expertMode).append("\n");
+        sb.append("expertMode: ").append(magicFunctionMode).append("\n");
 
         PermeationStats[] permeationStatsArray = permeationStatsForEachNodeAsked.toArray(new PermeationStats[0]);
         Node[] questionsAsked = nodesAsked.toArray(new Node[0]);

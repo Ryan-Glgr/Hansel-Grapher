@@ -3,6 +3,7 @@ package io.github.ryan_glgr.hansel_grapher.TheHardStuff;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import io.github.ryan_glgr.hansel_grapher.FunctionRules.Attribute;
@@ -17,23 +18,23 @@ import static java.lang.Math.min;
 public class Interview {
     
     // if we set this false, we are going to call upon some ML interviewer instead.
-    public static Set<Node> magicLowUnits = null; // set these to make the magicFunction use low units to define function
-    private boolean magicFunctionMode = true; // TODO: make this an instace field and then we can specify weights in the GUI.
+    public MagicFunctionMode magicFunctionMode;
+
     private final int highestPossibleClassification; // needed when we are doing these magic function interviews in GUI, since the user may put in less classes than the function wants to make.
 
-    private final Integer[] kVals;
-    private final Float[] kValueWeights;
-    public final String[] attributeNames;
     public final InterviewStats interviewStats;
     public final HashMap<Integer, Node> data;
     public final ArrayList<ArrayList<Node>> hanselChains;
     public final ArrayList<ArrayList<Node>> lowUnitsByClass;
     public final ArrayList<ArrayList<Node>> adjustedLowUnitsByClass;
     public final RuleNode[] ruleTrees;
-    public final RuleNode[][] subFunctionRuleTrees;
 
     public final String[] classificationNames;
     public final Attribute[] attributes;
+    public final Integer[] kVals;
+    private final Set<Node>[] lowUnitsForEachClassification; // used for the magic function mode when we know what the low units are already, and we are trying to run the interview.
+
+    private final Scanner inputScanner;
 
 
     public Interview(Integer[] kVals,
@@ -42,34 +43,30 @@ public class Interview {
             int numClasses,
             String[] attributeNames,
             String[] classificationNames,
-            boolean[] subFunctionsEnabledForEachAttribute,
+            Set<Node>[] listsOfLowUnitsForEachClassification, // pass in the nodes which are going to satisfy our magic function
             Interview[] subFunctionsForEachAttribute,
-            boolean magicFunctionMode) {
+            MagicFunctionMode magicFunctionMode) {
 
         this.highestPossibleClassification = numClasses - 1;
-        this.kVals = kVals;
-        this.kValueWeights = weights;
-        this.attributeNames = attributeNames;
         this.classificationNames = classificationNames;
         this.inputScanner = new Scanner(System.in);
         this.magicFunctionMode = magicFunctionMode;
+        this.lowUnitsForEachClassification = listsOfLowUnitsForEachClassification;
 
-        // TODO: enable sub functions. this wouldn't be too hard. basically we would have to at some point get the information from a user
-        //       we would need to know which attribute had the sub function, and then what this sub functions values are. once we have that,
-        //       we could just run another interview on that sub function. In the rule printing, first we will print sub functions, then
-        //       we will show the main functions.
-        this.attributes = new Attribute[this.kVals.length];
-        for (int index = 0; index < this.kVals.length; index++) {
-            this.attributes[index] = new Attribute(
-                    this.kVals[index],
-                    index,
-                    subFunctionsEnabledForEachAttribute[index],
-                    subFunctionsForEachAttribute[index],
-                    this.attributeNames[index]);
-        }
+        this.kVals = kVals;
+        int numAttributes = kVals.length;
+        this.attributes = IntStream.range(0, numAttributes)
+                .parallel()
+                .mapToObj(index -> new Attribute(
+                        kVals[index],
+                        index,
+                        weights[index],
+                        subFunctionsForEachAttribute[index],
+                        attributeNames[index]))
+                .toArray(Attribute[]::new);
 
-        this.data = Node.makeNodes(this.kVals, numClasses);
-        this.hanselChains = HanselChains.generateHanselChainSet(this.kVals, data);
+        this.data = Node.makeNodes(kVals, numClasses);
+        this.hanselChains = HanselChains.generateHanselChainSet(kVals, data);
 
         // this is where the magic happens
         this.interviewStats = conductInterview(mode);
@@ -77,13 +74,9 @@ public class Interview {
         // once the interview is conducted, we are in the Monotone ordinal function recreation stage:
         this.lowUnitsByClass = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
         this.adjustedLowUnitsByClass = HanselChains.removeUselessLowUnits(lowUnitsByClass);
-        this.ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnitsByClass, this.kVals.length);
+        this.ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnitsByClass, numAttributes);
 
-        // now we need to make our rule trees from each sub function.
-        subFunctionRuleTrees = Arrays.stream(subFunctionsForEachAttribute)
-                .parallel()
-                .map(RuleCreation::createRuleNodesForSubFunctions)
-                .toArray(RuleNode[][]::new);
+        inputScanner.close();
     }
 
     // mega function which determines how we are going to ask questions.
@@ -212,28 +205,45 @@ public class Interview {
             hanselChains.size(),
             data.size(),
             mode,
-                magicFunctionMode,
+            magicFunctionMode,
             stats.nodesAsked,
             stats.permeationStatsForEachNodeAsked);
     }
 
-    // asks the "expert" what the classification of this datapoint is.
-    private int magicFunction(Node datapoint){
-        // if low units are used to define the function
-        if(magicLowUnits != null) {
-            boolean result = true; // false = 1, true = 0 do not be fooled
-            for(Node n : magicLowUnits) {
-                result &= datapoint.isDominatedBy(n, true);
-            }
-            return result ? 0 : 1;
-        }
+    private int askQuestion(Node n) {
+        return switch (magicFunctionMode) {
+            case KVAL_TIMES_WEIGHTS_MODE -> linearFunctionQuestion(n);
+            case KNOWN_LOW_UNITS_MODE -> knownLowUnitsQuestion(n);
+            case EXPERT_MODE -> questionExpert(n);
+        };
+    }
 
+    // just returns k values[i] * weights[i] for this node / divided by the dimension to keep the class count in check.
+    private int linearFunctionQuestion(Node datapoint){
         int sum = 0;
         for (int i = 0; i < datapoint.values.length; i++){
-            sum += (int)(datapoint.values[i] * kValueWeights[i]);
+            sum += (int)(datapoint.values[i] * attributes[i].weight);
         }
         // need this because our magic function may try and spit out more classes than the user specifies.
         return min((sum / datapoint.values.length), highestPossibleClassification);
+    }
+
+    // used when we already know the function, and we want to re run the interview.
+    // useful for recreating results where we know their low units or boolean function.
+    private int knownLowUnitsQuestion(Node datapoint){
+
+        // we can just assume that every node is always going to be at least class 0, by the properties of monotonicity.
+        int maxClasification = 0;
+        for (int classifation = 1; classifation < lowUnitsForEachClassification.length; classifation++) {
+
+            for (Node lowUnit : lowUnitsForEachClassification[classifation]) {
+                if (lowUnit.isDominatedBy(datapoint, true)) {
+                    maxClasification = classifation;
+                    break; // once we know it is at least this class, we don't need to keep looping through all the nodes checking. we can just move on to the next class now.
+                }
+            }
+        }
+        return maxClasification;
 
         // Hardcoded Boolean function f1(x)
 //        Integer[] x = datapoint.values;
@@ -277,7 +287,8 @@ public class Interview {
 
 //        return result;  // 1 if true, 0 if false
     }
-    private final Scanner inputScanner;
+
+    // asks the expert by printing the node and having them enter a datapoint
     private int questionExpert(Node datapoint){
 
         System.out.println("WHAT IS THE CLASSIFICATION FOR THIS DATAPOINT?");
@@ -285,7 +296,7 @@ public class Interview {
         System.out.println("\tCURRENT MINIMUM:\t" + datapoint.classification);
         System.out.println("\tCURRENT MAXIMUM:\t" + datapoint.maxPossibleValue);
         System.out.println("INPUT:\t");
-        int expertInput = inputScanner.nextInt();
+        int expertInput =inputScanner.nextInt();
         if (expertInput < datapoint.classification || expertInput > datapoint.maxPossibleValue){
             System.out.println("MONOTONICITY VIOLATION!");
             throw new RuntimeException("MONOTONICITY RUINED!"); // use Runtime exception so that it blows up the program. we want it unchecked.
@@ -325,7 +336,7 @@ public class Interview {
                 continue;
 
             // get our value either from expert or ML
-            int classification = (magicFunctionMode) ? magicFunction(n) : questionExpert(n);
+            int classification = askQuestion(n);
 
             // this sets all the upper bounds below, and all the lower bounds above.
             PermeationStats stats = n.permeateClassification(classification);
@@ -375,9 +386,7 @@ public class Interview {
                 nodeToQuestion = chunkToQuestion.get(middleIndex);
 
             // ask the expert or ML
-            final int classification = (magicFunctionMode)
-                ? magicFunction(nodeToQuestion)
-                : questionExpert(nodeToQuestion);
+            final int classification = askQuestion(nodeToQuestion);
 
             final PermeationStats permStats = nodeToQuestion.permeateClassification(classification);
             questionsAsked.add(nodeToQuestion);
@@ -448,10 +457,7 @@ public class Interview {
                     nodeToQuestion = longestPartOfThisChainNotYetConfirmed.get(middleIndex);
 
                 // ask the expert or ML
-                int classification = (magicFunctionMode)
-                        ? magicFunction(nodeToQuestion)
-                        : questionExpert(nodeToQuestion);
-
+                int classification = askQuestion(nodeToQuestion);
                 PermeationStats permStats = nodeToQuestion.permeateClassification(classification);
                 questionsAsked.add(nodeToQuestion);
                 permeationStats.add(permStats);
@@ -599,10 +605,7 @@ public class Interview {
             Node middleNode = longestChain.get(longestChain.size() / 2);
 
             // Query expert or ML
-            int classification = (magicFunctionMode)
-                ? magicFunction(middleNode)
-                : questionExpert(middleNode);
-
+            int classification = askQuestion(middleNode);
             // Permeate classification
             PermeationStats permeationStatsForNode = middleNode.permeateClassification(classification);
             nodesAsked.add(middleNode);
@@ -631,8 +634,8 @@ public class Interview {
             ArrayList<Node> chunkToQuestion = Collections.max(chunks, Comparator.comparingInt(List::size));
 
             // this part is important. we are going to do a (nunmClassesInChunk - 1)ary search through the chain.
-            Node topNode = chunkToQuestion.get(chunkToQuestion.size() - 1);
-            Node bottomNode = chunkToQuestion.get(0);
+            Node topNode = chunkToQuestion.getLast();
+            Node bottomNode = chunkToQuestion.getFirst();
             int highestClassPossibleInChain = topNode.maxPossibleValue;
             int lowestClassPossibleInChiain = bottomNode.classification;
             int totalNumberOfClasses = highestClassPossibleInChain - lowestClassPossibleInChiain + 1;
@@ -655,9 +658,7 @@ public class Interview {
                 }
 
                 // ask the expert or ML
-                int classification = (magicFunctionMode)
-                        ? magicFunction(nodeToQuestion)
-                        : questionExpert(nodeToQuestion);
+                int classification = askQuestion(nodeToQuestion);
 
                 PermeationStats permStats = nodeToQuestion.permeateClassification(classification);
                 questionsAsked.add(nodeToQuestion);
@@ -775,7 +776,7 @@ public class Interview {
             nodesAsked.add(nodeToAsk);
 
             // get our value either from expert or ML
-            int classification = (magicFunctionMode) ? magicFunction(nodeToAsk) : questionExpert(nodeToAsk);
+            int classification = askQuestion(nodeToAsk);
 
             // this sets all the upper bounds below, and all the lower bounds above.
             PermeationStats thisNodeStats = nodeToAsk.permeateClassification(classification);
@@ -793,9 +794,8 @@ public class Interview {
     public String toString() {
         StringBuilder sb = new StringBuilder();
 
-        sb.append(interviewStats.interviewMode)
-            .append(" INTERVIEW COMPLETE!\n");
-        sb.append("TOTAL NUMBER OF NODES: " + interviewStats.numberOfNodes + "\n");
+        sb.append(interviewStats.interviewMode).append(" MODE\n");
+        sb.append("TOTAL NUMBER OF NODES: ").append(interviewStats.numberOfNodes).append("\n");
         sb.append("NUMBER OF QUESTIONS ASKED: ")
             .append(interviewStats.nodesAsked.size())
             .append('\n');
@@ -861,16 +861,14 @@ public class Interview {
             .append(totalClauses)
             .append('\n');
 
-        // child functions logic
-        for (int attribute = 0; attribute < subFunctionRuleTrees.length; attribute++) {
-            RuleNode[] subFunctionRules = subFunctionRuleTrees[attribute];
-            if (subFunctionRules == null)
-                continue;
+        Arrays.stream(attributes)
+                .filter(attribute -> attribute.subFunction != null)
+                .forEach(attribute -> {
+                    sb.append("------------------------------------------------------\n\n\n");
+                    sb.append("SUB-FUNCTION FOR ").append(attribute.name).append(":\n");
+                    sb.append(attribute.subFunction);
+                });
 
-            sb.append("------------------------------------------------------\n\n\n");
-            sb.append("SUB-FUNCTION FOR " + attributeNames[attribute] + ":\n");
-            sb.append(subFunctionRules.toString());
-        }
         return sb.toString();
     }
 

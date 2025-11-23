@@ -3,6 +3,7 @@ package io.github.ryan_glgr.hansel_grapher.Visualizations.GUI;
 import com.formdev.flatlaf.FlatIntelliJLaf;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.MagicFunctionMode;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -43,9 +44,8 @@ public class CreateFunctionWindow {
     private Integer[] attributeKValues;
     private InterviewMode interviewMode;
     private Float[] attributeWeights;
-    private boolean[] subFunctionsForEachAttributeEnabled;
     private Interview[] subFunctionsForEachAttribute;
-    private boolean magicFunctionMode = false;
+    private MagicFunctionMode magicFunctionMode;
 
     private boolean classificationNamesConfirmed;
     private boolean weightsConfirmed;
@@ -421,7 +421,6 @@ public class CreateFunctionWindow {
 
                 // create the array to contain all the subfunctions. all the interview are null obviously, but all of the subfunction flags are disabled to start, since boolean initializes false.
                 subFunctionsForEachAttribute = new Interview[numAttrs];
-                subFunctionsForEachAttributeEnabled = new boolean[numAttrs];
 
                 // Create a panel for the form
                 JPanel formPanel = new JPanel(new GridBagLayout());
@@ -728,7 +727,7 @@ public class CreateFunctionWindow {
             }
 
             weightsPanel.revalidate();
-            magicFunctionMode = true;
+            magicFunctionMode = MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE;
         });
 
         // Submit action
@@ -807,7 +806,6 @@ public class CreateFunctionWindow {
                     subFunctionFuture.thenAccept(subInterview -> {
                         if (subInterview != null) {
                             subFunctionsForEachAttribute[attributeIndex] = subInterview;
-                            subFunctionsForEachAttributeEnabled[attributeIndex] = true;
                             SwingUtilities.invokeLater(() -> {
                                 createButton.setText("EDIT SUB FUNCTION");
                                 JOptionPane.showMessageDialog(panel, 
@@ -1000,7 +998,7 @@ public class CreateFunctionWindow {
                                 classificationNames.length,
                                 attributeNames,
                                 classificationNames,
-                                subFunctionsForEachAttributeEnabled,
+                                null,
                                 subFunctionsForEachAttribute,
                                 magicFunctionMode));
 
@@ -1035,8 +1033,7 @@ public class CreateFunctionWindow {
             });
         });
 
-
-        magicFunctionMode = false;
+        magicFunctionMode = MagicFunctionMode.EXPERT_MODE;
     }
 
     private void applyLookAndFeel() {
