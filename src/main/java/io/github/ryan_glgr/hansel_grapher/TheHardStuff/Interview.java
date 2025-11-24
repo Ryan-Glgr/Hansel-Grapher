@@ -11,14 +11,18 @@ import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleCreation;
 import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleNode;
 import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats;
+import org.roaringbitmap.RoaringBitmap;
 
 import static java.lang.Math.min;
 
 // this class is where we are going to handle anything classification related.
 public class Interview {
-    
+
+    private static final BalanceRatio DEFAULT_BALANCE_RATIO = BalanceRatio.SHANNON_ENTROPY_BALANCE_RATIO;
+
     // if we set this false, we are going to call upon some ML interviewer instead.
     public MagicFunctionMode magicFunctionMode;
+    public BalanceRatio balanceRatio;
 
     private final int highestPossibleClassification; // needed when we are doing these magic function interviews in GUI, since the user may put in less classes than the function wants to make.
 
@@ -29,6 +33,7 @@ public class Interview {
     public final ArrayList<ArrayList<Node>> adjustedLowUnitsByClass;
     public final RuleNode[] ruleTrees;
 
+    private final int numClasses;
     public final String[] classificationNames;
     public final Attribute[] attributes;
     public final Integer[] kVals;
@@ -52,6 +57,7 @@ public class Interview {
         this.inputScanner = new Scanner(System.in);
         this.magicFunctionMode = magicFunctionMode;
         this.lowUnitsForEachClassification = listsOfLowUnitsForEachClassification;
+        this.numClasses = numClasses;
 
         this.kVals = kVals;
         int numAttributes = kVals.length;
@@ -86,119 +92,143 @@ public class Interview {
         ArrayList<Node> allNodes = new ArrayList<>(data.values());
         InterviewStats stats = switch(mode) {
 
-            case HIGHEST_TOTAL_UMBRELLA_SORT ->
-                umbrellaSortInterview(allNodes, NodeComparisons.HIGHEST_TOTAL_UMBRELLA);
+            case HIGHEST_TOTAL_UMBRELLA_SORT -> {
+                balanceRatio = DEFAULT_BALANCE_RATIO;
+                yield umbrellaSortInterview(allNodes, NodeComparisons.HIGHEST_TOTAL_UMBRELLA);
+            }
 
-            case SMALLEST_DIFFERENCE_UMBRELLA_SORT ->
-                umbrellaSortInterview(allNodes, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
+            case SMALLEST_DIFFERENCE_UMBRELLA_SORT -> {
+                balanceRatio = DEFAULT_BALANCE_RATIO;
+                yield umbrellaSortInterview(allNodes, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
+            }
 
             case BEST_BALANCE_RATIO_UNITY -> {
-                Node.BALANCE_RATIO = BalanceRatio.UNITY_BALANCE_RATIO;
+                balanceRatio = BalanceRatio.UNITY_BALANCE_RATIO;
                 yield umbrellaSortInterview(allNodes, NodeComparisons.BEST_BALANCE_RATIO);
             }
             case BEST_BALANCE_RATIO_SHANNON_ENTROPY -> {
-                Node.BALANCE_RATIO = BalanceRatio.SHANNON_ENTROPY_BALANCE_RATIO;
+                balanceRatio = BalanceRatio.SHANNON_ENTROPY_BALANCE_RATIO;
                 yield umbrellaSortInterview(allNodes, NodeComparisons.BEST_BALANCE_RATIO);
             }
             case BEST_BALANCE_RATIO_QUADRATIC -> {
-                Node.BALANCE_RATIO = BalanceRatio.QUADRATIC_BALANCE_RATIO;
+                balanceRatio = BalanceRatio.QUADRATIC_BALANCE_RATIO;
                 yield umbrellaSortInterview(allNodes, NodeComparisons.BEST_BALANCE_RATIO);
             }
 
-            case TRADITIONAL_BINARY_SEARCH ->
-                // extra args after hansel chains don't matter for regular binary search.
-                    traditionalBinarySearchInterview(hanselChains, false, null);
+            case TRADITIONAL_BINARY_SEARCH -> {
+                balanceRatio = DEFAULT_BALANCE_RATIO;
+                yield traditionalBinarySearchInterview(hanselChains, false, null);
+            }
 
-            case TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_SMALLEST_DIFFERENCE ->
-                // we use the MIN for smallest difference
-                    traditionalBinarySearchInterview(hanselChains, true, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
+            case TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_SMALLEST_DIFFERENCE -> {
+                balanceRatio = DEFAULT_BALANCE_RATIO;
+                yield traditionalBinarySearchInterview(hanselChains, true, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
+            }
 
-            case TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_HIGHEST_TOTAL_UMBRELLA_SORT ->
-                    traditionalBinarySearchInterview(hanselChains, true, NodeComparisons.HIGHEST_TOTAL_UMBRELLA);
+            case TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_HIGHEST_TOTAL_UMBRELLA_SORT -> {
+                balanceRatio = DEFAULT_BALANCE_RATIO;
+                yield traditionalBinarySearchInterview(hanselChains, true, NodeComparisons.HIGHEST_TOTAL_UMBRELLA);
+            }
 
-            case TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_BEST_MIN_CONFIRMED ->
-                    traditionalBinarySearchInterview(hanselChains, true, NodeComparisons.BY_MIN_CLASSIFICATIONS);
+            case TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_BEST_MIN_CONFIRMED -> {
+                balanceRatio = DEFAULT_BALANCE_RATIO;
+                yield traditionalBinarySearchInterview(hanselChains, true, NodeComparisons.BY_MIN_CLASSIFICATIONS);
+            }
 
             case TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_UNITY -> {
-                Node.BALANCE_RATIO = BalanceRatio.UNITY_BALANCE_RATIO;
+                balanceRatio = BalanceRatio.UNITY_BALANCE_RATIO;
                 yield traditionalBinarySearchInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO);
             }
 
             case TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_SHANNON_ENTROPY -> {
-                Node.BALANCE_RATIO = BalanceRatio.SHANNON_ENTROPY_BALANCE_RATIO;
+                balanceRatio = BalanceRatio.SHANNON_ENTROPY_BALANCE_RATIO;
                 yield traditionalBinarySearchInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO);
             }
 
             case TRADITIONAL_BINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_QUADRATIC -> {
-                Node.BALANCE_RATIO = BalanceRatio.QUADRATIC_BALANCE_RATIO;
+                balanceRatio = BalanceRatio.QUADRATIC_BALANCE_RATIO;
                 yield traditionalBinarySearchInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO);
             }
 
-            case BINARY_SEARCH_CHUNKS ->
-                // extra args after hansel chains don't matter for regular binary search.
-                binarySearchChunksInterview(hanselChains, false, null);
+            case BINARY_SEARCH_CHUNKS -> {
+                balanceRatio = DEFAULT_BALANCE_RATIO;
+                yield binarySearchChunksInterview(hanselChains, false, null);
+            }
 
-            case BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_SMALLEST_DIFFERENCE ->
-                // we use the MIN for smallest difference
-                binarySearchChunksInterview(hanselChains, true, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
+            case BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_SMALLEST_DIFFERENCE -> {
+                balanceRatio = DEFAULT_BALANCE_RATIO;
+                yield binarySearchChunksInterview(hanselChains, true, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
+            }
 
-            case BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_HIGHEST_TOTAL_UMBRELLA_SORT ->
-                binarySearchChunksInterview(hanselChains, true, NodeComparisons.HIGHEST_TOTAL_UMBRELLA);
+            case BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_HIGHEST_TOTAL_UMBRELLA_SORT -> {
+                balanceRatio = DEFAULT_BALANCE_RATIO;
+                yield binarySearchChunksInterview(hanselChains, true, NodeComparisons.HIGHEST_TOTAL_UMBRELLA);
+            }
 
-            case BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_BEST_MIN_CONFIRMED ->
-                binarySearchChunksInterview(hanselChains, true, NodeComparisons.BY_MIN_CLASSIFICATIONS);
+            case BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_BEST_MIN_CONFIRMED -> {
+                balanceRatio = DEFAULT_BALANCE_RATIO;
+                yield binarySearchChunksInterview(hanselChains, true, NodeComparisons.BY_MIN_CLASSIFICATIONS);
+            }
 
             case BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_BALANCE_RATIO_UNITY -> {
-                Node.BALANCE_RATIO = BalanceRatio.UNITY_BALANCE_RATIO;
+                balanceRatio = BalanceRatio.UNITY_BALANCE_RATIO;
                 yield binarySearchChunksInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO);
             }
 
             case BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_BALANCE_RATIO_SHANNON_ENTROPY -> {
-                Node.BALANCE_RATIO = BalanceRatio.SHANNON_ENTROPY_BALANCE_RATIO;
+                balanceRatio = BalanceRatio.SHANNON_ENTROPY_BALANCE_RATIO;
                 yield binarySearchChunksInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO);
             }
 
             case BINARY_SEARCH_CHUNKS_COMPLETING_SQUARE_BALANCE_RATIO_QUADRATIC -> {
-                Node.BALANCE_RATIO = BalanceRatio.QUADRATIC_BALANCE_RATIO;
+                balanceRatio = BalanceRatio.QUADRATIC_BALANCE_RATIO;
                 yield binarySearchChunksInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO);
             }
 
-            case NONBINARY_SEARCH_CHAINS ->
-                // extra args after hansel chains don't matter for regular binary search.
-                    nonBinarySearchHCsInterview(hanselChains, false, null);
+            case NONBINARY_SEARCH_CHAINS -> {
+                balanceRatio = DEFAULT_BALANCE_RATIO;
+                yield nonBinarySearchHCsInterview(hanselChains, false, null);
+            }
 
-            case NONBINARY_SEARCH_COMPLETING_SQUARE_SMALLEST_DIFFERENCE ->
-                    // we use the MIN for smallest difference
-                    nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
+            case NONBINARY_SEARCH_COMPLETING_SQUARE_SMALLEST_DIFFERENCE -> {
+                balanceRatio = DEFAULT_BALANCE_RATIO;
+                yield nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
+            }
 
-            case NONBINARY_SEARCH_COMPLETING_SQUARE_HIGHEST_TOTAL_UMBRELLA_SORT ->
-                    nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.HIGHEST_TOTAL_UMBRELLA);
+            case NONBINARY_SEARCH_COMPLETING_SQUARE_HIGHEST_TOTAL_UMBRELLA_SORT -> {
+                balanceRatio = DEFAULT_BALANCE_RATIO;
+                yield nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.HIGHEST_TOTAL_UMBRELLA);
+            }
 
-            case NONBINARY_SEARCH_COMPLETING_SQUARE_BEST_MIN_CONFIRMED ->
-                    nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.BY_MIN_CLASSIFICATIONS);
+            case NONBINARY_SEARCH_COMPLETING_SQUARE_BEST_MIN_CONFIRMED -> {
+                balanceRatio = DEFAULT_BALANCE_RATIO;
+                yield nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.BY_MIN_CLASSIFICATIONS);
+            }
 
             case NONBINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_UNITY -> {
-                Node.BALANCE_RATIO = BalanceRatio.UNITY_BALANCE_RATIO;
+                balanceRatio = BalanceRatio.UNITY_BALANCE_RATIO;
                 yield nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO);
             }
 
             case NONBINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_SHANNON_ENTROPY -> {
-                Node.BALANCE_RATIO = BalanceRatio.SHANNON_ENTROPY_BALANCE_RATIO;
+                balanceRatio = BalanceRatio.SHANNON_ENTROPY_BALANCE_RATIO;
                 yield nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO);
             }
 
             case NONBINARY_SEARCH_COMPLETING_SQUARE_BALANCE_RATIO_QUADRATIC -> {
-                Node.BALANCE_RATIO = BalanceRatio.QUADRATIC_BALANCE_RATIO;
+                balanceRatio = BalanceRatio.QUADRATIC_BALANCE_RATIO;
                 yield nonBinarySearchHCsInterview(hanselChains, true, NodeComparisons.BEST_BALANCE_RATIO);
             }
 
-            case BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS ->
-                // our root node is easy to find. it's the node with [0,0,...,0] since our hash function
-                // is that value, we can just know that we look up 0 to find it.
-                binarySearchStringOfExpansionsInterview(allNodes);
+            case BINARY_SEARCH_LONGEST_STRING_OF_EXPANSIONS -> {
+                balanceRatio = DEFAULT_BALANCE_RATIO;
+                yield binarySearchStringOfExpansionsInterview(allNodes);
+            }
 
-            case BEST_MINIMUM_CONFIRMED ->
-                bestMinConfirmedInterview(allNodes);
+            case BEST_MINIMUM_CONFIRMED -> {
+                balanceRatio = DEFAULT_BALANCE_RATIO;
+                yield bestMinConfirmedInterview(allNodes);
+            }
         };
 
         return new InterviewStats(kVals,
@@ -319,33 +349,36 @@ public class Interview {
         // --- Main loop ---
         while (!nodesToAsk.isEmpty()) {
 
-            // if we are sorting by umbrella metrics, sort using our strategy.
-            // this is useful if we want to find which node may impact the most other nodes at a given time.
-            // go through all the nodes, and update their umbrella sizes.
-            Node.updateAllNodeRankings(nodesToAsk);
+            PermeationStats lastUpdate = permeationStatsForEachNodeAsked.isEmpty()
+                    ? new PermeationStats(0, 0, 0, new RoaringBitmap(), new RoaringBitmap())
+                    : permeationStatsForEachNodeAsked.getLast();
 
-            Node n = useMin 
-            ? Collections.min(nodesToAsk, umbrellaSortingStrategy) 
-            : Collections.max(nodesToAsk, umbrellaSortingStrategy);
+            Node.updateAllNodeRankings(nodesToAsk, this.balanceRatio, this.numClasses, lastUpdate);
+
+            Node n = useMin
+                ? Collections.min(nodesToAsk, umbrellaSortingStrategy)
+                : Collections.max(nodesToAsk, umbrellaSortingStrategy);
 
             // remove the front guy (the chosen one)
             nodesToAsk.remove(n);
 
             // no need to ask about a confirmed node.
-            if (n.classificationConfirmed)
+            if (n.classificationConfirmed) {
                 continue;
+            }
 
             // get our value either from expert or ML
             int classification = askQuestion(n);
 
             // this sets all the upper bounds below, and all the lower bounds above.
-            PermeationStats stats = n.permeateClassification(classification);
+            final PermeationStats stats = n.permeateClassification(classification);
             nodesAsked.add(n);
             permeationStatsForEachNodeAsked.add(stats);
 
+            final RoaringBitmap nodesConfirmed = stats.nodesConfirmed;
             // filter out confirmed nodes and continue
             nodesToAsk = nodesToAsk.parallelStream()
-                .filter(node -> !node.classificationConfirmed)
+                .filter(node -> !nodesConfirmed.contains(node.nodeID))
                 .collect(Collectors.toCollection(ArrayList::new));
         }
         return new InterviewStats(nodesAsked, permeationStatsForEachNodeAsked);
@@ -376,11 +409,16 @@ public class Interview {
             // if we are completing the square to find a potential better node than just the middle node.
             final Node nodeToQuestion;
             if (completingTheSquareTechnique){
+
+                PermeationStats lastUpdate = permeationStats.isEmpty()
+                        ? new PermeationStats(0, 0, 0, new RoaringBitmap(), new RoaringBitmap())
+                        : permeationStats.getLast();
                 // now that our nodes have been updated with their umbrella sizes and min classifications and such, we can determine if there is a better node than our middle node.
                 nodeToQuestion = getBestSquareCompletion(chunkToQuestion,
                     middleIndex,
                     choosingAlternateMiddleNodeTechnique,
-                    useMaxComparison);
+                    useMaxComparison,
+                    lastUpdate);
             }
             else
                 nodeToQuestion = chunkToQuestion.get(middleIndex);
@@ -447,11 +485,17 @@ public class Interview {
                 // if we are completing the square to find a potential better node than just the middle node.
                 final Node nodeToQuestion;
                 if (completingTheSquareTechnique){
+
+                    PermeationStats lastUpdate = permeationStats.isEmpty()
+                            ? new PermeationStats(0, 0, 0, new RoaringBitmap(), new RoaringBitmap())
+                            : permeationStats.getLast();
+
                     // now that our nodes have been updated with their umbrella sizes and min classifications and such, we can determine if there is a better node than our middle node.
                     nodeToQuestion = getBestSquareCompletion(longestPartOfThisChainNotYetConfirmed,
                             middleIndex,
                             choosingAlternateMiddleNodeTechnique,
-                            useMaxComparison);
+                            useMaxComparison,
+                            lastUpdate);
                 }
                 else
                     nodeToQuestion = longestPartOfThisChainNotYetConfirmed.get(middleIndex);
@@ -505,7 +549,8 @@ public class Interview {
             ArrayList<Node> chunkToQuestion,
             int middleIndex,
             Comparator<Node> choosingAlternateMiddleNodeTechnique,
-            boolean useMaxComparison) {
+            boolean useMaxComparison,
+            final PermeationStats lastUpdate) {
 
         Node middleNode = chunkToQuestion.get(middleIndex);
 
@@ -547,9 +592,8 @@ public class Interview {
         else {
             return middleNode;
         }
-
         // THIS IS VERY IMPORTANT! WE NEED TO UPDATE THE NODE RANKINGS FOR THESE NODES!!!!
-        Node.updateAllNodeRankings(intersection);
+        Node.updateAllNodeRankings(intersection, this.balanceRatio, this.numClasses, lastUpdate);
 
         // safe min/max selection
         Node selectedNode = useMaxComparison
@@ -568,9 +612,9 @@ public class Interview {
                     .filter(Predicate.not(intersection::contains))
                     .collect(Collectors.toCollection(ArrayList::new));
             union.add(selectedNode);
-            
+
             // AGAIN IMPORTANT TO UPDATE THE RANKINGS BEFORE WE COMPARE!!!
-            Node.updateAllNodeRankings(union);
+            Node.updateAllNodeRankings(union, this.balanceRatio, this.numClasses, lastUpdate);
             selectedNode = useMaxComparison
                 ? Collections.max(union, choosingAlternateMiddleNodeTechnique)
                 : Collections.min(union, choosingAlternateMiddleNodeTechnique);
@@ -651,10 +695,16 @@ public class Interview {
                     continue;
 
                 if (completingTheSquareTechnique){
+
+                    PermeationStats lastUpdate = permeationStats.isEmpty()
+                            ? new PermeationStats(0, 0, 0, new RoaringBitmap(), new RoaringBitmap())
+                            : permeationStats.getLast();
+
                     nodeToQuestion = getBestSquareCompletion(chunkToQuestion,
                             indexToQuestion,
                             choosingAlternateMiddleNodeTechnique,
-                            useMaxComparison);
+                            useMaxComparison,
+                            lastUpdate);
                 }
 
                 // ask the expert or ML
@@ -761,25 +811,28 @@ public class Interview {
     private InterviewStats bestMinConfirmedInterview(ArrayList<Node> allNodes){
         
         // interview stats we need later.
-        List<Node> nodesAsked = new ArrayList<>();
-        List<PermeationStats> permeationStatsForEachNodeAsked = new ArrayList<>();
+        final List<Node> nodesAsked = new ArrayList<>();
+        final List<PermeationStats> permeationStatsForEachNodeAsked = new ArrayList<>();
 
         ArrayList<Node> nodesToAsk = new ArrayList<>(allNodes);
         while(!nodesToAsk.isEmpty()){
 
             // now sort decreasing, using our strategy. we sort descending, by a nodes minimum guaranteed classifications.
             // that is, of it's classes, whichever is the worst, we choose the one with the best floor. we are guaranteed to confirm that many at least.
-            Node.updateAllNodeRankings(nodesToAsk);
-            
+            PermeationStats lastUpdate = permeationStatsForEachNodeAsked.isEmpty()
+                ? new PermeationStats(0, 0, 0, new RoaringBitmap(), new RoaringBitmap())
+                : permeationStatsForEachNodeAsked.getLast();
+            Node.updateAllNodeRankings(nodesToAsk, this.balanceRatio, this.numClasses, lastUpdate);
+
             Node nodeToAsk = Collections.max(nodesToAsk, NodeComparisons.BY_MIN_CLASSIFICATIONS);
-            nodesToAsk.remove(nodeToAsk);
-            nodesAsked.add(nodeToAsk);
 
             // get our value either from expert or ML
-            int classification = askQuestion(nodeToAsk);
+            final int classification = askQuestion(nodeToAsk);
 
             // this sets all the upper bounds below, and all the lower bounds above.
-            PermeationStats thisNodeStats = nodeToAsk.permeateClassification(classification);
+            final PermeationStats thisNodeStats = nodeToAsk.permeateClassification(classification);
+            nodesToAsk.remove(nodeToAsk);
+            nodesAsked.add(nodeToAsk);
             permeationStatsForEachNodeAsked.add(thisNodeStats);
 
             nodesToAsk = nodesToAsk.parallelStream()

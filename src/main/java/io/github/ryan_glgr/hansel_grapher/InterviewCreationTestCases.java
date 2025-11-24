@@ -67,7 +67,9 @@ public class InterviewCreationTestCases {
                 MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE);
 
         System.out.println(interviewMode + " INTERVIEW COMPLETE!");
-        System.out.println(interview);
+//        System.out.println(interview);
+        System.out.println("number of questions asked: " + interview.interviewStats.nodesAsked.size() + "\n");
+        System.out.println("number of nodes total: " + interview.interviewStats.numberOfNodes);
         return interview;
     }
 }

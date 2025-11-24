@@ -135,11 +135,13 @@ public class Main {
 
     public static void main(String[] args) {
 
-        Interview interview = InterviewCreationTestCases.createBasicInterviewWithSubfunctions(InterviewMode.BEST_MINIMUM_CONFIRMED,
-                new Integer[]{5, 6, 6, 4, 3, 5},
-                new Float[]{.75f, 2.25f, 3.4f, 2.1f, 4.6f, 3.25f});
+        for (InterviewMode interviewMode : InterviewMode.values()){
+            Interview interview = InterviewCreationTestCases.createBasicInterviewWithSubfunctions(interviewMode,
+                    new Integer[]{5, 2, 3, 4, 3, 5},
+                    new Float[]{.75f, 2.25f, 3.4f, 2.1f, 4.6f, 3.25f});
+        }
 
-        visualizeStatistics(interview);
+//        visualizeStatistics(interview);
 
 //        SwingUtilities.invokeLater(() -> {
 //            try {
