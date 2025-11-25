@@ -1,4 +1,4 @@
-package io.github.ryan_glgr.hansel_grapher.TheHardStuff;
+package io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview;
 
 public enum InterviewMode {
 

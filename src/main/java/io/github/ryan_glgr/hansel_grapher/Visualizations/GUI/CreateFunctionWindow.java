@@ -1,9 +1,9 @@
 package io.github.ryan_glgr.hansel_grapher.Visualizations.GUI;
 
 import com.formdev.flatlaf.FlatIntelliJLaf;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.InterviewMode;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.MagicFunctionMode;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.Interview;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.MagicFunctionMode;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;

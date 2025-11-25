@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import io.github.ryan_glgr.hansel_grapher.Stats.AttributeStats;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
 
 public class RuleNode {

@@ -1,8 +1,8 @@
 package io.github.ryan_glgr.hansel_grapher.Visualizations.GUI;
 
 import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.Interview;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.InterviewMode;
 import io.github.ryan_glgr.hansel_grapher.Visualizations.InterviewStatsDisplay;
 import io.github.ryan_glgr.hansel_grapher.Visualizations.InterviewStatsVisualizer;
 import io.github.ryan_glgr.hansel_grapher.Visualizations.VisualizationDOT;

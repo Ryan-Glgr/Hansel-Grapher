@@ -2,11 +2,15 @@ package io.github.ryan_glgr.hansel_grapher;
 
 import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.*;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.Interview;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.MagicFunctionMode;
 import io.github.ryan_glgr.hansel_grapher.Visualizations.InterviewStatsVisualizer;
 import io.github.ryan_glgr.hansel_grapher.Visualizations.VisualizationDOT;
 
 import java.io.File;
 import java.util.*;
+import java.util.stream.Collectors;
 // import java.awt.*;
 
 public class Main {
@@ -78,8 +82,10 @@ public class Main {
         count = 0;
 
         for(Set<Node> nodes: lowUnits) {
-            Set<Node>[] lowUnitsToMakeTheFunctionTrue = new Set[2];
-            lowUnitsToMakeTheFunctionTrue[1] = nodes;
+            Set<Integer[]>[] lowUnitsToMakeTheFunctionTrue = new Set[2];
+            lowUnitsToMakeTheFunctionTrue[1] = nodes.stream()
+                    .map(node -> node.values)
+                    .collect(Collectors.toSet());
 
             for(int i = 0; i < modes.length; i++) {
                 Interview interview = new Interview(kVals,
@@ -135,10 +141,8 @@ public class Main {
 
     public static void main(String[] args) {
 
-        for (InterviewMode interviewMode : InterviewMode.values()){
-            Interview interview = InterviewCreationTestCases.createBasicInterviewWithSubfunctions(interviewMode,
-                    new Integer[]{5, 2, 3, 4, 3, 5},
-                    new Float[]{.75f, 2.25f, 3.4f, 2.1f, 4.6f, 3.25f});
+        for (InterviewMode mode: InterviewMode.values()) {
+            InterviewCreationTestCases.createHeartFailureInterview(mode);
         }
 
 //        visualizeStatistics(interview);

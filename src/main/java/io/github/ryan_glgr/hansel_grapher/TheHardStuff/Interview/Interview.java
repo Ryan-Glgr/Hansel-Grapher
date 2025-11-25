@@ -1,4 +1,4 @@
-package io.github.ryan_glgr.hansel_grapher.TheHardStuff;
+package io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -11,6 +11,10 @@ import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleCreation;
 import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleNode;
 import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.BalanceRatio;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.HanselChains;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.NodeComparisons;
 import org.roaringbitmap.RoaringBitmap;
 
 import static java.lang.Math.min;
@@ -28,6 +32,7 @@ public class Interview {
 
     public final InterviewStats interviewStats;
     public final HashMap<Integer, Node> data;
+    public final HashMap<Integer, Node> allNodesToTheirIDsMap; // all the same nodes, but this way we can look up a node by it's ID as well.
     public final ArrayList<ArrayList<Node>> hanselChains;
     public final ArrayList<ArrayList<Node>> lowUnitsByClass;
     public final ArrayList<ArrayList<Node>> adjustedLowUnitsByClass;
@@ -42,21 +47,20 @@ public class Interview {
     private final Scanner inputScanner;
 
 
-    public Interview(Integer[] kVals,
-            Float[] weights,
-            InterviewMode mode,
-            int numClasses,
-            String[] attributeNames,
-            String[] classificationNames,
-            Set<Node>[] listsOfLowUnitsForEachClassification, // pass in the nodes which are going to satisfy our magic function
-            Interview[] subFunctionsForEachAttribute,
-            MagicFunctionMode magicFunctionMode) {
+    public Interview(final Integer[] kVals,
+                     final Float[] weights,                                 // pass in the weights of each attribute. needed IFF you are doing MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE
+                     final InterviewMode mode,                              // question asking mode
+                     final int numClasses,
+                     final String[] attributeNames,
+                     final String[] classificationNames,
+                     final Set<Integer[]>[] setOfLowUnitsByClassification, // pass in the nodes which are going to satisfy our magic function. NEEDED IFF YOU ARE DOING MagicFunctionMode.KNOWN_LOW_UNITS_MODE!
+                     final Interview[] subFunctionsForEachAttribute,       // needs to at least be an Interview[numAttributes], but they can all be null if you want no subfunctions.
+                     final MagicFunctionMode magicFunctionMode) {          // the mode which actually determines how we know a nodes classification
 
         this.highestPossibleClassification = numClasses - 1;
         this.classificationNames = classificationNames;
         this.inputScanner = new Scanner(System.in);
         this.magicFunctionMode = magicFunctionMode;
-        this.lowUnitsForEachClassification = listsOfLowUnitsForEachClassification;
         this.numClasses = numClasses;
 
         this.kVals = kVals;
@@ -72,6 +76,25 @@ public class Interview {
                 .toArray(Attribute[]::new);
 
         this.data = Node.makeNodes(kVals, numClasses);
+        this.allNodesToTheirIDsMap = new HashMap<>();
+        for (Node node : data.values()) {
+            allNodesToTheirIDsMap.put(node.nodeID, node);
+        }
+
+        // get each node corresponding to the k values which are going to make our function whichever value
+        this.lowUnitsForEachClassification = new Set[numClasses];
+        for (int classification = 0; classification < numClasses; classification++) {
+            Set<Integer[]> lowUnitsByClassification = setOfLowUnitsByClassification[classification];
+            this.lowUnitsForEachClassification[classification] = new HashSet<>();
+            for (Integer[] lowUnit : lowUnitsByClassification) {
+                Node node = data.get(Node.hash(lowUnit));
+                if (node == null) {
+                    throw new RuntimeException("Node not found for values: " + Arrays.toString(lowUnit) + " in classification " + classification);
+                }
+                this.lowUnitsForEachClassification[classification].add(node);
+            }
+        }
+
         this.hanselChains = HanselChains.generateHanselChainSet(kVals, data);
 
         // this is where the magic happens
@@ -264,11 +287,11 @@ public class Interview {
 
         // we can just assume that every node is always going to be at least class 0, by the properties of monotonicity.
         int maxClasification = 0;
-        for (int classifation = 1; classifation < lowUnitsForEachClassification.length; classifation++) {
+        for (int classification = 1; classification < lowUnitsForEachClassification.length; classification++) {
 
-            for (Node lowUnit : lowUnitsForEachClassification[classifation]) {
+            for (Node lowUnit : lowUnitsForEachClassification[classification]) {
                 if (lowUnit.isDominatedBy(datapoint, true)) {
-                    maxClasification = classifation;
+                    maxClasification = classification;
                     break; // once we know it is at least this class, we don't need to keep looping through all the nodes checking. we can just move on to the next class now.
                 }
             }
@@ -353,7 +376,7 @@ public class Interview {
                     ? new PermeationStats(0, 0, 0, new RoaringBitmap(), new RoaringBitmap())
                     : permeationStatsForEachNodeAsked.getLast();
 
-            Node.updateAllNodeRankings(nodesToAsk, this.balanceRatio, this.numClasses, lastUpdate);
+            Node.updateAllNodeRankings(nodesToAsk, this.balanceRatio, this.numClasses, lastUpdate, allNodesToTheirIDsMap);
 
             Node n = useMin
                 ? Collections.min(nodesToAsk, umbrellaSortingStrategy)
@@ -593,7 +616,7 @@ public class Interview {
             return middleNode;
         }
         // THIS IS VERY IMPORTANT! WE NEED TO UPDATE THE NODE RANKINGS FOR THESE NODES!!!!
-        Node.updateAllNodeRankings(intersection, this.balanceRatio, this.numClasses, lastUpdate);
+        Node.updateAllNodeRankings(intersection, this.balanceRatio, this.numClasses, lastUpdate, allNodesToTheirIDsMap);
 
         // safe min/max selection
         Node selectedNode = useMaxComparison
@@ -614,7 +637,7 @@ public class Interview {
             union.add(selectedNode);
 
             // AGAIN IMPORTANT TO UPDATE THE RANKINGS BEFORE WE COMPARE!!!
-            Node.updateAllNodeRankings(union, this.balanceRatio, this.numClasses, lastUpdate);
+            Node.updateAllNodeRankings(union, this.balanceRatio, this.numClasses, lastUpdate, allNodesToTheirIDsMap);
             selectedNode = useMaxComparison
                 ? Collections.max(union, choosingAlternateMiddleNodeTechnique)
                 : Collections.min(union, choosingAlternateMiddleNodeTechnique);
@@ -822,7 +845,7 @@ public class Interview {
             PermeationStats lastUpdate = permeationStatsForEachNodeAsked.isEmpty()
                 ? new PermeationStats(0, 0, 0, new RoaringBitmap(), new RoaringBitmap())
                 : permeationStatsForEachNodeAsked.getLast();
-            Node.updateAllNodeRankings(nodesToAsk, this.balanceRatio, this.numClasses, lastUpdate);
+            Node.updateAllNodeRankings(nodesToAsk, this.balanceRatio, this.numClasses, lastUpdate, allNodesToTheirIDsMap);
 
             Node nodeToAsk = Collections.max(nodesToAsk, NodeComparisons.BY_MIN_CLASSIFICATIONS);
 

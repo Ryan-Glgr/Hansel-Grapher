@@ -354,14 +354,12 @@ public class Node {
     public static void updateAllNodeRankings(ArrayList<Node> aliveNodes,
                                              final BalanceRatio balanceRatio,
                                              final int numClasses,
-                                             final PermeationStats statsFromLastUpdate) {
+                                             final PermeationStats statsFromLastUpdate,
+                                             final HashMap<Integer, Node> allNodesToTheirIDsMap) {
 
         // this would happen on the FIRST question asked of the day.
         if (statsFromLastUpdate == null)
             return;
-
-        final HashMap<Integer, Node> allNodesToTheirIDsMap = new HashMap<>();
-        aliveNodes.forEach(node -> allNodesToTheirIDsMap.put(node.nodeID, node));
 
         final RoaringBitmap nodesConfirmed = statsFromLastUpdate.nodesConfirmed;
         final RoaringBitmap nodesUpdated = statsFromLastUpdate.nodesWithBoundChanges;
@@ -387,6 +385,7 @@ public class Node {
         for (int i = 0; i < numClasses; i++) {
             nodesThatWouldConfirmForEachClassCountingDownwards[i] = new RoaringBitmap();
         }
+
         // determine whether each node is going to be confirmed for each class, counting both up and downwards
         for (Node n : aliveNodes) {
             for (int classification = n.classification; classification <= n.maxPossibleValue; classification++) {

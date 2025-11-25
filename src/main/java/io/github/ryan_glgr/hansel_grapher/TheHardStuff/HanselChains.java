@@ -179,16 +179,7 @@ public class HanselChains{
                     }
                 }
             }
-
-            // go backwards through the list so we can safely remove by index
-            for (int nodePosition = newLowUnits.get(classification).size() - 1; nodePosition >= 0; nodePosition--) {
-                // if this node has been marked as "dominating" another node, we can remove it. it's not really a low unit. just a low unit in it's own chain.
-                Node node = newLowUnits.get(classification).get(nodePosition);
-
-                if (nodesWhichAreNotNeeded.contains(node)) {
-                    newLowUnits.get(classification).remove(nodePosition);
-                }
-            }
+            newLowUnits.get(classification).removeIf(nodesWhichAreNotNeeded::contains);
         }
         lowUnits.forEach(list -> list.sort(NodeComparisons.LEXICOGRAPHIC_NODE_COMPARATOR));
         return newLowUnits;

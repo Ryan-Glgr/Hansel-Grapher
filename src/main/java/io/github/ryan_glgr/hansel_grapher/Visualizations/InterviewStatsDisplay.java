@@ -4,7 +4,7 @@ import org.knowm.xchart.XYChart;
 import org.knowm.xchart.XChartPanel;
 import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats.PermeationStatistic;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.InterviewMode;
 
 import javax.swing.*;
 import java.awt.*;

@@ -3,7 +3,7 @@ package io.github.ryan_glgr.hansel_grapher.Visualizations;
 import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats;
 import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats.PermeationStatistic;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.InterviewMode;
 
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.Styler;
