@@ -10,7 +10,6 @@ The goal of this project is very simple. It serves as a simplistic, understandab
 - simple visualization of "new points"
     - perhaps visualize all the low units, and correspondingly, the "high unit" or highest value UNDER each low unit. so that we can show the borders. maybe show each low unit, and their direct underneath neighbors and above neighbors?
 - Refactor interview constructor to make it more intuitive to create one programmatically. (less parameters)
-
 ## RUNNING ##
 - Requires modern maven to run so install maven for your system (package manager/ installer).
 - To run the program, simply `./run.sh`. You may need to give it the old `chmod +x run.sh`.
