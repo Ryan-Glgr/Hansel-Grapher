@@ -96,7 +96,8 @@ public class Main {
                     fakeNames,
                     lowUnitsToMakeTheFunctionTrue,
                     subFunctionsForEachAttribute,
-                    magicFunctionMode);
+                    magicFunctionMode,
+                        false);
 
                 InterviewStats interviewStats = interview.interviewStats;
                 questions[i] += interviewStats.nodesAsked.size();
@@ -141,9 +142,11 @@ public class Main {
 
     public static void main(String[] args) {
 
-        for (InterviewMode mode: InterviewMode.values()) {
-            InterviewCreationTestCases.createHeartFailureInterview(mode);
-        }
+//        for (InterviewMode mode: InterviewMode.values()) {
+//            InterviewCreationTestCases.createHeartFailureInterview(mode, true);
+//        }
+        InterviewCreationTestCases.createHeartFailureInterview(InterviewMode.BEST_MINIMUM_CONFIRMED, false);
+        InterviewCreationTestCases.createHeartFailureInterview(InterviewMode.BEST_MINIMUM_CONFIRMED, true);
 
 //        visualizeStatistics(interview);
 

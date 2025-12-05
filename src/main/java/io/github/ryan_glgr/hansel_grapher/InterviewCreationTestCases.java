@@ -10,56 +10,60 @@ import java.util.Set;
 import java.util.stream.IntStream;
 
 public class InterviewCreationTestCases {
-    
+
+    public static Interview createBasicInterviewWithSubfunctions(final InterviewMode interviewMode,
+                                                                  final boolean findOptimalChildren) {
+        final Integer[] kValues = new Integer[] {3, 5, 4, 3, 7, 7};
+        final Float[] weights = new Float[] {.5f, 1.65f, 1.25f, 1.0f, 2.25f, 1.85f};
+        return createBasicInterviewWithSubfunctions(interviewMode, kValues, weights, findOptimalChildren);
+    }
+
     public static Interview createBasicInterviewWithSubfunctions(final InterviewMode interviewMode,
                                                                  final Integer[] kValues,
-                                                                 final Float[] weights) {
+                                                                 final Float[] weights,
+                                                                 final boolean findOptimalChildren) {
         
-        int maxSum = IntStream.range(0, kValues.length)
+        final int maxSum = IntStream.range(0, kValues.length)
             .map(i -> (int) ((kValues[i] - 1) * weights[i]))
             .sum();
-        int numClasses = maxSum / kValues.length + 1;
+        final int numClasses = maxSum / kValues.length + 1;
 
-        String[] attributeNames = InterviewHelperFunctions.createDefaultAttributeNames(kValues.length);
-        String[] classificationNames = InterviewHelperFunctions.createDefaultClassificationNames(numClasses);
+        final String[] attributeNames = InterviewHelperFunctions.createDefaultAttributeNames(kValues.length);
+        final String[] classificationNames = InterviewHelperFunctions.createDefaultClassificationNames(numClasses);
 
-        Interview child0 = InterviewHelperFunctions.createSubFunction(
+        final Interview[] availableSubfunctions = new Interview[]{
+            InterviewHelperFunctions.createSubFunction(
                 new Integer[] {3, 5, 4, 3},
                 new Float[] {.5f, 1.65f, 1.25f, 1.0f},
                 5,
                 interviewMode,
-                MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE
-        );
-
-        Interview child1 = InterviewHelperFunctions.createSubFunction(
+                MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE,
+                findOptimalChildren
+            ),
+            InterviewHelperFunctions.createSubFunction(
                 new Integer[] {3, 4, 6, 7},
                 new Float[] {.5f, 2.25f, 1.85f, 1.0f},
                 5,
                 interviewMode,
-                MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE
-        );
-
-        Interview child2 = InterviewHelperFunctions.createSubFunction(
+                MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE,
+                findOptimalChildren
+            ),
+            InterviewHelperFunctions.createSubFunction(
                 new Integer[] {2, 2, 7, 5},
                 new Float[] {.5f, 2.25f, 1.25f, 1.0f},
                 3,
                 interviewMode,
-                MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE
-        );
-
-        Interview[] childFunctions = new Interview[]{
-            child0,
-            child1,
-            child2,
-            null,
-            null,
-            null,
-            null
+                MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE,
+                findOptimalChildren
+            )
         };
 
-        assert(childFunctions.length == kValues.length);
+        final Interview[] childFunctions = new Interview[kValues.length];
+        for (int i = 0; i < kValues.length; i++) {
+            childFunctions[i] = i < availableSubfunctions.length ? availableSubfunctions[i] : null;
+        }
 
-        Interview interview = new Interview(kValues,
+        final Interview interview = new Interview(kValues,
                 weights,
                 interviewMode,
                 numClasses,
@@ -67,8 +71,15 @@ public class InterviewCreationTestCases {
                 classificationNames,
                 null,
                 childFunctions,
-                MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE);
+                MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE,
+                findOptimalChildren);
 
+        if (findOptimalChildren) {
+            System.out.println("GREEDY RULE TREE BUILDING INTERVIEW");
+        }
+        else{
+            System.out.println("OPTIMAL RULE TREE BUILDING INTERVIEW");
+        }
         System.out.println(interviewMode + " INTERVIEW COMPLETE!");
         System.out.println(interview);
         return interview;
@@ -107,7 +118,6 @@ public class InterviewCreationTestCases {
             "Time"
     };
 
-    // TODO: fix this shit. we are getting NPE because we are trying to use k = 3 for x3, which is listed as k value 2.
     private static final Set<Integer[]> knownLowUnitsFromHeartFailureStudy = Set.of(
             new Integer[]{0,0,1,1,0,1,0,1,0,1,1,1}, // (x3≥1)x4x6x8x10x11(x12≥1)
             new Integer[]{0,0,2,1,1,0,0,0,0,0,1,2}, // (x3≥2)x4x5x11(x12≥2)
@@ -226,11 +236,11 @@ public class InterviewCreationTestCases {
             new Integer[]{2,0,0,0,0,0,0,1,1,0,0,0}  // (x1≥2)x8x9
     );
 
-    public static Interview createHeartFailureInterview(InterviewMode interviewMode) {
+    public static Interview createHeartFailureInterview(final InterviewMode interviewMode, final boolean findOptimalClauses) {
 
         // k values based on actual rules (paper table has discrepancies)
         // Paper claims 27,648 nodes: 3×2×4×2×2×2×1×2×2×2×2×3 = 27,648 ✓
-        Integer[] kValues = new Integer[] {
+        final Integer[] kValues = new Integer[] {
                 3,  // x1: Age (0-2) - paper: k=3, weight = 0.87015326
                 2,  // x2: Anemia (0-1) - paper: k=2, weight = -0.04499727
                 4,  // x3: Diabetes (0-3) - paper: k=2, weight = 0.32147318 (WRONG, should be 4 based on rules)
@@ -245,7 +255,7 @@ public class InterviewCreationTestCases {
                 3   // x12: Time (0-2) - paper: k=3, weight = -1.51960505
         };
 
-        Interview interview = new Interview(kValues,
+        final Interview interview = new Interview(kValues,
                 ldaWeightsForHeartFailureStudy,
                 interviewMode,
                 2,
@@ -256,8 +266,15 @@ public class InterviewCreationTestCases {
                         knownLowUnitsFromHeartFailureStudy
                 },
                 new Interview[kValues.length],
-                MagicFunctionMode.KNOWN_LOW_UNITS_MODE);
+                MagicFunctionMode.KNOWN_LOW_UNITS_MODE,
+                findOptimalClauses);
 
+        if (findOptimalClauses) {
+            System.out.println("GREEDY RULE TREE BUILDING INTERVIEW");
+        }
+        else{
+            System.out.println("OPTIMAL RULE TREE BUILDING INTERVIEW");
+        }
         System.out.println(interviewMode + " INTERVIEW COMPLETE!");
         System.out.println(interview);
         return interview;

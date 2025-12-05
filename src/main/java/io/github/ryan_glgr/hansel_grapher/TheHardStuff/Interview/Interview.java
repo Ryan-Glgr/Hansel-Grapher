@@ -25,7 +25,7 @@ public class Interview {
     private static final BalanceRatio DEFAULT_BALANCE_RATIO = BalanceRatio.SHANNON_ENTROPY_BALANCE_RATIO;
 
     // if we set this false, we are going to call upon some ML interviewer instead.
-    public MagicFunctionMode magicFunctionMode;
+    public final MagicFunctionMode magicFunctionMode;
     public BalanceRatio balanceRatio;
 
     private final int highestPossibleClassification; // needed when we are doing these magic function interviews in GUI, since the user may put in less classes than the function wants to make.
@@ -55,8 +55,8 @@ public class Interview {
                      final String[] classificationNames,
                      final Set<Integer[]>[] setOfLowUnitsByClassification, // pass in the nodes which are going to satisfy our magic function. NEEDED IFF YOU ARE DOING MagicFunctionMode.KNOWN_LOW_UNITS_MODE!
                      final Interview[] subFunctionsForEachAttribute,       // needs to at least be an Interview[numAttributes], but they can all be null if you want no subfunctions.
-                     final MagicFunctionMode magicFunctionMode) {          // the mode which actually determines how we know a nodes classification
-
+                     final MagicFunctionMode magicFunctionMode,          // the mode which actually determines how we know a nodes classification
+                     final boolean findOptimalRuleTrees) {
         this.highestPossibleClassification = numClasses - 1;
         this.classificationNames = classificationNames;
         this.inputScanner = new Scanner(System.in);
@@ -77,21 +77,25 @@ public class Interview {
 
         this.data = Node.makeNodes(kVals, numClasses);
         this.allNodesToTheirIDsMap = new HashMap<>();
-        for (Node node : data.values()) {
+        for (final Node node : data.values()) {
             allNodesToTheirIDsMap.put(node.nodeID, node);
         }
 
         // get each node corresponding to the k values which are going to make our function whichever value
         this.lowUnitsForEachClassification = new Set[numClasses];
-        for (int classification = 0; classification < numClasses; classification++) {
-            Set<Integer[]> lowUnitsByClassification = setOfLowUnitsByClassification[classification];
-            this.lowUnitsForEachClassification[classification] = new HashSet<>();
-            for (Integer[] lowUnit : lowUnitsByClassification) {
-                Node node = data.get(Node.hash(lowUnit));
-                if (node == null) {
-                    throw new RuntimeException("Node not found for values: " + Arrays.toString(lowUnit) + " in classification " + classification);
+        if (setOfLowUnitsByClassification != null) {
+            for (int classification = 0; classification < numClasses; classification++) {
+                final Set<Integer[]> lowUnitsByClassification = setOfLowUnitsByClassification[classification];
+                this.lowUnitsForEachClassification[classification] = new HashSet<>();
+                if (lowUnitsByClassification != null) {
+                    for (final Integer[] lowUnit : lowUnitsByClassification) {
+                        final Node node = data.get(Node.hash(lowUnit));
+                        if (node == null) {
+                            throw new RuntimeException("Node not found for values: " + Arrays.toString(lowUnit) + " in classification " + classification);
+                        }
+                        this.lowUnitsForEachClassification[classification].add(node);
+                    }
                 }
-                this.lowUnitsForEachClassification[classification].add(node);
             }
         }
 
@@ -103,7 +107,7 @@ public class Interview {
         // once the interview is conducted, we are in the Monotone ordinal function recreation stage:
         this.lowUnitsByClass = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
         this.adjustedLowUnitsByClass = HanselChains.removeUselessLowUnits(lowUnitsByClass);
-        this.ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnitsByClass, numAttributes);
+        this.ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnitsByClass, numAttributes, findOptimalRuleTrees);
 
         inputScanner.close();
     }
@@ -930,7 +934,7 @@ public class Interview {
 
         final int totalClauses = Arrays.stream(ruleTrees)
             .filter(Objects::nonNull)
-            .mapToInt(tree -> tree.getNumberOfClauses(tree))
+            .mapToInt(RuleNode::getNumberOfClauses)
             .sum();
 
         sb.append("\nTOTAL NUMBER OF CLAUSES NEEDED:\t")

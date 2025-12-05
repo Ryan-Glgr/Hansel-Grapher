@@ -1,7 +1,6 @@
 package io.github.ryan_glgr.hansel_grapher.FunctionRules;
 
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import io.github.ryan_glgr.hansel_grapher.Stats.AttributeStats;
@@ -13,36 +12,44 @@ public class RuleNode {
     public RuleNode[] children; // grouped children (one per attribute value)
     public final Set<Integer> attributesAlreadyUsed; // immutable for a node (copy-per-node)
     private RuleNode parent;
-
+    
     /**
      * Create the full decision-rule tree for the supplied nodes.
      * Returns the root RuleNode (attributeIndex and attributeValue will be null at root).
      * If nodes is null or empty, returns null.
      */
-    public static RuleNode createRuleNodes(ArrayList<Node> nodes, int numAttributes) {
+    public static RuleNode createRuleNodes(final ArrayList<Node> nodes, final int numAttributes, final boolean findOptimalChildren) {
         if (nodes == null || nodes.isEmpty()) 
             return null;
 
         // attributeIndex and attributeValue are null for the root (no attribute was used to get here)
-        RuleNode root = new RuleNode(null, null, nodes, new HashSet<>(), numAttributes);
+        final RuleNode root = new RuleNode(null, null, nodes, new HashSet<>(), numAttributes, findOptimalChildren);
         removeDeadbeatParents(root);
         return root;
     }
 
     // Constructor requires the set of attributes already used along the path.
-    private RuleNode(Integer attributeIndex,
-                    Integer attributeValue,
-                    ArrayList<Node> childrenNodes,
-                    Set<Integer> attributesAlreadyUsed,
-                    int numAttributes) {
+    private RuleNode(final Integer attributeIndex,
+                     final Integer attributeValue,
+                     final ArrayList<Node> childrenNodes,
+                     final Set<Integer> attributesAlreadyUsed,
+                     final int numAttributes,
+                     final boolean findingOptimalChildren) {
         this.attributeIndex = attributeIndex;
         this.attributeValue = attributeValue;
         // store an unmodifiable copy for this node (or just a private copy)
         this.attributesAlreadyUsed = new HashSet<>(attributesAlreadyUsed);
+        
         // Note: don't add attributeIndex here — attributeIndex is the attribute used to
         // get to this node. If you want this node's attribute to be considered "used"
         // for its children, add it when creating children below.
-        this.children = findChildren(childrenNodes, numAttributes);
+        if (findingOptimalChildren) {
+            this.children = findOptimalChildren(childrenNodes, numAttributes);
+        }
+        else {
+            this.children = findChildrenGreedyTechnique(childrenNodes, numAttributes);
+        }
+        
         // take control of my children
         if (children != null)
             for(RuleNode kid : children){
@@ -50,12 +57,12 @@ public class RuleNode {
             }
     }
 
-    private static void removeDeadbeatParents(RuleNode root){
+    private static void removeDeadbeatParents(final RuleNode root){
         separateKidsFromParents(root);
     }
 
     // takes nodes which had 0 value, and gives their kids to the grandparents.
-    private static RuleNode[] separateKidsFromParents(RuleNode node){
+    private static RuleNode[] separateKidsFromParents(final RuleNode node){
 
         if (node == null)
             return null;
@@ -71,7 +78,7 @@ public class RuleNode {
         }
 
         // Process children first (bottom-up)
-        List<RuleNode> newChildrenList = new ArrayList<>();
+        final List<RuleNode> newChildrenList = new ArrayList<>();
         for (RuleNode child : node.children) {
 
             // recursive call! get all kids from belowm and slap those onto our list.
@@ -100,19 +107,60 @@ public class RuleNode {
     }
 
     private final static Comparator<AttributeStats> greedyLeastBranchesComparison = Comparator
-        .comparingInt((AttributeStats a) -> a.branches)
+        .comparingInt((AttributeStats a) -> a.numberOfDistinctKValues)
         .thenComparingInt(a -> -a.maxGroupSize)
-        .thenComparingInt(a -> a.index);
+        .thenComparingInt(a -> a.attributeIndex);
 
-    private RuleNode[] findChildren(ArrayList<Node> childrenNodes, int dimension) {
-
+    private RuleNode[] findOptimalChildren(final ArrayList<Node> childrenNodes, final int dimension) {
+        if (childrenNodes == null || childrenNodes.isEmpty()) {
+            return null; // leaf node
+        }
+        final List<AttributeStats> stats = getAttributeStatsForUnusedAttributes(childrenNodes, dimension);
+        if (stats.isEmpty()) {
+            return null;
+        }
+        
+        final List<RuleNode[]> allPossibleChildTrees = stats.stream()
+                .map(attributeToSplitOn -> createChildNodesFromAttributeStats(childrenNodes,
+                        dimension,
+                        attributeToSplitOn,
+                        true))
+                .toList();
+        
+        RuleNode[] mostOptimalChildren = null;
+        int mostOptimalNumClauses = Integer.MAX_VALUE;
+        for (RuleNode[] setOfChildNodes : allPossibleChildTrees) {
+            final int numClauses = Arrays.stream(setOfChildNodes)
+                    .mapToInt(RuleNode::getNumberOfClauses)
+                    .sum();
+            if (numClauses < mostOptimalNumClauses) {
+                mostOptimalNumClauses = numClauses;
+                mostOptimalChildren = setOfChildNodes;
+            }
+        }
+        
+        return mostOptimalChildren;
+    }
+    
+    private RuleNode[] findChildrenGreedyTechnique(final ArrayList<Node> childrenNodes, final int dimension) {
         if (childrenNodes == null || childrenNodes.isEmpty()) {
             return null; // leaf node
         }
 
+        final List<AttributeStats> stats = getAttributeStatsForUnusedAttributes(childrenNodes, dimension);
+
+        if (stats.isEmpty()) {
+            return null;
+        }
+
+        AttributeStats best = stats.stream().min(greedyLeastBranchesComparison).orElse(null);
+
+        return createChildNodesFromAttributeStats(childrenNodes, dimension, best, false);
+    }
+
+    private List<AttributeStats> getAttributeStatsForUnusedAttributes(final ArrayList<Node> childrenNodes, final int dimension) {
         // Build stats for each unused attribute. Use sequential if Node.dimension small.
-        List<AttributeStats> stats = IntStream.range(0, dimension)
-            .parallel() // remove .parallel() if Node.dimension is small
+        final List<AttributeStats> stats = IntStream.range(0, dimension)
             .filter(i -> !attributesAlreadyUsed.contains(i))
             .mapToObj(i -> {
                 HashMap<Integer, Integer> counts = new HashMap<>();
@@ -123,34 +171,29 @@ public class RuleNode {
                 }
                 return new AttributeStats(i, counts);
             })
-            .collect(Collectors.toList());
+            .toList();
+        return stats;
+    }
 
-        if (stats.isEmpty()) {
-            return null;
-        }
+    private RuleNode[] createChildNodesFromAttributeStats(final ArrayList<Node> childrenNodes, final int dimension, final AttributeStats attributeToSplitOn, final boolean findingOptimalChildren) {
+        // attribute to split on is the particular x attribute which we are factoring out of the rule tree next. the counts is a map of how many occurences of each particular k value we see in the childNodes of this RuleNode.
+        final ArrayList<RuleNode> newChildren = new ArrayList<>();
+        final List<Integer> distinctValuesForThisAttribute = new ArrayList<>(attributeToSplitOn.countsOfEachKValueForThisAttribute.keySet());
+        Collections.sort(distinctValuesForThisAttribute);
 
-        AttributeStats best = stats.stream().min(greedyLeastBranchesComparison).orElse(null);
-        if (best == null) 
-            return null;
-
-        ArrayList<RuleNode> newChildren = new ArrayList<>(best.branches);
-        List<Integer> distinctValues = new ArrayList<>(best.counts.keySet());
-        Collections.sort(distinctValues);
-
-        for (int val : distinctValues) {
-            ArrayList<Node> subset = new ArrayList<>();
+        for (int valueToFactorOut : distinctValuesForThisAttribute) {
+            final ArrayList<Node> subsetofChildrenNodesForThisTree = new ArrayList<>();
+            
             for (Node n : childrenNodes) {
-                if (n.values[best.index] == val) subset.add(n);
+                if (n.values[attributeToSplitOn.attributeIndex] == valueToFactorOut)
+                    subsetofChildrenNodesForThisTree.add(n);
             }
-
-            // Each child gets its own copy of used attributes (including best.index)
-            Set<Integer> childUsed = new HashSet<>(this.attributesAlreadyUsed);
-            childUsed.add(best.index);
-
-            RuleNode child = new RuleNode(best.index, val, subset, childUsed, dimension);
-            newChildren.add(child);
+            
+            // Each child gets its own copy of used attributes (including attributeToSplitOn.index)
+            final Set<Integer> childUsed = new HashSet<>(this.attributesAlreadyUsed);
+            childUsed.add(attributeToSplitOn.attributeIndex);
+            newChildren.add(new RuleNode(attributeToSplitOn.attributeIndex, valueToFactorOut, subsetofChildrenNodesForThisTree, childUsed, dimension, findingOptimalChildren));
         }
-
         return newChildren.toArray(new RuleNode[0]);
     }
 
@@ -165,7 +208,7 @@ public class RuleNode {
         return toString(false, -1);
     }
 
-    private static String indent (int depth) {
+    private static String indent (final int depth) {
         return new StringBuilder()
             .append("\t".repeat(depth - 1))
             .append("|----")
@@ -174,7 +217,7 @@ public class RuleNode {
     
     // Recursive helper for indentation-based printing (single-line format)
     // Indentation: each level adds "|- - " so it visually flows down
-    private void buildTreeString(StringBuilder sb, RuleNode node, int depth, boolean printSize, int classification) {
+    private void buildTreeString(final StringBuilder sb, final RuleNode node, final int depth, final boolean printSize, final int classification) {
         if (node == null) return;
 
         // root line
@@ -251,7 +294,7 @@ public class RuleNode {
     }
 
     // Counts leaf nodes only.
-    public int subtreeSize(RuleNode node) {
+    public int subtreeSize(final RuleNode node) {
         if (node == null) 
             return 0;
         if (node.children == null) 
@@ -262,7 +305,7 @@ public class RuleNode {
             .sum();
     }
 
-    public int getNumberOfClauses(RuleNode node) {
+    public static int getNumberOfClauses(final RuleNode node) {
         if (node == null)
             return 0;
 
@@ -271,7 +314,7 @@ public class RuleNode {
 
         if (node.children != null) {
             count += Arrays.stream(node.children)
-                    .mapToInt(this::getNumberOfClauses)
+                    .mapToInt(RuleNode::getNumberOfClauses)
                     .sum();
         }
         return count;

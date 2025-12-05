@@ -1000,7 +1000,8 @@ public class CreateFunctionWindow {
                                 classificationNames,
                                 null,
                                 subFunctionsForEachAttribute,
-                                magicFunctionMode));
+                                magicFunctionMode,
+                                false));
 
                 interviewCreationTask.whenComplete((result, throwable) ->
                         SwingUtilities.invokeLater(() -> {

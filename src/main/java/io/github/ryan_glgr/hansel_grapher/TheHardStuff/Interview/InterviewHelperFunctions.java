@@ -7,7 +7,8 @@ public class InterviewHelperFunctions {
                                               Float[] weights,
                                               int numClasses,
                                               InterviewMode mode,
-                                              MagicFunctionMode magicMode) {
+                                              MagicFunctionMode magicMode,
+                                              boolean findOptimalRuleTrees) {
         return new Interview(
                 kValues,
                 weights,
@@ -17,7 +18,8 @@ public class InterviewHelperFunctions {
                 createDefaultClassificationNames(numClasses),
                 null,
                 new Interview[kValues.length],
-                magicMode
+                magicMode,
+                findOptimalRuleTrees
         );
     }
 
