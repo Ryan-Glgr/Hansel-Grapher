@@ -126,6 +126,8 @@ public class Main {
             Integer[] kValues = interview.kVals;
             VisualizationDOT.makeExpansionsDOT(interview.data, interview.adjustedLowUnitsByClass, kValues, kValues.length);
 
+            VisualizationDOT.makeRuleTreesDOT(interview.ruleTrees, interview.attributeNames);
+
             InterviewMode interviewMode = interview.interviewStats.interviewMode;
             String interviewStatsOutputString = interviewMode + " Interview Stats";
             InterviewStatsVisualizer.savePDF(interview.interviewStats,
@@ -134,6 +136,7 @@ public class Main {
 
             VisualizationDOT.compileDotAsync("out/HanselChains.dot");
             VisualizationDOT.compileDotAsync("out/Expansions.dot");
+            VisualizationDOT.compileDotAsync("out/RuleTrees.dot");
         }
         catch (Exception e){
             e.printStackTrace();
@@ -145,8 +148,9 @@ public class Main {
 //        for (InterviewMode mode: InterviewMode.values()) {
 //            InterviewCreationTestCases.createHeartFailureInterview(mode, true);
 //        }
-        InterviewCreationTestCases.createHeartFailureInterview(InterviewMode.BEST_MINIMUM_CONFIRMED, false);
-        InterviewCreationTestCases.createHeartFailureInterview(InterviewMode.BEST_MINIMUM_CONFIRMED, true);
+        visualizeStatistics(InterviewCreationTestCases.createBasicInterviewWithSubfunctions(InterviewMode.BEST_MINIMUM_CONFIRMED, false));
+//        InterviewCreationTestCases.createHeartFailureInterview(InterviewMode.BEST_MINIMUM_CONFIRMED, false);
+//        InterviewCreationTestCases.createHeartFailureInterview(InterviewMode.BEST_MINIMUM_CONFIRMED, true);
 
 //        visualizeStatistics(interview);
 

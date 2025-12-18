@@ -41,6 +41,7 @@ public class Interview {
     private final int numClasses;
     public final String[] classificationNames;
     public final Attribute[] attributes;
+    public final String[] attributeNames;
     public final Integer[] kVals;
     private final Set<Node>[] lowUnitsForEachClassification; // used for the magic function mode when we know what the low units are already, and we are trying to run the interview.
 
@@ -59,6 +60,7 @@ public class Interview {
                      final boolean findOptimalRuleTrees) {
         this.highestPossibleClassification = numClasses - 1;
         this.classificationNames = classificationNames;
+	this.attributeNames = attributeNames;
         this.inputScanner = new Scanner(System.in);
         this.magicFunctionMode = magicFunctionMode;
         this.numClasses = numClasses;

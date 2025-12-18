@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleNode;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
 
 import java.awt.Color;
@@ -88,6 +89,29 @@ public class VisualizationDOT {
         attr.append(", fillcolor = \"").append(nodeColor).append("\"");
 
         fw.write(temp.hashCode() + " [" + attr.toString() + "];\n\t");
+    }
+
+    private static void writeRuleNode(FileWriter fw,
+                                      RuleNode node,
+                                      int classification,
+                                      String color,
+                                      String[] attributeNames) throws IOException {
+
+        int id = System.identityHashCode(node);
+
+        String label;
+        if (node.attributeIndex == null) {
+            label = "ROOT";
+        } else {
+            label = attributeNames[node.attributeIndex] + " >= " + node.attributeValue;
+        }
+
+        fw.write(id + " [");
+        fw.write("label = \"" + label + "\", ");
+        fw.write("shape = rectangle, ");
+        fw.write("style = filled, ");
+        fw.write("fillcolor = \"" + color + "\"");
+        fw.write("];\n\t");
     }
 
     private static String nodeLabel(Node temp, boolean isLow) {
@@ -177,6 +201,50 @@ public class VisualizationDOT {
         fw.write("}");
         fw.close();
     }
+
+    private static void traverseRuleTree(FileWriter fw,
+                                         RuleNode node,
+                                         String color,
+                                         String[] attributeNames) throws IOException {
+
+        int id = System.identityHashCode(node);
+
+        String label = (node.attributeIndex == null)
+                ? "ROOT"
+                : attributeNames[node.attributeIndex] + " >= " + node.attributeValue;
+
+        fw.write(id + " [label=\"" + label + "\", style=filled, fillcolor=\"" + color + "\"];\n\t");
+
+        if (node.children == null) return;
+
+        for (RuleNode child : node.children) {
+            int childId = System.identityHashCode(child);
+            traverseRuleTree(fw, child, color, attributeNames);
+            fw.write(id + " -> " + childId + ";\n\t");
+        }
+    }
+
+    public static void makeRuleTreesDOT(RuleNode[] ruleTrees,
+                                        String[] attributeNames) throws IOException {
+
+        FileWriter fw = new FileWriter("out/RuleTrees.dot");
+        fw.write("digraph G {\n\trankdir=TB;\n\tbgcolor=white;\n\t");
+
+        for (int c = 1; c < ruleTrees.length; c++) {
+            if (ruleTrees[c] == null) continue;
+
+            fw.write("subgraph cluster_" + c + " {\n\tstyle=invis;\n\t");
+
+            String color = getColorForClass(c, true);
+            traverseRuleTree(fw, ruleTrees[c], color, attributeNames);
+
+            fw.write("}\n\t");
+        }
+
+        fw.write("}");
+        fw.close();
+    }
+
 
     public static void compileDotAsync(String dotPath) {
         CompletableFuture.runAsync(() -> {

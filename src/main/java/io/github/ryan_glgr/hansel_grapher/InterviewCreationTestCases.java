@@ -13,7 +13,7 @@ public class InterviewCreationTestCases {
 
     public static Interview createBasicInterviewWithSubfunctions(final InterviewMode interviewMode,
                                                                   final boolean findOptimalChildren) {
-        final Integer[] kValues = new Integer[] {3, 5, 4, 3, 7, 7};
+        final Integer[] kValues = new Integer[] {3, 5, 4, 3, 4, 2};
         final Float[] weights = new Float[] {.5f, 1.65f, 1.25f, 1.0f, 2.25f, 1.85f};
         return createBasicInterviewWithSubfunctions(interviewMode, kValues, weights, findOptimalChildren);
     }
