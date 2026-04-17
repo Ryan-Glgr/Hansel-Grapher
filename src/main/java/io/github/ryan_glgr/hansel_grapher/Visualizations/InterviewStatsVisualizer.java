@@ -19,24 +19,17 @@ import org.knowm.xchart.VectorGraphicsEncoder.VectorGraphicsFormat;
  */
 public class InterviewStatsVisualizer {
 
-    public static XChartPanel<XYChart> getChartPanel(
-            InterviewStats stats,
-            InterviewMode interviewMode) {
-        return new XChartPanel<>(buildChart(stats, interviewMode));
-    }
-
     /**
      * Save chart as PDF file (vector, high-quality for print)
      */
     public static void savePDF(
-            InterviewStats stats,
-            String filePath,
-            InterviewMode interviewMode) throws IOException {
+            final InterviewStats stats,
+            final String filePath,
+            final InterviewMode interviewMode) throws IOException {
 
-        XYChart chart = buildChart(stats, interviewMode);
+        final XYChart chart = buildChart(stats, interviewMode);
         VectorGraphicsEncoder.saveVectorGraphic(chart, filePath, VectorGraphicsFormat.PDF);
     }
-
     // name of the field is the key. the list of values is the list.
     public static HashMap<String, List<Integer>> permeationStatLists;
     public static List<Integer> xData;
@@ -44,11 +37,11 @@ public class InterviewStatsVisualizer {
      * Private helper: builds XYChart from InterviewStats and fieldExtractor
      */
     private static XYChart buildChart(
-            InterviewStats stats,
-            InterviewMode interviewMode) {
+            final InterviewStats stats,
+            final InterviewMode interviewMode) {
 
-        List<PermeationStats> questions = stats.permeationStatsForEachNodeAsked;
-        PermeationStats[] permeationStats = questions.toArray(new PermeationStats[0]);
+        final List<PermeationStats> questions = stats.permeationStatsForEachNodeAsked;
+        final PermeationStats[] permeationStats = questions.toArray(new PermeationStats[0]);
 
         // re initialize these each time we make a new chart. they need to be fields so that we can use them in the toggle, when
         // we have the same chart, just wanting to add or remove a series.
@@ -59,8 +52,8 @@ public class InterviewStatsVisualizer {
             xData.add(i + 1); // Question index
         }
 
-        String title = "Permeation stats through " + interviewMode.toString() + " Interview";
-        XYChart chart = new XYChartBuilder()
+        final String title = "Permeation stats through " + interviewMode.toString() + " Interview";
+        final XYChart chart = new XYChartBuilder()
                 .width(900)
                 .height(540)
                 .title(title)
@@ -72,11 +65,11 @@ public class InterviewStatsVisualizer {
         chart.getStyler().setMarkerSize(6);
         chart.getStyler().setXAxisTickMarkSpacingHint(50);
 
-        for (PermeationStatistic field : PermeationStatistic.values()) {
+        for (final PermeationStatistic field : PermeationStatistic.values()) {
             
             // make a new list, and add all the questions' respective stats for that field.
-            List<Integer> yData = new ArrayList<>();
-            for (PermeationStats permeationStat : permeationStats) {
+            final List<Integer> yData = new ArrayList<>();
+            for (final PermeationStats permeationStat : permeationStats) {
                 yData.add(switch (field) {
                     case NUMBER_OF_CONFIRMATIONS -> permeationStat.numberOfConfirmations;
                     case NUMBER_OF_NODES_TOUCHED_ABOVE -> permeationStat.numberOfNodesTouchedAbove;
@@ -87,21 +80,12 @@ public class InterviewStatsVisualizer {
             permeationStatLists.put(field.toString(), yData);
             try {
                 chart.addSeries(field.toString(), xData, yData);
-            } catch (Exception e){
+            } catch (final Exception e){
                 e.printStackTrace();
                 System.out.println("X DATA: " + xData);
                 System.out.println("Y DATA: " + yData);
             }
         }
         return chart;
-    }
-
-    public static void toggleStatistic(XYChart currentChart, PermeationStatistic statToToggle){
-        if (currentChart.getSeriesMap().containsKey(statToToggle.toString())){
-            currentChart.removeSeries(statToToggle.toString());
-        }
-        else {
-            currentChart.addSeries(statToToggle.toString(), xData, permeationStatLists.get(statToToggle.toString()));
-        }
     }
 }

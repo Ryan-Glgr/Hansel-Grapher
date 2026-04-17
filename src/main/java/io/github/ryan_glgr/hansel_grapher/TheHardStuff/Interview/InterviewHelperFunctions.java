@@ -3,12 +3,12 @@ package io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview;
 import java.util.stream.IntStream;
 
 public class InterviewHelperFunctions {
-    public static Interview createSubFunction(Integer[] kValues,
-                                              Float[] weights,
-                                              int numClasses,
-                                              InterviewMode mode,
-                                              MagicFunctionMode magicMode,
-                                              boolean findOptimalRuleTrees) {
+    public static Interview createSubFunction(final Integer[] kValues,
+                                              final Float[] weights,
+                                              final int numClasses,
+                                              final InterviewMode mode,
+                                              final MagicFunctionMode magicMode,
+                                              final boolean findOptimalRuleTrees) {
         return new Interview(
                 kValues,
                 weights,
@@ -18,18 +18,17 @@ public class InterviewHelperFunctions {
                 createDefaultClassificationNames(numClasses),
                 null,
                 new Interview[kValues.length],
-                magicMode,
-                findOptimalRuleTrees
+                magicMode
         );
     }
 
-    public static String[] createDefaultAttributeNames(int numAttributes) {
+    public static String[] createDefaultAttributeNames(final int numAttributes) {
         return IntStream.range(0, numAttributes)
                 .mapToObj(i -> "Attribute " + i)
                 .toArray(String[]::new);
     }
 
-    public static String[] createDefaultClassificationNames(int numClasses) {
+    public static String[] createDefaultClassificationNames(final int numClasses) {
         return IntStream.range(0, numClasses)
                 .mapToObj(i -> "Classification " + i)
                 .toArray(String[]::new);

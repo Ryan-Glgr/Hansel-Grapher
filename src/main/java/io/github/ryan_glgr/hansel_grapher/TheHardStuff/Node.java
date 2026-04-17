@@ -59,10 +59,10 @@ public class Node {
     public double umbrellaMagnitude;
 
     // takes in a datapoint, and makes a copy of that and stores that as our "point"
-    private Node(Integer[] datapoint,
-                 int numClasses,
-                 int dimension,
-                 int nodeID) {
+    private Node(final Integer[] datapoint,
+                 final int numClasses,
+                 final int dimension,
+                 final int nodeID) {
         // copy the passed in datapoint to this node's point.
         this.values = Arrays.copyOf(datapoint, datapoint.length);
 
@@ -88,22 +88,22 @@ public class Node {
         this.nodeID = nodeID;
     }
 
-    public Node(Node n) {
+    public Node(final Node n) {
         this(n.values, n.maxPossibleValue + 1, n.upExpansions.length, n.nodeID);
     }
 
-    public static String printListOfNodes(List<Node> nodes) {
-        List<String> valuesStrings = nodes.stream()
+    public static String printListOfNodes(final List<Node> nodes) {
+        final List<String> valuesStrings = nodes.stream()
                 .map(node -> "\n" + Arrays.toString(node.values))
                 .toList();
         return valuesStrings.toString();
     }
 
-    private void findExpansions(HashMap<Integer, Node> nodes, int dimension) {
+    private void findExpansions(final HashMap<Integer, Node> nodes, final int dimension) {
 
         // Parallel computation of expansions for each attribute
         IntStream.range(0, dimension).parallel().forEach(attribute -> {
-            Integer[] key = Arrays.copyOf(values, values.length);
+            final Integer[] key = Arrays.copyOf(values, values.length);
 
             // increment the value of key at this attribute, so we can find the one with + 1 in this digit.
             key[attribute]++;
@@ -116,7 +116,7 @@ public class Node {
     }
 
     // hash function is easy. k value [i] * point val [i] as a running sum and then vals [0] gets added.
-    public static Integer hash(Integer[] keyVal) {
+    public static Integer hash(final Integer[] keyVal) {
         long sum = 0;
         for (int i = 0; i < keyVal.length; i++) {
             sum += (long) Math.pow(31, i) * keyVal[i];
@@ -126,7 +126,7 @@ public class Node {
 
     // Helper method to increment a counter array based on kValues bounds
     // Returns true if increment was successful, false if we've wrapped around completely
-    public static boolean incrementCounter(Integer[] counter, Integer[] kValues) {
+    public static boolean incrementCounter(final Integer[] counter, final Integer[] kValues) {
         int attribute = 0;
 
         // incrementing logic to go through all digits, all k vals.
@@ -147,20 +147,20 @@ public class Node {
 
     // Helper method to create a properly initialized counter array for use with incrementCounter
     // Returns array filled with 0s except first element is -1, so first increment gives [0,0,0,...]
-    public static Integer[] counterInitializer(Integer[] kValues) {
-        Integer[] counter = new Integer[kValues.length];
+    public static Integer[] counterInitializer(final Integer[] kValues) {
+        final Integer[] counter = new Integer[kValues.length];
         Arrays.fill(counter, 0);
         counter[0] = -1;
         return counter;
     }
 
     // makes all our nodes and populates the map
-    public static HashMap<Integer, Node> makeNodes(Integer[] kVals, int numClasses) {
+    public static HashMap<Integer, Node> makeNodes(final Integer[] kVals, final int numClasses) {
 
-        int dimension = kVals.length;
-        HashMap<Integer, Node> nodes = new HashMap<Integer, Node>();
+        final int dimension = kVals.length;
+        final HashMap<Integer, Node> nodes = new HashMap<Integer, Node>();
 
-        Integer[] kValsToMakeNode = counterInitializer(kVals);
+        final Integer[] kValsToMakeNode = counterInitializer(kVals);
 
         // iterate through all the digits, and make all the nodes. 
         int lastNodeID = 0;
@@ -174,9 +174,9 @@ public class Node {
         }
 
         // re initialize so we can copy paste
-        Integer[] finalKValsToMakeNode = counterInitializer(kVals);
+        final Integer[] finalKValsToMakeNode = counterInitializer(kVals);
         while (incrementCounter(finalKValsToMakeNode, kVals)) {
-            Node temp = nodes.get(hash(finalKValsToMakeNode));
+            final Node temp = nodes.get(hash(finalKValsToMakeNode));
             temp.findExpansions(nodes, dimension);
         }
 
@@ -195,8 +195,8 @@ public class Node {
         // BFS-based expansion to set ceiling of below nodes, and floor of above nodes.
         final Queue<Node> queue = new LinkedList<>();
         final Set<Node> visited = new HashSet<>();
-        RoaringBitmap nodesConfirmed = new RoaringBitmap();
-        RoaringBitmap nodesWithBoundChanges = new RoaringBitmap();
+        final RoaringBitmap nodesConfirmed = new RoaringBitmap();
+        final RoaringBitmap nodesWithBoundChanges = new RoaringBitmap();
         Integer numberOfNodesTouched = 0;
         queue.add(this);
         visited.add(this);
@@ -292,20 +292,20 @@ public class Node {
 
     private void removeUpdatedNodesFromReachableSet(final RoaringBitmap nodesWithBoundChanges,
                                                     final Map<Integer, Node> nodeByID) {
-        RoaringBitmap toRemoveFromAbove = new RoaringBitmap();
-        RoaringBitmap toRemoveFromBelow = new RoaringBitmap();
-        RoaringBitmap relevantAbove = RoaringBitmap.and(nodesWithBoundChanges, this.reachableNodesAbove);
-        RoaringBitmap relevantBelow = RoaringBitmap.and(nodesWithBoundChanges, this.reachableNodesBelow);
+        final RoaringBitmap toRemoveFromAbove = new RoaringBitmap();
+        final RoaringBitmap toRemoveFromBelow = new RoaringBitmap();
+        final RoaringBitmap relevantAbove = RoaringBitmap.and(nodesWithBoundChanges, this.reachableNodesAbove);
+        final RoaringBitmap relevantBelow = RoaringBitmap.and(nodesWithBoundChanges, this.reachableNodesBelow);
 
-        relevantAbove.forEach((int updatedNodeID) -> {
-            Node updatedNode = nodeByID.get(updatedNodeID);
+        relevantAbove.forEach((final int updatedNodeID) -> {
+            final Node updatedNode = nodeByID.get(updatedNodeID);
             if (updatedNode != null && this.maxPossibleValue <= updatedNode.classification) {
                 toRemoveFromAbove.add(updatedNodeID);
             }
         });
 
-        relevantBelow.forEach((int updatedNodeID) -> {
-            Node updatedNode = nodeByID.get(updatedNodeID);
+        relevantBelow.forEach((final int updatedNodeID) -> {
+            final Node updatedNode = nodeByID.get(updatedNodeID);
             if (updatedNode != null && this.classification >= updatedNode.maxPossibleValue) {
                 toRemoveFromBelow.add(updatedNodeID);
             }
@@ -319,19 +319,19 @@ public class Node {
     }
 
     // For updated nodes: check all nodes in MY reachable sets
-    private void cleanOwnReachableSets(Map<Integer, Node> nodeByID) {
-        RoaringBitmap toRemoveAbove = new RoaringBitmap();
-        RoaringBitmap toRemoveBelow = new RoaringBitmap();
+    private void cleanOwnReachableSets(final Map<Integer, Node> nodeByID) {
+        final RoaringBitmap toRemoveAbove = new RoaringBitmap();
+        final RoaringBitmap toRemoveBelow = new RoaringBitmap();
 
-        this.reachableNodesAbove.forEach((int nodeID) -> {
-            Node other = nodeByID.get(nodeID);
+        this.reachableNodesAbove.forEach((final int nodeID) -> {
+            final Node other = nodeByID.get(nodeID);
             if (other != null && this.maxPossibleValue <= other.classification) {
                 toRemoveAbove.add(nodeID);
             }
         });
 
-        this.reachableNodesBelow.forEach((int nodeID) -> {
-            Node other = nodeByID.get(nodeID);
+        this.reachableNodesBelow.forEach((final int nodeID) -> {
+            final Node other = nodeByID.get(nodeID);
             if (other != null && this.classification >= other.maxPossibleValue) {
                 toRemoveBelow.add(nodeID);
             }
@@ -351,7 +351,7 @@ public class Node {
     private static final Integer NOT_SET = Integer.MAX_VALUE;
 
     // does a BFS from each node, updating rankings as we go. Ranking our umbrella size and the minimum classifications.
-    public static void updateAllNodeRankings(ArrayList<Node> aliveNodes,
+    public static void updateAllNodeRankings(final ArrayList<Node> aliveNodes,
                                              final BalanceRatio balanceRatio,
                                              final int numClasses,
                                              final PermeationStats statsFromLastUpdate,
@@ -377,17 +377,17 @@ public class Node {
                     node.totalUmbrellaCases = node.aboveUmbrellaCases + node.underneathUmbrellaCases;
                 });
 
-        RoaringBitmap[] nodesThatWouldConfirmForEachClassCountingUpwards = new RoaringBitmap[numClasses];
+        final RoaringBitmap[] nodesThatWouldConfirmForEachClassCountingUpwards = new RoaringBitmap[numClasses];
         for (int i = 0; i < numClasses; i++) {
             nodesThatWouldConfirmForEachClassCountingUpwards[i] = new RoaringBitmap();
         }
-        RoaringBitmap[] nodesThatWouldConfirmForEachClassCountingDownwards = new RoaringBitmap[numClasses];
+        final RoaringBitmap[] nodesThatWouldConfirmForEachClassCountingDownwards = new RoaringBitmap[numClasses];
         for (int i = 0; i < numClasses; i++) {
             nodesThatWouldConfirmForEachClassCountingDownwards[i] = new RoaringBitmap();
         }
 
         // determine whether each node is going to be confirmed for each class, counting both up and downwards
-        for (Node n : aliveNodes) {
+        for (final Node n : aliveNodes) {
             for (int classification = n.classification; classification <= n.maxPossibleValue; classification++) {
                 // flag whether this node would be confirmed for each class or not, counting both up and down
                 if (n.wouldBeConfirmedForClass(classification, true)) {
@@ -423,7 +423,7 @@ public class Node {
     private void updateConfirmationStats(final RoaringBitmap[] nodesThatWouldConfirmForEachClass,
                                          final boolean countUpwards) {
 
-        RoaringBitmap reachableNodes = countUpwards
+        final RoaringBitmap reachableNodes = countUpwards
                 ? this.reachableNodesAbove
                 : this.reachableNodesBelow;
 
@@ -434,9 +434,9 @@ public class Node {
 
     // builds the reachable set when we create a node, does this by doing a BFS to all possible nodes both up and down
     private RoaringBitmap findAllNodesReachable(final boolean upWardsUmbrella) {
-        RoaringBitmap reachableNodes = new RoaringBitmap();
-        Queue<Node> queue = new LinkedList<>();
-        Set<Integer> visited = new HashSet<>();
+        final RoaringBitmap reachableNodes = new RoaringBitmap();
+        final Queue<Node> queue = new LinkedList<>();
+        final Set<Integer> visited = new HashSet<>();
         queue.add(this);
         visited.add(this.nodeID);
 
@@ -446,7 +446,7 @@ public class Node {
                     ? current.upExpansions
                     : current.downExpansions;
 
-            for (Node neighbor : neighbors) {
+            for (final Node neighbor : neighbors) {
                 if (neighbor != null && !visited.contains(neighbor.nodeID)) {
                     reachableNodes.add(neighbor.nodeID);
                     visited.add(neighbor.nodeID);
@@ -458,7 +458,7 @@ public class Node {
     }
 
     // determines if a neighbor would get confirmed if it's upstairs or downstairs neighbor were given "hypotheticalClass"
-    private boolean wouldBeConfirmedForClass(int hypotheticalClass, boolean countingUpwards) {
+    private boolean wouldBeConfirmedForClass(final int hypotheticalClass, final boolean countingUpwards) {
         // return false if we're already confirmed.
         if (this.classificationConfirmed) {
             return false;
@@ -475,7 +475,7 @@ public class Node {
         }
     }
 
-    public int computeHammingDistance(Node other) {
+    public int computeHammingDistance(final Node other) {
         int distance = 0;
         for (int i = 0; i < this.values.length; i++) {
             distance += Math.abs(this.values[i] - other.values[i]);
@@ -485,13 +485,13 @@ public class Node {
 
     // checks whether 'this' is getting dominated - smothered or even in ALL attributes. Either upwards or downwards.
     // in terms of finding low units, we only care about the other node on top case, but going the other way, we could find HIGH units.
-    public boolean isDominatedBy(Node otherNode, boolean otherNodeOnTop) {
+    public boolean isDominatedBy(final Node otherNode, final boolean otherNodeOnTop) {
 
         // look for ONE digit, where our boy isn't getting covered. if otherNode is greater or equal 
         //(less or equal if otherNodeOnTop is false, meaning 'this' node is on top) in all attributes, we are covered.
         for (int digitPosition = 0; digitPosition < this.values.length; digitPosition++) {
-            int thisValue = this.values[digitPosition];
-            int otherValue = otherNode.values[digitPosition];
+            final int thisValue = this.values[digitPosition];
+            final int otherValue = otherNode.values[digitPosition];
 
             if (otherNodeOnTop && thisValue > otherValue) {
                 return false;
@@ -509,7 +509,7 @@ public class Node {
     // used when we are computing the number of umbrella cases. we need to sort by the hamming value of the case.
     public Integer sumUpDataPoint() {
         Integer sum = 0;
-        for (Integer x : this.values) {
+        for (final Integer x : this.values) {
             sum += x;
         }
         return sum;
@@ -521,18 +521,18 @@ public class Node {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (this == obj)
             return true;
         if (obj == null || getClass() != obj.getClass())
             return false;
 
-        Node node = (Node) obj;
+        final Node node = (Node) obj;
         return Arrays.equals(values, node.values);
     }
 
     public String toString() {
-        StringBuilder s = new StringBuilder();
+        final StringBuilder s = new StringBuilder();
         s.append("DATAPOINT:\n\t");
         s.append(Arrays.toString(values)).append("\n");
 
@@ -540,7 +540,7 @@ public class Node {
 
         if (DEBUG_PRINTING) {
             s.append("UP EXPANSIONS:\n");
-            for (Node t : upExpansions) {
+            for (final Node t : upExpansions) {
                 if (t == null)
                     s.append("\tNULL\n");
 
@@ -549,7 +549,7 @@ public class Node {
             }
 
             s.append("DOWN EXPANSIONS:\n");
-            for (Node t : downExpansions) {
+            for (final Node t : downExpansions) {
                 if (t == null)
                     s.append("\tNULL\n");
 

@@ -56,8 +56,7 @@ public class Interview {
                      final String[] classificationNames,
                      final Set<Integer[]>[] setOfLowUnitsByClassification, // pass in the nodes which are going to satisfy our magic function. NEEDED IFF YOU ARE DOING MagicFunctionMode.KNOWN_LOW_UNITS_MODE!
                      final Interview[] subFunctionsForEachAttribute,       // needs to at least be an Interview[numAttributes], but they can all be null if you want no subfunctions.
-                     final MagicFunctionMode magicFunctionMode,          // the mode which actually determines how we know a nodes classification
-                     final boolean findOptimalRuleTrees) {
+                     final MagicFunctionMode magicFunctionMode) {          // the mode which actually determines how we know a nodes classification
         this.highestPossibleClassification = numClasses - 1;
         this.classificationNames = classificationNames;
 	this.attributeNames = attributeNames;
@@ -66,7 +65,7 @@ public class Interview {
         this.numClasses = numClasses;
 
         this.kVals = kVals;
-        int numAttributes = kVals.length;
+        final int numAttributes = kVals.length;
         this.attributes = IntStream.range(0, numAttributes)
                 .parallel()
                 .mapToObj(index -> new Attribute(
@@ -109,17 +108,17 @@ public class Interview {
         // once the interview is conducted, we are in the Monotone ordinal function recreation stage:
         this.lowUnitsByClass = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
         this.adjustedLowUnitsByClass = HanselChains.removeUselessLowUnits(lowUnitsByClass);
-        this.ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnitsByClass, numAttributes, findOptimalRuleTrees);
+        this.ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnitsByClass, numAttributes);
 
         inputScanner.close();
     }
 
     // mega function which determines how we are going to ask questions.
     // mode determines the question asking heuristics. umbrellaBased determines if we sort by umbrella metrics.
-    private InterviewStats conductInterview(InterviewMode mode) {
+    private InterviewStats conductInterview(final InterviewMode mode) {
 
-        ArrayList<Node> allNodes = new ArrayList<>(data.values());
-        InterviewStats stats = switch(mode) {
+        final ArrayList<Node> allNodes = new ArrayList<>(data.values());
+        final InterviewStats stats = switch(mode) {
 
             case HIGHEST_TOTAL_UMBRELLA_SORT -> {
                 balanceRatio = DEFAULT_BALANCE_RATIO;
@@ -269,7 +268,7 @@ public class Interview {
             stats.permeationStatsForEachNodeAsked);
     }
 
-    private int askQuestion(Node n) {
+    private int askQuestion(final Node n) {
         return switch (magicFunctionMode) {
             case KVAL_TIMES_WEIGHTS_MODE -> linearFunctionQuestion(n);
             case KNOWN_LOW_UNITS_MODE -> knownLowUnitsQuestion(n);
@@ -278,7 +277,7 @@ public class Interview {
     }
 
     // just returns k values[i] * weights[i] for this node / divided by the dimension to keep the class count in check.
-    private int linearFunctionQuestion(Node datapoint){
+    private int linearFunctionQuestion(final Node datapoint){
         int sum = 0;
         for (int i = 0; i < datapoint.values.length; i++){
             sum += (int)(datapoint.values[i] * attributes[i].weight);
@@ -289,13 +288,13 @@ public class Interview {
 
     // used when we already know the function, and we want to re run the interview.
     // useful for recreating results where we know their low units or boolean function.
-    private int knownLowUnitsQuestion(Node datapoint){
+    private int knownLowUnitsQuestion(final Node datapoint){
 
         // we can just assume that every node is always going to be at least class 0, by the properties of monotonicity.
         int maxClasification = 0;
         for (int classification = 1; classification < lowUnitsForEachClassification.length; classification++) {
 
-            for (Node lowUnit : lowUnitsForEachClassification[classification]) {
+            for (final Node lowUnit : lowUnitsForEachClassification[classification]) {
                 if (lowUnit.isDominatedBy(datapoint, true)) {
                     maxClasification = classification;
                     break; // once we know it is at least this class, we don't need to keep looping through all the nodes checking. we can just move on to the next class now.
@@ -348,14 +347,14 @@ public class Interview {
     }
 
     // asks the expert by printing the node and having them enter a datapoint
-    private int questionExpert(Node datapoint){
+    private int questionExpert(final Node datapoint){
 
         System.out.println("WHAT IS THE CLASSIFICATION FOR THIS DATAPOINT?");
         System.out.println(Arrays.toString(datapoint.values));
         System.out.println("\tCURRENT MINIMUM:\t" + datapoint.classification);
         System.out.println("\tCURRENT MAXIMUM:\t" + datapoint.maxPossibleValue);
         System.out.println("INPUT:\t");
-        int expertInput =inputScanner.nextInt();
+        final int expertInput =inputScanner.nextInt();
         if (expertInput < datapoint.classification || expertInput > datapoint.maxPossibleValue){
             System.out.println("MONOTONICITY VIOLATION!");
             throw new RuntimeException("MONOTONICITY RUINED!"); // use Runtime exception so that it blows up the program. we want it unchecked.
@@ -365,26 +364,26 @@ public class Interview {
 
     // Sort nodes based on umbrella strategy
     // umbrella strategy considers how many nodes are reachable underneath/above a given node. for example:
-    private InterviewStats umbrellaSortInterview(ArrayList<Node> allNodes,
-            Comparator<Node> umbrellaSortingStrategy) {
+    private InterviewStats umbrellaSortInterview(final ArrayList<Node> allNodes,
+                                                 final Comparator<Node> umbrellaSortingStrategy) {
 
-        List<Node> nodesAsked = new ArrayList<>();
-        List<PermeationStats> permeationStatsForEachNodeAsked = new ArrayList<>();
+        final List<Node> nodesAsked = new ArrayList<>();
+        final List<PermeationStats> permeationStatsForEachNodeAsked = new ArrayList<>();
 
         // Instead of sorting every time, just find the best node according to the chosen comparator
-        boolean useMin = (umbrellaSortingStrategy == NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
+        final boolean useMin = (umbrellaSortingStrategy == NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
 
         ArrayList<Node> nodesToAsk = new ArrayList<>(allNodes);
         // --- Main loop ---
         while (!nodesToAsk.isEmpty()) {
 
-            PermeationStats lastUpdate = permeationStatsForEachNodeAsked.isEmpty()
+            final PermeationStats lastUpdate = permeationStatsForEachNodeAsked.isEmpty()
                     ? new PermeationStats(0, 0, 0, new RoaringBitmap(), new RoaringBitmap())
                     : permeationStatsForEachNodeAsked.getLast();
 
             Node.updateAllNodeRankings(nodesToAsk, this.balanceRatio, this.numClasses, lastUpdate, allNodesToTheirIDsMap);
 
-            Node n = useMin
+            final Node n = useMin
                 ? Collections.min(nodesToAsk, umbrellaSortingStrategy)
                 : Collections.max(nodesToAsk, umbrellaSortingStrategy);
 
@@ -397,7 +396,7 @@ public class Interview {
             }
 
             // get our value either from expert or ML
-            int classification = askQuestion(n);
+            final int classification = askQuestion(n);
 
             // this sets all the upper bounds below, and all the lower bounds above.
             final PermeationStats stats = n.permeateClassification(classification);
@@ -414,9 +413,9 @@ public class Interview {
     }
 
     // function where we search through chains, which get recursively split into chunks.
-    private InterviewStats binarySearchChunksInterview(ArrayList<ArrayList<Node>> hanselChainSet,
-                                                       boolean completingTheSquareTechnique,
-                                                       Comparator<Node> choosingAlternateMiddleNodeTechnique) {
+    private InterviewStats binarySearchChunksInterview(final ArrayList<ArrayList<Node>> hanselChainSet,
+                                                       final boolean completingTheSquareTechnique,
+                                                       final Comparator<Node> choosingAlternateMiddleNodeTechnique) {
 
         final List<Node> questionsAsked = new ArrayList<>();
         final List<PermeationStats> permeationStats = new ArrayList<>();
@@ -439,7 +438,7 @@ public class Interview {
             final Node nodeToQuestion;
             if (completingTheSquareTechnique){
 
-                PermeationStats lastUpdate = permeationStats.isEmpty()
+                final PermeationStats lastUpdate = permeationStats.isEmpty()
                         ? new PermeationStats(0, 0, 0, new RoaringBitmap(), new RoaringBitmap())
                         : permeationStats.getLast();
                 // now that our nodes have been updated with their umbrella sizes and min classifications and such, we can determine if there is a better node than our middle node.
@@ -468,9 +467,9 @@ public class Interview {
         return new InterviewStats(questionsAsked, permeationStats);
     }
 
-    private InterviewStats traditionalBinarySearchInterview(ArrayList<ArrayList<Node>> hanselChainSet,
-                                                            boolean completingTheSquareTechnique,
-                                                            Comparator<Node> choosingAlternateMiddleNodeTechnique) {
+    private InterviewStats traditionalBinarySearchInterview(final ArrayList<ArrayList<Node>> hanselChainSet,
+                                                            final boolean completingTheSquareTechnique,
+                                                            final Comparator<Node> choosingAlternateMiddleNodeTechnique) {
 
         final List<Node> questionsAsked = new ArrayList<>();
         final List<PermeationStats> permeationStats = new ArrayList<>();
@@ -484,7 +483,7 @@ public class Interview {
         while (!chunks.isEmpty()){
 
             // get our biggest chunk (piece of Hansel chain)
-            ArrayList<Node> chunkToBinarySearch = Collections.max(chunks, Comparator.comparingInt(List::size));
+            final ArrayList<Node> chunkToBinarySearch = Collections.max(chunks, Comparator.comparingInt(List::size));
 
             // we have to keep track of our list of chains individually. so they don't get chopped up until it is time for us to query a particular chain.
             // one particular chain may get chopped into many chunks, each of which you would want to binary search.
@@ -506,7 +505,7 @@ public class Interview {
                     break;
 
                 // get the longest chunk of this HC
-                ArrayList<Node> longestPartOfThisChainNotYetConfirmed = Collections.max(chainToQuestion, Comparator.comparingInt(List::size));
+                final ArrayList<Node> longestPartOfThisChainNotYetConfirmed = Collections.max(chainToQuestion, Comparator.comparingInt(List::size));
 
                 // get the middle node
                 final int middleIndex = longestPartOfThisChainNotYetConfirmed.size() / 2;
@@ -515,7 +514,7 @@ public class Interview {
                 final Node nodeToQuestion;
                 if (completingTheSquareTechnique){
 
-                    PermeationStats lastUpdate = permeationStats.isEmpty()
+                    final PermeationStats lastUpdate = permeationStats.isEmpty()
                             ? new PermeationStats(0, 0, 0, new RoaringBitmap(), new RoaringBitmap())
                             : permeationStats.getLast();
 
@@ -530,8 +529,8 @@ public class Interview {
                     nodeToQuestion = longestPartOfThisChainNotYetConfirmed.get(middleIndex);
 
                 // ask the expert or ML
-                int classification = askQuestion(nodeToQuestion);
-                PermeationStats permStats = nodeToQuestion.permeateClassification(classification);
+                final int classification = askQuestion(nodeToQuestion);
+                final PermeationStats permStats = nodeToQuestion.permeateClassification(classification);
                 questionsAsked.add(nodeToQuestion);
                 permeationStats.add(permStats);
             }
@@ -550,11 +549,11 @@ public class Interview {
 
 
     // splits a list of nodes (part or whole hansel chain) on nodes which are confirmed
-    private ArrayList<ArrayList<Node>> splitChunkIntoPiecesHelper(ArrayList<Node> chunk) {
-        ArrayList<ArrayList<Node>> newChunks = new ArrayList<>();
-        ArrayList<Node> currentChunk = new ArrayList<>();
+    private ArrayList<ArrayList<Node>> splitChunkIntoPiecesHelper(final ArrayList<Node> chunk) {
+        final ArrayList<ArrayList<Node>> newChunks = new ArrayList<>();
+        final ArrayList<Node> currentChunk = new ArrayList<>();
     
-        for (Node node : chunk) {
+        for (final Node node : chunk) {
             if (node.classificationConfirmed) {
                 // End current chunk if we have nodes collected
                 if (!currentChunk.isEmpty()) {
@@ -575,27 +574,27 @@ public class Interview {
     }
 
     private Node getBestSquareCompletion(
-            ArrayList<Node> chunkToQuestion,
-            int middleIndex,
-            Comparator<Node> choosingAlternateMiddleNodeTechnique,
-            boolean useMaxComparison,
+            final ArrayList<Node> chunkToQuestion,
+            final int middleIndex,
+            final Comparator<Node> choosingAlternateMiddleNodeTechnique,
+            final boolean useMaxComparison,
             final PermeationStats lastUpdate) {
 
-        Node middleNode = chunkToQuestion.get(middleIndex);
+        final Node middleNode = chunkToQuestion.get(middleIndex);
 
-        Node aboveNode = (middleIndex + 1 >= chunkToQuestion.size())
+        final Node aboveNode = (middleIndex + 1 >= chunkToQuestion.size())
             ? null
             : chunkToQuestion.get(middleIndex + 1);
 
-        Node belowNode = (middleIndex - 1 < 0)
+        final Node belowNode = (middleIndex - 1 < 0)
             ? null
             : chunkToQuestion.get(middleIndex - 1);
 
         // determine our intersection. if we have above and below, intersect them. if we had one or the other, use just that set.
-        ArrayList<Node> intersection;
+        final ArrayList<Node> intersection;
         if (aboveNode != null && belowNode != null) {
             // filter nulls from expansions
-            Set<Node> upSet = Arrays.stream(belowNode.upExpansions)
+            final Set<Node> upSet = Arrays.stream(belowNode.upExpansions)
                                     .filter(Objects::nonNull)
                                     .filter(n -> !n.classificationConfirmed)
                                     .collect(Collectors.toCollection(HashSet::new));
@@ -633,7 +632,7 @@ public class Interview {
         // if it is check to see if there is a up or down exclusive expandable node
         // which is better to ask about
         if(selectedNode.equals(middleNode) && aboveNode != null && belowNode != null) {
-            ArrayList<Node> union = Stream.concat(
+            final ArrayList<Node> union = Stream.concat(
                     Arrays.stream(aboveNode.downExpansions), Arrays.stream(belowNode.upExpansions))
                     .filter(Objects::nonNull)
                     .filter(n -> !n.classificationConfirmed)
@@ -652,13 +651,13 @@ public class Interview {
         return selectedNode;
     }
 
-    private InterviewStats binarySearchStringOfExpansionsInterview(ArrayList<Node> allNodes) {
-        List<Node> nodesAsked = new ArrayList<>();
-        List<PermeationStats> permeationStats = new ArrayList<>();
+    private InterviewStats binarySearchStringOfExpansionsInterview(final ArrayList<Node> allNodes) {
+        final List<Node> nodesAsked = new ArrayList<>();
+        final List<PermeationStats> permeationStats = new ArrayList<>();
 
         while (true) {
             // Collect still alive nodes
-            List<Node> aliveNodes = allNodes.parallelStream()
+            final List<Node> aliveNodes = allNodes.parallelStream()
                 .filter(n -> !n.classificationConfirmed)
                 .collect(Collectors.toList());
 
@@ -669,18 +668,18 @@ public class Interview {
             // NOT a hansel chain necessarily. Thought it could be technically a hansel chain?
             // but just a string of Nodes which are all + 1 in some attribute from another.
             // just the longest string of dominoes.
-            ArrayList<Node> longestChain = findLongestStringOfExpansions(aliveNodes);
+            final ArrayList<Node> longestChain = findLongestStringOfExpansions(aliveNodes);
 
             if (longestChain.isEmpty()) 
                 break; // safety
 
             // Take the middle node of the longest chain
-            Node middleNode = longestChain.get(longestChain.size() / 2);
+            final Node middleNode = longestChain.get(longestChain.size() / 2);
 
             // Query expert or ML
-            int classification = askQuestion(middleNode);
+            final int classification = askQuestion(middleNode);
             // Permeate classification
-            PermeationStats permeationStatsForNode = middleNode.permeateClassification(classification);
+            final PermeationStats permeationStatsForNode = middleNode.permeateClassification(classification);
             nodesAsked.add(middleNode);
             permeationStats.add(permeationStatsForNode);
         }
@@ -688,14 +687,14 @@ public class Interview {
         return new InterviewStats(nodesAsked, permeationStats);
     }
 
-    private InterviewStats nonBinarySearchHCsInterview(ArrayList<ArrayList<Node>> hanselChainSet,
-            boolean completingTheSquareTechnique,
-            Comparator<Node> choosingAlternateMiddleNodeTechnique) {
+    private InterviewStats nonBinarySearchHCsInterview(final ArrayList<ArrayList<Node>> hanselChainSet,
+                                                       final boolean completingTheSquareTechnique,
+                                                       final Comparator<Node> choosingAlternateMiddleNodeTechnique) {
 
-        List<Node> questionsAsked = new ArrayList<>();
-        List<PermeationStats> permeationStats = new ArrayList<>();
+        final List<Node> questionsAsked = new ArrayList<>();
+        final List<PermeationStats> permeationStats = new ArrayList<>();
 
-        boolean useMaxComparison = (choosingAlternateMiddleNodeTechnique == NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
+        final boolean useMaxComparison = (choosingAlternateMiddleNodeTechnique == NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
 
         // we have to keep a list of chunks of the chain which are not confirmed. basically we chop the chain
         // each time that we confirm a node. we could confirm a whole bunch with one question, and we have to investigate all the
@@ -704,19 +703,19 @@ public class Interview {
         while (!chunks.isEmpty()){
 
             // get our biggest chunk
-            ArrayList<Node> chunkToQuestion = Collections.max(chunks, Comparator.comparingInt(List::size));
+            final ArrayList<Node> chunkToQuestion = Collections.max(chunks, Comparator.comparingInt(List::size));
 
             // this part is important. we are going to do a (nunmClassesInChunk - 1)ary search through the chain.
-            Node topNode = chunkToQuestion.getLast();
-            Node bottomNode = chunkToQuestion.getFirst();
-            int highestClassPossibleInChain = topNode.maxPossibleValue;
-            int lowestClassPossibleInChiain = bottomNode.classification;
-            int totalNumberOfClasses = highestClassPossibleInChain - lowestClassPossibleInChiain + 1;
+            final Node topNode = chunkToQuestion.getLast();
+            final Node bottomNode = chunkToQuestion.getFirst();
+            final int highestClassPossibleInChain = topNode.maxPossibleValue;
+            final int lowestClassPossibleInChiain = bottomNode.classification;
+            final int totalNumberOfClasses = highestClassPossibleInChain - lowestClassPossibleInChiain + 1;
 
             // if totalNumberOfClasses = 2, we do a typical binary search. if it is 3, we query the nodes at the 1/3rd mark and 2/3rds marks.
             for(int numerator = 1; numerator < totalNumberOfClasses; numerator++){
 
-                int indexToQuestion = (int) (((double) numerator / (double) totalNumberOfClasses) * (double) chunkToQuestion.size());
+                final int indexToQuestion = (int) (((double) numerator / (double) totalNumberOfClasses) * (double) chunkToQuestion.size());
 
                 // this is possible if say our first question of the chunk confirms a bunch of nodes up above it.
                 Node nodeToQuestion = chunkToQuestion.get(indexToQuestion);
@@ -725,7 +724,7 @@ public class Interview {
 
                 if (completingTheSquareTechnique){
 
-                    PermeationStats lastUpdate = permeationStats.isEmpty()
+                    final PermeationStats lastUpdate = permeationStats.isEmpty()
                             ? new PermeationStats(0, 0, 0, new RoaringBitmap(), new RoaringBitmap())
                             : permeationStats.getLast();
 
@@ -737,9 +736,9 @@ public class Interview {
                 }
 
                 // ask the expert or ML
-                int classification = askQuestion(nodeToQuestion);
+                final int classification = askQuestion(nodeToQuestion);
 
-                PermeationStats permStats = nodeToQuestion.permeateClassification(classification);
+                final PermeationStats permStats = nodeToQuestion.permeateClassification(classification);
                 questionsAsked.add(nodeToQuestion);
                 permeationStats.add(permStats);
             }
@@ -755,7 +754,7 @@ public class Interview {
 
     // ALL NODES IS ONLY THE UNCONFIRMED NODES AT THIS STEP OF INTERVIEW!
     // This returns the longest possible chain of expansions at this stage of our interview. IMPORTANT: this is NOT a hansel chain, but rather just a chain of Nodes which are + 1 from one another. They could and will be all in different chains all over the place.
-    private ArrayList<Node> findLongestStringOfExpansions(List<Node> allNodes) {
+    private ArrayList<Node> findLongestStringOfExpansions(final List<Node> allNodes) {
         
         /*
          * Build our longest possible path like this:
@@ -768,11 +767,11 @@ public class Interview {
          */ 
 
         // map: longest chain length starting at each node
-        Map<Node, Integer> longestPossibleChainOfExpansionsForEachNodeMap = new HashMap<>();
+        final Map<Node, Integer> longestPossibleChainOfExpansionsForEachNodeMap = new HashMap<>();
 
         // Step 1: initialize leaves (no unconfirmed upstairs neighbors) with a length of 1.
-        for (Node n : allNodes) {
-            boolean isTerminal = Arrays.stream(n.upExpansions)
+        for (final Node n : allNodes) {
+            final boolean isTerminal = Arrays.stream(n.upExpansions)
                 .allMatch(nb -> nb == null || nb.classificationConfirmed);
             if (isTerminal) {
                 longestPossibleChainOfExpansionsForEachNodeMap.put(n, 1);
@@ -784,17 +783,17 @@ public class Interview {
         while (progress) {
             progress = false;
 
-            for (Node n : allNodes) {
+            for (final Node n : allNodes) {
 
-                int bestNeighbor = Arrays.stream(n.upExpansions)
+                final int bestNeighbor = Arrays.stream(n.upExpansions)
                     .filter(neighbor -> neighbor != null && !neighbor.classificationConfirmed)
                     .mapToInt(neighbor -> longestPossibleChainOfExpansionsForEachNodeMap.getOrDefault(neighbor, 0))
                     .max()
                     .orElse(0);
 
                 // if our best neighbor is not 0, we check if it is better than what we had.
-                int newVal = (bestNeighbor > 0) ? bestNeighbor + 1 : 0;
-                int oldVal = longestPossibleChainOfExpansionsForEachNodeMap.getOrDefault(n, 0);
+                final int newVal = (bestNeighbor > 0) ? bestNeighbor + 1 : 0;
+                final int oldVal = longestPossibleChainOfExpansionsForEachNodeMap.getOrDefault(n, 0);
 
                 // if our new value is better than what we had, put that in.
                 if (newVal > oldVal) {
@@ -805,7 +804,7 @@ public class Interview {
         }
 
         // Step 3: pick starting node with the max value from our input list.
-        Node bestNode = longestPossibleChainOfExpansionsForEachNodeMap.entrySet().stream()
+        final Node bestNode = longestPossibleChainOfExpansionsForEachNodeMap.entrySet().stream()
             .max(Comparator.comparingInt(Map.Entry::getValue))
             .map(Map.Entry::getKey)
             .orElse(null);
@@ -815,7 +814,7 @@ public class Interview {
             return new ArrayList<>();
 
         // Step 4: reconstruct path greedily
-        ArrayList<Node> path = new ArrayList<>();
+        final ArrayList<Node> path = new ArrayList<>();
         Node current = bestNode;
         while (current != null && longestPossibleChainOfExpansionsForEachNodeMap.containsKey(current)) {
             path.add(current);
@@ -837,7 +836,7 @@ public class Interview {
      *      in a three class problem, we would use the minimum number of confirmed nodes, if a given class of the three were assigned.
      *      thus we take that node which had the largest number of confirmations (using the worst case)
      */
-    private InterviewStats bestMinConfirmedInterview(ArrayList<Node> allNodes){
+    private InterviewStats bestMinConfirmedInterview(final ArrayList<Node> allNodes){
         
         // interview stats we need later.
         final List<Node> nodesAsked = new ArrayList<>();
@@ -848,12 +847,12 @@ public class Interview {
 
             // now sort decreasing, using our strategy. we sort descending, by a nodes minimum guaranteed classifications.
             // that is, of it's classes, whichever is the worst, we choose the one with the best floor. we are guaranteed to confirm that many at least.
-            PermeationStats lastUpdate = permeationStatsForEachNodeAsked.isEmpty()
+            final PermeationStats lastUpdate = permeationStatsForEachNodeAsked.isEmpty()
                 ? new PermeationStats(0, 0, 0, new RoaringBitmap(), new RoaringBitmap())
                 : permeationStatsForEachNodeAsked.getLast();
             Node.updateAllNodeRankings(nodesToAsk, this.balanceRatio, this.numClasses, lastUpdate, allNodesToTheirIDsMap);
 
-            Node nodeToAsk = Collections.max(nodesToAsk, NodeComparisons.BY_MIN_CLASSIFICATIONS);
+            final Node nodeToAsk = Collections.max(nodesToAsk, NodeComparisons.BY_MIN_CLASSIFICATIONS);
 
             // get our value either from expert or ML
             final int classification = askQuestion(nodeToAsk);
@@ -874,7 +873,7 @@ public class Interview {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder();
 
         sb.append(interviewStats.interviewMode).append(" MODE\n");
         sb.append("TOTAL NUMBER OF NODES: ").append(interviewStats.numberOfNodes).append("\n");
@@ -882,7 +881,7 @@ public class Interview {
             .append(interviewStats.nodesAsked.size())
             .append('\n');
 
-        int totalLowUnits = lowUnitsByClass.stream()
+        final int totalLowUnits = lowUnitsByClass.stream()
             .mapToInt(List::size)
             .sum();
         sb.append("TOTAL NUMBER OF LOW UNITS:\t")
@@ -890,7 +889,7 @@ public class Interview {
             .append('\n');
 
         for (int classification = 0; classification < lowUnitsByClass.size(); classification++) {
-            List<Node> lowUnits = lowUnitsByClass.get(classification);
+            final List<Node> lowUnits = lowUnitsByClass.get(classification);
             sb.append("NUMBER OF LOW UNITS FOR CLASS ")
                 .append(classification)
                 .append(":\t")
@@ -911,7 +910,7 @@ public class Interview {
             .append('\n');
 
         for (int classification = 0; classification < adjustedLowUnitsByClass.size(); classification++) {
-            List<Node> adjustedLowUnits = adjustedLowUnitsByClass.get(classification);
+            final List<Node> adjustedLowUnits = adjustedLowUnitsByClass.get(classification);
             sb.append("NUMBER OF ADJUSTED LOW UNITS FOR CLASS ")
                 .append(classification)
                 .append(":\t")
@@ -927,7 +926,7 @@ public class Interview {
         if (ruleTrees != null && ruleTrees.length > 0) {
             sb.append('\n');
             for (int classification = 0; classification < ruleTrees.length; classification++) {
-                RuleNode tree = ruleTrees[classification];
+                final RuleNode tree = ruleTrees[classification];
                 if (tree != null) {
                     sb.append(tree.toString(false, classification));
                 }

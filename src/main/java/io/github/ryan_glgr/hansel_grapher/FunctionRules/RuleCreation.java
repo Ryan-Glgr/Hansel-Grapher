@@ -10,18 +10,16 @@ public class RuleCreation {
 
     // takes in the set of low units, broken up by classification.
     public static RuleNode[] createRuleTrees(final ArrayList<ArrayList<Node>> lowUnitSet,
-                                             final int numAttributes,
-                                             final boolean findOptimalChildren){
+                                             final int numAttributes){
 
         final RuleNode[] roots = new RuleNode[lowUnitSet.size()];
-        roots[0] = RuleNode.createRuleNodes(new ArrayList<>(), numAttributes, findOptimalChildren);
+        roots[0] = RuleNode.createRuleNodes(new ArrayList<>(), numAttributes);
         
         IntStream.range(1, lowUnitSet.size())
                 .parallel()
                 .forEach(classification -> 
                     roots[classification] = RuleNode.createRuleNodes(lowUnitSet.get(classification),
-                            numAttributes,
-                            findOptimalChildren));
+                            numAttributes));
         return roots;
     }
 }

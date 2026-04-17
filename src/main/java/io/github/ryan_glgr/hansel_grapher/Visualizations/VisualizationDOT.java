@@ -16,22 +16,20 @@ import java.util.concurrent.CompletableFuture;
 
 public class VisualizationDOT {
     
-    private static ArrayList<ArrayList<Node>> sortChainsForVisualization(ArrayList<ArrayList<Node>> chainSet){
+    private static ArrayList<ArrayList<Node>> sortChainsForVisualization(final ArrayList<ArrayList<Node>> chainSet){
 
         // Apply the sort result back to hanselChainSet
-        chainSet.sort((ArrayList<Node> a, ArrayList<Node> b) -> {
-            return b.size() - a.size();
-        });
+        chainSet.sort((final ArrayList<Node> a, final ArrayList<Node> b) -> b.size() - a.size());
 
         // now give them the diamond shape.
-        ArrayList<ArrayList<Node>> newOrdering = new ArrayList<ArrayList<Node>>();
+        final ArrayList<ArrayList<Node>> newOrdering = new ArrayList<ArrayList<Node>>();
         for(int i = 0; i < chainSet.size(); i++){
             // if even, put it in the front, if odd, the back. that is how we will alternate and get that shape.
             if (i % 2 == 0){
                 newOrdering.add(chainSet.get(i));
             }
             else{
-                newOrdering.add(0, chainSet.get(i));
+                newOrdering.addFirst(chainSet.get(i));
             }
         }
         // change the pointer to hanselChainSet to the reordered ones.
@@ -39,26 +37,26 @@ public class VisualizationDOT {
     }
 
     // Generate a color for a given classification using HSV color space
-    private static String getColorForClass(int classification, boolean isLowUnit) {
+    private static String getColorForClass(final int classification, final boolean isLowUnit) {
         // Use golden ratio to space out hues nicely
-        float goldenRatio = 0.618033988749895f;
+        final float goldenRatio = 0.618033988749895f;
 
         // Generate hue by spacing classifications evenly and offsetting by golden ratio
-        float hue = (classification * goldenRatio) % 1.0f;
+        final float hue = (classification * goldenRatio) % 1.0f;
 
         // Keep saturation and value high for vibrant, distinct colors
-        float saturation = 0.7f;
-        float value = 0.95f;
+        final float saturation = 0.7f;
+        final float value = 0.95f;
 
         // Convert HSV to RGB
-        int rgb = Color.HSBtoRGB(hue, saturation, value);
-        Color baseColor = new Color(rgb);
+        final int rgb = Color.HSBtoRGB(hue, saturation, value);
+        final Color baseColor = new Color(rgb);
 
         // Adjust alpha based on whether the node is a low unit
-        float alpha = isLowUnit ? 1.0f : 0.65f;
+        final float alpha = isLowUnit ? 1.0f : 0.65f;
 
         // Create RGBA color with transparency
-        Color colorWithAlpha = new Color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), Math.round(alpha * 255));
+        final Color colorWithAlpha = new Color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), Math.round(alpha * 255));
 
         // Convert to hex format with alpha (Graphviz supports #RRGGBBAA)
         return String.format("#%02x%02x%02x%02x",
@@ -72,16 +70,16 @@ public class VisualizationDOT {
     private static final String NODE_SHAPE = "rectangle";
 
     // --- Escaping helper ---
-    private static final String escapeQuote(String s) {
+    private static String escapeQuote(final String s) {
         return s == null ? "" : s.replace("\"", "\\\"");
     }
 
     // --- Shared node-writing helper ---
-    private static void writeNode(FileWriter fw, Node temp, boolean isLow) throws IOException {
-        StringBuilder attr = new StringBuilder();
-        String label = nodeLabel(temp, isLow);
+    private static void writeNode(final FileWriter fw, final Node temp, final boolean isLow) throws IOException {
+        final StringBuilder attr = new StringBuilder();
+        final String label = nodeLabel(temp, isLow);
         attr.append("label = \"").append(escapeQuote(label)).append("\"");        
-        String nodeColor = getColorForClass(temp.classification, isLow);
+        final String nodeColor = getColorForClass(temp.classification, isLow);
 
         attr.append("label = \"").append(escapeQuote(label)).append("\"");
         attr.append(", shape = ").append(NODE_SHAPE);
@@ -114,14 +112,14 @@ public class VisualizationDOT {
         fw.write("];\n\t");
     }
 
-    private static String nodeLabel(Node temp, boolean isLow) {
+    private static String nodeLabel(final Node temp, final boolean isLow) {
 
-        String cls = (isLow) 
+        final String cls = (isLow)
             ? String.format("*%s*", temp.classification)
             : String.format(" %s ", temp.classification);
 
         // 2. Values array line
-        String valuesLine = Arrays.toString(temp.values);
+        final String valuesLine = Arrays.toString(temp.values);
 
         // 3. Combine into multi-line DOT label
         return valuesLine + "\\nClassification: " + cls;
@@ -129,28 +127,27 @@ public class VisualizationDOT {
 
 
     // --- makeExpansionsDOT ---
-    public static void makeExpansionsDOT(HashMap<Integer, Node> allNodes,
-                                         ArrayList<ArrayList<Node>> lowUnitsByClass,
-                                         Integer[] kValues,
-                                         int dimension) throws IOException {
-        HashSet<Node> lowSet = new HashSet<>();
+    public static void makeExpansionsDOT(final HashMap<Integer, Node> allNodes,
+                                         final ArrayList<ArrayList<Node>> lowUnitsByClass,
+                                         final Integer[] kValues) throws IOException {
+        final HashSet<Node> lowSet = new HashSet<>();
         if (lowUnitsByClass != null)
-            for (ArrayList<Node> listForClass : lowUnitsByClass)
+            for (final ArrayList<Node> listForClass : lowUnitsByClass)
                 if (listForClass != null) lowSet.addAll(listForClass);
 
-        Integer[] kValsToMakeNode = Node.counterInitializer(kValues);
-        HashMap<Node, Node> usedNodes = new HashMap<>();
-        FileWriter fw = new FileWriter("out/Expansions.dot");
+        final Integer[] kValsToMakeNode = Node.counterInitializer(kValues);
+        final HashMap<Node, Node> usedNodes = new HashMap<>();
+        final FileWriter fw = new FileWriter("out/Expansions.dot");
         fw.write("digraph G {\n\trankdir = BT;\n\tbgcolor = white;\n\t");
 
         while (Node.incrementCounter(kValsToMakeNode, kValues)) {
-            Node temp = allNodes.get(Node.hash(kValsToMakeNode));
+            final Node temp = allNodes.get(Node.hash(kValsToMakeNode));
             if (!usedNodes.containsKey(temp)) {
                 usedNodes.put(temp, temp);
                 writeNode(fw, temp, lowSet.contains(temp));
             }
 
-            for (Node ex : temp.upExpansions) {
+            for (final Node ex : temp.upExpansions) {
                 if (ex == null) continue;
                 if (!usedNodes.containsKey(ex)) {
                     usedNodes.put(ex, ex);
@@ -166,36 +163,36 @@ public class VisualizationDOT {
     }
 
     // --- makeHanselChainDOT ---
-    public static void makeHanselChainDOT(ArrayList<ArrayList<Node>> chains, ArrayList<ArrayList<Node>> lowUnitsByClass) throws IOException {
+    public static void makeHanselChainDOT(ArrayList<ArrayList<Node>> chains, final ArrayList<ArrayList<Node>> lowUnitsByClass) throws IOException {
         chains = sortChainsForVisualization(chains);
 
-        HashSet<Node> lowSet = new HashSet<>();
+        final HashSet<Node> lowSet = new HashSet<>();
         if (lowUnitsByClass != null)
-            for (ArrayList<Node> listForClass : lowUnitsByClass)
+            for (final ArrayList<Node> listForClass : lowUnitsByClass)
                 if (listForClass != null) lowSet.addAll(listForClass);
 
-        FileWriter fw = new FileWriter("out/HanselChains.dot");
+        final FileWriter fw = new FileWriter("out/HanselChains.dot");
         fw.write("digraph G {\n\trankdir = BT;\n\tbgcolor = white;\n\t");
 
-        ArrayList<Node> middleNodes = new ArrayList<>();
+        final ArrayList<Node> middleNodes = new ArrayList<>();
 
-        for (ArrayList<Node> chain : chains) {
+        for (final ArrayList<Node> chain : chains) {
             middleNodes.add(chain.get(chain.size() / 2));
 
-            for (Node temp : chain) {
+            for (final Node temp : chain) {
                 writeNode(fw, temp, lowSet.contains(temp));
             }
 
             for (int c = 0; c < chain.size() - 1; c++) {
-                Node temp = chain.get(c);
-                Node ex = chain.get(c + 1);
+                final Node temp = chain.get(c);
+                final Node ex = chain.get(c + 1);
                 fw.write(temp.hashCode() + " -> " + ex.hashCode() +
                         " [dir = both, color = black, arrowhead = vee, penwidth = 2];\n\t");
             }
         }
 
         fw.write("{ rank = same; ");
-        for (Node mid : middleNodes) fw.write(mid.hashCode() + " ");
+        for (final Node mid : middleNodes) fw.write(mid.hashCode() + " ");
         fw.write("};\n");
 
         fw.write("}");
@@ -246,24 +243,24 @@ public class VisualizationDOT {
     }
 
 
-    public static void compileDotAsync(String dotPath) {
+    public static void compileDotAsync(final String dotPath) {
         CompletableFuture.runAsync(() -> {
             try {
 
                 // ensure output directory exists
-                File outputDir = new File("out/phony.txt").getParentFile();
+                final File outputDir = new File("out/phony.txt").getParentFile();
                 if (outputDir != null && !outputDir.exists()) {
                     outputDir.mkdirs();
                 }
-                ProcessBuilder pb = new ProcessBuilder("./Visualizations/compile_dot.sh", dotPath);
+                final ProcessBuilder pb = new ProcessBuilder("./Visualizations/compile_dot.sh", dotPath);
                 pb.directory(new File("."));
-                Process process = pb.start();
+                final Process process = pb.start();
                 process.onExit().thenAccept(p -> {
                     if (p.exitValue() != 0) {
                         System.err.println("compile_dot.sh exited with code " + p.exitValue() + " for " + dotPath);
                     }
                 });
-            } catch (IOException ex) {
+            } catch (final IOException ex) {
                 System.err.println("Failed to compile DOT file: " + dotPath);
                 ex.printStackTrace();
             }

@@ -71,8 +71,7 @@ public class InterviewCreationTestCases {
                 classificationNames,
                 null,
                 childFunctions,
-                MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE,
-                findOptimalChildren);
+                MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE);
 
         if (findOptimalChildren) {
             System.out.println("GREEDY RULE TREE BUILDING INTERVIEW");
@@ -236,7 +235,7 @@ public class InterviewCreationTestCases {
             new Integer[]{2,0,0,0,0,0,0,1,1,0,0,0}  // (x1≥2)x8x9
     );
 
-    public static Interview createHeartFailureInterview(final InterviewMode interviewMode, final boolean findOptimalClauses) {
+    public static Interview createHeartFailureInterview(final InterviewMode interviewMode) {
 
         // k values based on actual rules (paper table has discrepancies)
         // Paper claims 27,648 nodes: 3×2×4×2×2×2×1×2×2×2×2×3 = 27,648 ✓
@@ -266,15 +265,8 @@ public class InterviewCreationTestCases {
                         knownLowUnitsFromHeartFailureStudy
                 },
                 new Interview[kValues.length],
-                MagicFunctionMode.KNOWN_LOW_UNITS_MODE,
-                findOptimalClauses);
+                MagicFunctionMode.KNOWN_LOW_UNITS_MODE);
 
-        if (findOptimalClauses) {
-            System.out.println("GREEDY RULE TREE BUILDING INTERVIEW");
-        }
-        else{
-            System.out.println("OPTIMAL RULE TREE BUILDING INTERVIEW");
-        }
         System.out.println(interviewMode + " INTERVIEW COMPLETE!");
         System.out.println(interview);
         return interview;

@@ -1,13 +1,17 @@
 package io.github.ryan_glgr.hansel_grapher;
 
+import com.formdev.flatlaf.FlatIntelliJLaf;
 import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.*;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.Interview;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.InterviewMode;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.MagicFunctionMode;
+import io.github.ryan_glgr.hansel_grapher.Visualizations.GUI.MainScreen;
 import io.github.ryan_glgr.hansel_grapher.Visualizations.InterviewStatsVisualizer;
 import io.github.ryan_glgr.hansel_grapher.Visualizations.VisualizationDOT;
 
+import javax.swing.*;
+import java.awt.*;
 import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -15,11 +19,11 @@ import java.util.stream.Collectors;
 
 public class Main {
 
-    public static ArrayList<ArrayList<Node>> duplicateChain(ArrayList<ArrayList<Node>> chains) {
-        ArrayList<ArrayList<Node>> dupChains = new ArrayList<>(chains.size());
-        for (ArrayList<Node> chain : chains) {
-            ArrayList<Node> dupChain = new ArrayList<Node>(chain.size());
-            for (Node n : chain) {
+    public static ArrayList<ArrayList<Node>> duplicateChain(final ArrayList<ArrayList<Node>> chains) {
+        final ArrayList<ArrayList<Node>> dupChains = new ArrayList<>(chains.size());
+        for (final ArrayList<Node> chain : chains) {
+            final ArrayList<Node> dupChain = new ArrayList<Node>(chain.size());
+            for (final Node n : chain) {
                 dupChain.add(new Node(n));
             }
             dupChains.add(dupChain);
@@ -27,13 +31,13 @@ public class Main {
         return dupChains;
     }
 
-    public static void generateChains(Integer[] kVals, int numClasses) {
-        HashMap<Integer, Node> data = Node.makeNodes(kVals, numClasses);
+    public static void generateChains(final Integer[] kVals, final int numClasses) {
+        final HashMap<Integer, Node> data = Node.makeNodes(kVals, numClasses);
         ArrayList<ArrayList<Node>> hanselChains;
         ArrayList<ArrayList<Node>> defaultChains = HanselChains.generateHanselChainSet(kVals, data);
-        HashSet<HashSet<Node>> lowUnits = new HashSet<>();
-        int[] sizes = defaultChains.stream().mapToInt(ArrayList::size).toArray();
-        int[] lowValueIndices = new int[sizes.length];
+        final HashSet<HashSet<Node>> lowUnits = new HashSet<>();
+        final int[] sizes = defaultChains.stream().mapToInt(ArrayList::size).toArray();
+        final int[] lowValueIndices = new int[sizes.length];
         final MagicFunctionMode magicFunctionMode = MagicFunctionMode.KNOWN_LOW_UNITS_MODE;
 
         long count = 0;
@@ -54,8 +58,8 @@ public class Main {
                             hanselChains.get(i).get(lowValueIndices[i] - 1).permeateClassification(1);
                         }
                     }
-                    var lowUnitsByClass = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
-                    var adjustedLowUnitsByClass = HanselChains.removeUselessLowUnits(lowUnitsByClass);
+                    final var lowUnitsByClass = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
+                    final var adjustedLowUnitsByClass = HanselChains.removeUselessLowUnits(lowUnitsByClass);
                     lowUnits.add(new HashSet<>(adjustedLowUnitsByClass.get(1)));
                     // for(Node n : adjustedLowUnitsByClass.get(1)) {
                     //     System.out.print(Arrays.toString(n.values));
@@ -74,21 +78,21 @@ public class Main {
         }
         System.out.println(lowUnits.size());
 
-        Float[] fakeWeights = new Float[]{1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
-        String[] fakeNames = new String[]{"","","","",""};
-        Interview[] subFunctionsForEachAttribute = new Interview[kVals.length];
-        InterviewMode[] modes = InterviewMode.values();
-        float[] questions = new float[modes.length];
+        final Float[] fakeWeights = new Float[]{1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+        final String[] fakeNames = new String[]{"","","","",""};
+        final Interview[] subFunctionsForEachAttribute = new Interview[kVals.length];
+        final InterviewMode[] modes = InterviewMode.values();
+        final float[] questions = new float[modes.length];
         count = 0;
 
-        for(Set<Node> nodes: lowUnits) {
-            Set<Integer[]>[] lowUnitsToMakeTheFunctionTrue = new Set[2];
+        for(final Set<Node> nodes: lowUnits) {
+            final Set<Integer[]>[] lowUnitsToMakeTheFunctionTrue = new Set[2];
             lowUnitsToMakeTheFunctionTrue[1] = nodes.stream()
                     .map(node -> node.values)
                     .collect(Collectors.toSet());
 
             for(int i = 0; i < modes.length; i++) {
-                Interview interview = new Interview(kVals,
+                final Interview interview = new Interview(kVals,
                     fakeWeights,
                     modes[i],
                     numClasses,
@@ -96,10 +100,9 @@ public class Main {
                     fakeNames,
                     lowUnitsToMakeTheFunctionTrue,
                     subFunctionsForEachAttribute,
-                    magicFunctionMode,
-                        false);
+                    magicFunctionMode);
 
-                InterviewStats interviewStats = interview.interviewStats;
+                final InterviewStats interviewStats = interview.interviewStats;
                 questions[i] += interviewStats.nodesAsked.size();
             }
             count++;
@@ -112,10 +115,10 @@ public class Main {
         }
     }
 
-    private static void visualizeStatistics(Interview interview) {
+    private static void visualizeStatistics(final Interview interview) {
         try{
             // ensure output directory exists
-            File outputDir = new File("out/phony.txt").getParentFile();
+            final File outputDir = new File("out/phony.txt").getParentFile();
             if (outputDir != null && !outputDir.exists()) {
                 outputDir.mkdirs();
             }
@@ -123,13 +126,12 @@ public class Main {
             VisualizationDOT.makeHanselChainDOT(interview.hanselChains, interview.adjustedLowUnitsByClass);
 
             // make the expansions picture
-            Integer[] kValues = interview.kVals;
-            VisualizationDOT.makeExpansionsDOT(interview.data, interview.adjustedLowUnitsByClass, kValues, kValues.length);
-
+            final Integer[] kValues = interview.kVals;
+            VisualizationDOT.makeExpansionsDOT(interview.data, interview.adjustedLowUnitsByClass, kValues);
             VisualizationDOT.makeRuleTreesDOT(interview.ruleTrees, interview.attributeNames);
 
-            InterviewMode interviewMode = interview.interviewStats.interviewMode;
-            String interviewStatsOutputString = interviewMode + " Interview Stats";
+            final InterviewMode interviewMode = interview.interviewStats.interviewMode;
+            final String interviewStatsOutputString = interviewMode + " Interview Stats";
             InterviewStatsVisualizer.savePDF(interview.interviewStats,
                 "out/" + interviewStatsOutputString + ".pdf",
                     interviewMode);
@@ -138,42 +140,39 @@ public class Main {
             VisualizationDOT.compileDotAsync("out/Expansions.dot");
             VisualizationDOT.compileDotAsync("out/RuleTrees.dot");
         }
-        catch (Exception e){
+        catch (final Exception e){
             e.printStackTrace();
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
+        final boolean GUI = args.length > 0 && args[0].equals("--gui");
+        if (GUI) {
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    UIManager.setLookAndFeel(new FlatIntelliJLaf());
+                    // Make Swing decorations (titlebar, borders) use the L&F
+                    JFrame.setDefaultLookAndFeelDecorated(true);
+                    JDialog.setDefaultLookAndFeelDecorated(true);
+                } catch (final UnsupportedLookAndFeelException ex) {
+                    ex.printStackTrace();
+                }
 
-//        for (InterviewMode mode: InterviewMode.values()) {
-//            InterviewCreationTestCases.createHeartFailureInterview(mode, true);
-//        }
-        visualizeStatistics(InterviewCreationTestCases.createBasicInterviewWithSubfunctions(InterviewMode.BEST_MINIMUM_CONFIRMED, false));
-//        InterviewCreationTestCases.createHeartFailureInterview(InterviewMode.BEST_MINIMUM_CONFIRMED, false);
-//        InterviewCreationTestCases.createHeartFailureInterview(InterviewMode.BEST_MINIMUM_CONFIRMED, true);
+                final MainScreen mainScreen = new MainScreen();
 
-//        visualizeStatistics(interview);
-
-//        SwingUtilities.invokeLater(() -> {
-//            try {
-//                UIManager.setLookAndFeel(new FlatIntelliJLaf());
-//                // Make Swing decorations (titlebar, borders) use the L&F
-//                JFrame.setDefaultLookAndFeelDecorated(true);
-//                JDialog.setDefaultLookAndFeelDecorated(true);
-//            } catch (UnsupportedLookAndFeelException ex) {
-//                ex.printStackTrace();
-//            }
-//
-//            MainScreen mainScreen = new MainScreen();
-//
-//            JFrame frame = new JFrame("Hansel Grapher");
-//            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-//            frame.setContentPane(mainScreen.getMainPanel());
-//            frame.setMinimumSize(new Dimension(960, 640));
-//            frame.setPreferredSize(new Dimension(960, 640));
-//            frame.pack();
-//            frame.setLocationRelativeTo(null);
-//            frame.setVisible(true);
-//        });
+                final JFrame frame = new JFrame("Hansel Grapher");
+                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                frame.setContentPane(mainScreen.getMainPanel());
+                frame.setMinimumSize(new Dimension(960, 640));
+                frame.setPreferredSize(new Dimension(960, 640));
+                frame.pack();
+                frame.setLocationRelativeTo(null);
+                frame.setVisible(true);
+            });
+        } else {
+            for (final InterviewMode mode: InterviewMode.values()) {
+                InterviewCreationTestCases.createHeartFailureInterview(mode);
+            }
+        }
     }
 }
