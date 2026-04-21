@@ -15,3 +15,4 @@ The goal of this project is very simple. It serves as a simplistic, understandab
 - Alternatively you can run `mvn clean compile`, to compile, and `mvn exec:java` to run. 
 - Running in debug gives you more logging, and more info in the pictures as well. To do this './run.sh debug'
 - To view logs, 'cat debug' after a run
+- You will need `graphviz` installed on your machine. This [link] (https://enterprise-architecture.org/university/graphviz-install/) may be useful, or you can ask AI to give you the CLI command to install.
