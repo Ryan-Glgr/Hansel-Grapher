@@ -4,12 +4,10 @@ The goal of this project is very simple. It serves as a simplistic, understandab
 ## TASKS ## 
 - Find a way to apply our problem where "asking a question" is a big heavy operation/and or when asking what we are modeling is a very hard domain, where it makes sense to need to classify all possible Nodes, not just find a min/max.
 - implement even better clause reduction technique(s) than the greedy search.
-  - Could use a branch and bound or something, which begins with greedy search as a starting bound
-- implement full end to end functionality for gui. fire it up, make an interview, specify a mode or modes, see question graphs, save outputs
-  - Needs to be able to visualize RuleTrees. this can be implemented nicely using DOT as well most likely.
-- simple visualization of "new points"
-    - perhaps visualize all the low units, and correspondingly, the "high unit" or highest value UNDER each low unit. so that we can show the borders. maybe show each low unit, and their direct underneath neighbors and above neighbors?
-- Refactor interview constructor to make it more intuitive to create one programmatically. (less parameters)
+- Implement "expert adjustments" post interview. This allows us to interactively adjust the model. To do this, we will need a method somewhat like the permeateClassification method. This will start at chosen node N, manually assign it the classification given, and:
+  - If node N was adjusted to a LOWER classification, we should then traverse to all nodes underneath N, and update their classification to be that of node N (or leave as is, if they were already at or below this classification).
+  - If node N was adjusted to a higher classification, we should traverse to all nodes ABOVE N, and update their classifications to this classification given for N, of course leaving as is if they were already at or above this classification.
+
 ## RUNNING ##
 - Requires modern maven to run so install maven for your system (package manager/ installer).
 - To run the program, simply `./run.sh`. You may need to give it the old `chmod +x run.sh`.
