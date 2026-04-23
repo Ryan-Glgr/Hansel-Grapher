@@ -15,6 +15,7 @@ import io.github.ryan_glgr.hansel_grapher.TheHardStuff.BalanceRatio;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.HanselChains;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.NodeComparisons;
+import io.github.ryan_glgr.hansel_grapher.helper.Util;
 import org.roaringbitmap.RoaringBitmap;
 
 import static java.lang.Math.min;
@@ -43,7 +44,7 @@ public class Interview {
     public final Attribute[] attributes;
     public final String[] attributeNames;
     public final Integer[] kVals;
-    private final Set<Node>[] lowUnitsForEachClassification; // used for the magic function mode when we know what the low units are already, and we are trying to run the interview.
+    private final Map<Integer, Set<Node>> lowUnitsForEachClassification; // used for the magic function mode when we know what the low units are already, and we are trying to run the interview.
 
     private final Scanner inputScanner;
 
@@ -54,25 +55,28 @@ public class Interview {
                      final int numClasses,
                      final String[] attributeNames,
                      final String[] classificationNames,
-                     final Set<Integer[]>[] setOfLowUnitsByClassification, // pass in the nodes which are going to satisfy our magic function. NEEDED IFF YOU ARE DOING MagicFunctionMode.KNOWN_LOW_UNITS_MODE!
+                     final Map<Integer, Set<Integer[]>> setOfLowUnitsByClassification, // pass in the nodes which are going to satisfy our magic function. NEEDED IFF YOU ARE DOING MagicFunctionMode.KNOWN_LOW_UNITS_MODE!
                      final Interview[] subFunctionsForEachAttribute,       // needs to at least be an Interview[numAttributes], but they can all be null if you want no subfunctions.
+                     final Set<Map<Integer, Integer>> impossibleAttributeCombinations, // the combinations of attributes which we are marking as impossible. any node which matches all entries in any one of these maps as >= each value is marked as impossible. in the future we could expand to also use <= and not just >=.
                      final MagicFunctionMode magicFunctionMode) {          // the mode which actually determines how we know a nodes classification
         this.highestPossibleClassification = numClasses - 1;
-        this.classificationNames = classificationNames;
-	this.attributeNames = attributeNames;
+        this.classificationNames = Objects.isNull(classificationNames)
+                ? Util.createDefaultClassificationNames(numClasses) : classificationNames;
+	    this.attributeNames = Objects.isNull(attributeNames)
+                ? Util.createDefaultAttributeNames(kVals.length) : attributeNames;
         this.inputScanner = new Scanner(System.in);
         this.magicFunctionMode = magicFunctionMode;
         this.numClasses = numClasses;
 
         this.kVals = kVals;
         final int numAttributes = kVals.length;
+
         this.attributes = IntStream.range(0, numAttributes)
-                .parallel()
                 .mapToObj(index -> new Attribute(
                         kVals[index],
                         index,
                         weights[index],
-                        subFunctionsForEachAttribute[index],
+                        Objects.isNull(subFunctionsForEachAttribute) ? null : subFunctionsForEachAttribute[index],
                         attributeNames[index]))
                 .toArray(Attribute[]::new);
 
@@ -82,25 +86,10 @@ public class Interview {
             allNodesToTheirIDsMap.put(node.nodeID, node);
         }
 
-        // get each node corresponding to the k values which are going to make our function whichever value
-        this.lowUnitsForEachClassification = new Set[numClasses];
-        if (setOfLowUnitsByClassification != null) {
-            for (int classification = 0; classification < numClasses; classification++) {
-                final Set<Integer[]> lowUnitsByClassification = setOfLowUnitsByClassification[classification];
-                this.lowUnitsForEachClassification[classification] = new HashSet<>();
-                if (lowUnitsByClassification != null) {
-                    for (final Integer[] lowUnit : lowUnitsByClassification) {
-                        final Node node = data.get(Node.hash(lowUnit));
-                        if (node == null) {
-                            throw new RuntimeException("Node not found for values: " + Arrays.toString(lowUnit) + " in classification " + classification);
-                        }
-                        this.lowUnitsForEachClassification[classification].add(node);
-                    }
-                }
-            }
-        }
+        this.lowUnitsForEachClassification = getKnownLowUnitsOfEachClassification(setOfLowUnitsByClassification);
 
         this.hanselChains = HanselChains.generateHanselChainSet(kVals, data);
+        Node.markImpossibleNodes(impossibleAttributeCombinations, new ArrayList<>(data.values()));
 
         // this is where the magic happens
         this.interviewStats = conductInterview(mode);
@@ -111,6 +100,20 @@ public class Interview {
         this.ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnitsByClass, numAttributes);
 
         inputScanner.close();
+    }
+
+    private Map<Integer, Set<Node>> getKnownLowUnitsOfEachClassification(final Map<Integer, Set<Integer[]>> setOfLowUnitsByClassification) {
+
+        if (Objects.isNull(setOfLowUnitsByClassification))
+            return null;
+        return setOfLowUnitsByClassification.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue().stream()
+                                .map(lowUnit -> data.get(Node.hash(lowUnit)))
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toSet())
+                ));
     }
 
     // mega function which determines how we are going to ask questions.
@@ -287,63 +290,16 @@ public class Interview {
     }
 
     // used when we already know the function, and we want to re run the interview.
-    // useful for recreating results where we know their low units or boolean function.
+// useful for recreating results where we know their low units or boolean function.
     private int knownLowUnitsQuestion(final Node datapoint){
-
         // we can just assume that every node is always going to be at least class 0, by the properties of monotonicity.
-        int maxClasification = 0;
-        for (int classification = 1; classification < lowUnitsForEachClassification.length; classification++) {
-
-            for (final Node lowUnit : lowUnitsForEachClassification[classification]) {
-                if (lowUnit.isDominatedBy(datapoint, true)) {
-                    maxClasification = classification;
-                    break; // once we know it is at least this class, we don't need to keep looping through all the nodes checking. we can just move on to the next class now.
-                }
-            }
-        }
-        return maxClasification;
-
-        // Hardcoded Boolean function f1(x)
-//        Integer[] x = datapoint.values;
-
-        // HARDCODED f(1) from https://www.researchgate.net/publication/12402645_Consistent_knowledge_discovery_in_medical_diagnosis
-        // this is the BIOPSY CASE
-//        int result =
-//                (x[1] * x[2]) |  // x2x3
-//                (x[1] * x[3]) |  // x2x4
-//                (x[0] * x[1]) |  // x1x2
-//                (x[0] * x[3]) |  // x1x4
-//                (x[0] * x[2]) |  // x1x3
-//                (x[2] * x[3]) |  // x3x4
-//                (x[2])        |  // x3
-//                (x[1] * x[4]) |  // x2x5
-//                (x[0] * x[4]) |  // x1x5
-//                (x[4]);          // x5
-//        return result;  // 1 if true, 0 if false
-
-
-        // HARDCODED f2(x) = x2x3 ∨ x1x2x4 ∨ x1x2 ∨ x1x3x4 ∨ x1x3 ∨ x3x4 ∨ x3 ∨ x2x5 ∨ x1x5 ∨ x4x5
-        // THIS IS THE CANCER CASE FROM THAT SAME STUDY ^^^
-//        int result =
-//            (x[1] * x[2]) |            // x2x3
-//            (x[0] * x[1] * x[3]) |     // x1x2x4
-//            (x[0] * x[1]) |            // x1x2
-//            (x[0] * x[2] * x[3]) |     // x1x3x4
-//            (x[0] * x[2]) |            // x1x3
-//            (x[2] * x[3]) |            // x3x4
-//            (x[2]) |                   // x3
-//            (x[1] * x[4]) |            // x2x5
-//            (x[0] * x[4]) |            // x1x5
-//            (x[3] * x[4]);             // x4x5
-
-
-        // ψ(x)=x2∨x1∨x3x4x5. the simplified expression from 'Consistent and complete data and "expert” mining in medicine'
-//        int result =
-//                (x[1]) |            // x2
-//                (x[0]) |            // x1
-//                (x[2] * x[3] * x[4]); // x3x4x5
-
-//        return result;  // 1 if true, 0 if false
+        return lowUnitsForEachClassification.entrySet().stream()
+                .filter(entry -> entry.getKey() > 0) // skip classification 0
+                .filter(entry -> entry.getValue().stream()
+                        .anyMatch(lowUnit -> lowUnit.isDominatedBy(datapoint, true)))
+                .map(Map.Entry::getKey)
+                .max(Integer::compareTo)
+                .orElse(0);
     }
 
     // asks the expert by printing the node and having them enter a datapoint
@@ -405,7 +361,7 @@ public class Interview {
 
             final RoaringBitmap nodesConfirmed = stats.nodesConfirmed;
             // filter out confirmed nodes and continue
-            nodesToAsk = nodesToAsk.parallelStream()
+            nodesToAsk = nodesToAsk.stream()
                 .filter(node -> !nodesConfirmed.contains(node.nodeID))
                 .collect(Collectors.toCollection(ArrayList::new));
         }
@@ -495,7 +451,7 @@ public class Interview {
             while(!chainToQuestion.isEmpty()) {
 
                 // for each chunk we have remaining of each chain, we are going to chop them up, splitting on parts where they are confirmed.
-                chainToQuestion = chainToQuestion.parallelStream()
+                chainToQuestion = chainToQuestion.stream()
                         .flatMap(chunk -> splitChunkIntoPiecesHelper(chunk)
                                 .stream())
                         .collect(Collectors.toCollection(ArrayList::new));
@@ -657,7 +613,7 @@ public class Interview {
 
         while (true) {
             // Collect still alive nodes
-            final List<Node> aliveNodes = allNodes.parallelStream()
+            final List<Node> aliveNodes = allNodes.stream()
                 .filter(n -> !n.classificationConfirmed)
                 .collect(Collectors.toList());
 
@@ -697,7 +653,7 @@ public class Interview {
         final boolean useMaxComparison = (choosingAlternateMiddleNodeTechnique == NodeComparisons.SMALLEST_DIFFERENCE_UMBRELLA);
 
         // we have to keep a list of chunks of the chain which are not confirmed. basically we chop the chain
-        // each time that we confirm a node. we could confirm a whole bunch with one question, and we have to investigate all the
+        // each time that we confirm a node. we could confirm a bunch with one question, and we have to investigate all the
         // chains/chunks to determine that. a chain
         ArrayList<ArrayList<Node>> chunks = new ArrayList<>(hanselChainSet);
         while (!chunks.isEmpty()){
@@ -863,7 +819,7 @@ public class Interview {
             nodesAsked.add(nodeToAsk);
             permeationStatsForEachNodeAsked.add(thisNodeStats);
 
-            nodesToAsk = nodesToAsk.parallelStream()
+            nodesToAsk = nodesToAsk.stream()
                 .filter(node -> !node.classificationConfirmed) // keep only unconfirmed nodes
                 .collect(Collectors.toCollection(ArrayList::new));
         }
@@ -898,7 +854,7 @@ public class Interview {
             sb.append("LOW UNITS FOR CLASS ")
                 .append(classification)
                 .append(":\n")
-                .append(Node.printListOfNodes(lowUnits))
+                .append(Util.printListOfNodes(lowUnits))
                 .append('\n');
         }
 
@@ -919,7 +875,7 @@ public class Interview {
             sb.append("ADJUSTED LOW UNITS FOR CLASS ")
                 .append(classification)
                 .append(":\n")
-                .append(Node.printListOfNodes(adjustedLowUnits))
+                .append(Util.printListOfNodes(adjustedLowUnits))
                 .append('\n');
         }
 

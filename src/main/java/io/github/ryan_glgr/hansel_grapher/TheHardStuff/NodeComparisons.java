@@ -4,10 +4,8 @@ import java.util.Comparator;
 
 public class NodeComparisons {
 
-    public static final Comparator<Node> HIGHEST_TOTAL_UMBRELLA = 
-        (a, b) -> {
-            return Integer.compare(a.totalUmbrellaCases, b.totalUmbrellaCases);
-        };
+    public static final Comparator<Node> HIGHEST_TOTAL_UMBRELLA =
+            Comparator.comparingInt(a -> a.totalUmbrellaCases);
 
     // Sort by BEST_BALANCE_RATIO: prefer nodes with higher balanceRatio
     public static final Comparator<Node> BEST_BALANCE_RATIO =
@@ -17,8 +15,8 @@ public class NodeComparisons {
     // prefer nodes with smallest |above - below| difference, tie-breaker: larger totalUmbrellaCases
     public static final Comparator<Node> SMALLEST_DIFFERENCE_UMBRELLA =
         (x, y) -> {
-            int diffX = Math.abs(x.aboveUmbrellaCases - x.underneathUmbrellaCases);
-            int diffY = Math.abs(y.aboveUmbrellaCases - y.underneathUmbrellaCases);
+            final int diffX = Math.abs(x.aboveUmbrellaCases - x.underneathUmbrellaCases);
+            final int diffY = Math.abs(y.aboveUmbrellaCases - y.underneathUmbrellaCases);
 
             if (diffX == diffY) {
                 return Integer.compare(y.totalUmbrellaCases, x.totalUmbrellaCases); // larger total preferred
@@ -38,8 +36,8 @@ public class NodeComparisons {
 
     // Compare nodes lexicographically by their attribute arrays
     public static final Comparator<Node> LEXICOGRAPHIC_NODE_COMPARATOR = (a, b) -> {
-        Integer[] A = a.values;
-        Integer[] B = b.values;
+        final Integer[] A = a.values;
+        final Integer[] B = b.values;
         for (int i = 0; i < A.length; i++) {
             int cmp = Integer.compare(A[i], B[i]);
             

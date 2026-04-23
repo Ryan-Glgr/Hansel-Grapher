@@ -1,9 +1,7 @@
 package io.github.ryan_glgr.hansel_grapher.TheHardStuff;
 
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats;
 import org.roaringbitmap.RoaringBitmap;
@@ -11,6 +9,13 @@ import org.roaringbitmap.RoaringBitmap;
 public class Node {
 
     public static boolean DEBUG_PRINTING = false;
+    public static Integer IMPOSSIBLE_CLASSIFICATION = Integer.MIN_VALUE;
+
+    // assume we had a node who's min classifications by class were [1, 2, 2] and another who's min classifications by class were:
+    //  [0 (because it is guaranteed to NOT be this class by monotonicity already), 6, 12] we would choose the first, since it's min is lower.
+    // but in reality, we want that second one, since the first class is just not possible. the real min is 6. not 0. so we have to have a flag for not set.
+    // the reason it's max value, is so that when we sort the counts, this number last still, and will serve as a tiebreaker
+    private static final Integer NOT_SET = Integer.MAX_VALUE;
 
     // the datapoint this point represents
     public Integer[] values;
@@ -57,63 +62,6 @@ public class Node {
     public double balanceRatio;
 
     public double umbrellaMagnitude;
-
-    // takes in a datapoint, and makes a copy of that and stores that as our "point"
-    private Node(final Integer[] datapoint,
-                 final int numClasses,
-                 final int dimension,
-                 final int nodeID) {
-        // copy the passed in datapoint to this node's point.
-        this.values = Arrays.copyOf(datapoint, datapoint.length);
-
-        // set classification to 0.
-        this.classification = 0;
-        this.classificationConfirmed = false;
-
-        this.upExpansions = new Node[dimension];
-        this.downExpansions = new Node[dimension];
-
-        // Set the maximum possible classification value from Main
-        this.maxPossibleValue = numClasses - 1;
-
-        this.totalUmbrellaCases = 0;
-        this.underneathUmbrellaCases = 0;
-        this.aboveUmbrellaCases = 0;
-
-        this.possibleConfirmationsByClass = new Integer[numClasses];
-        Arrays.fill(this.possibleConfirmationsByClass, 0);
-        this.balanceRatio = 0.0f;
-
-        this.sum = sumUpDataPoint();
-        this.nodeID = nodeID;
-    }
-
-    public Node(final Node n) {
-        this(n.values, n.maxPossibleValue + 1, n.upExpansions.length, n.nodeID);
-    }
-
-    public static String printListOfNodes(final List<Node> nodes) {
-        final List<String> valuesStrings = nodes.stream()
-                .map(node -> "\n" + Arrays.toString(node.values))
-                .toList();
-        return valuesStrings.toString();
-    }
-
-    private void findExpansions(final HashMap<Integer, Node> nodes, final int dimension) {
-
-        // Parallel computation of expansions for each attribute
-        IntStream.range(0, dimension).parallel().forEach(attribute -> {
-            final Integer[] key = Arrays.copyOf(values, values.length);
-
-            // increment the value of key at this attribute, so we can find the one with + 1 in this digit.
-            key[attribute]++;
-            upExpansions[attribute] = nodes.get(hash(key));
-
-            // decrement by 2 to find the one with -1 in this attribute.
-            key[attribute] -= 2;
-            downExpansions[attribute] = nodes.get(hash(key));
-        });
-    }
 
     // hash function is easy. k value [i] * point val [i] as a running sum and then vals [0] gets added.
     public static Integer hash(final Integer[] keyVal) {
@@ -191,13 +139,157 @@ public class Node {
         return nodes;
     }
 
+    /*
+     * Structure of Impossible attribute combinations as follows. Pass a set of Maps. Each map represents a combination of k values which is impossible.
+     * We assume anything >= each attribute in a map is impossible. for example i may make a map with entries 0: 2, and 1: 0,
+     * this means that attribute (x0 >= 2 AND x1 >= 0) is an IMPOSSIBLE combination. And any node which satisfies x0 >=2
+     * AND x1 >= 0 is an IMPOSSIBLE combination.
+     */
+    public static void markImpossibleNodes(final Set<Map<Integer, Integer>> impossibleAttributeCombinations, final ArrayList<Node> nodes) {
+        if (Objects.isNull(impossibleAttributeCombinations))
+            return;
+
+        nodes.parallelStream()
+                .filter(node -> impossibleAttributeCombinations.stream()
+                        .anyMatch(node::nodeSatisfiesImpossibleAttributeCombination))
+                .forEach(node -> {
+                    node.classification = IMPOSSIBLE_CLASSIFICATION;
+                    node.classificationConfirmed = true;
+                });
+    }
+
+    // does a BFS from each node, updating rankings as we go. Ranking our umbrella size and the minimum classifications.
+    public static void updateAllNodeRankings(final ArrayList<Node> aliveNodes,
+                                             final BalanceRatio balanceRatio,
+                                             final int numClasses,
+                                             final PermeationStats statsFromLastUpdate,
+                                             final HashMap<Integer, Node> allNodesToTheirIDsMap) {
+
+        // this would happen on the FIRST question asked of the day.
+        if (statsFromLastUpdate == null)
+            return;
+
+        final RoaringBitmap nodesConfirmed = statsFromLastUpdate.nodesConfirmed;
+        final RoaringBitmap nodesUpdated = statsFromLastUpdate.nodesWithBoundChanges;
+
+        // for all nodes, if they weren't confirmed, we are going to remove confirmed from their list, and remove nodes which
+        // they can no longer update.
+        aliveNodes.parallelStream()
+                .filter(node -> !nodesConfirmed.contains(node.nodeID))
+                .forEach(node -> {
+                    node.removeConfirmedNodesFromReachableSet(nodesConfirmed);
+                    if (nodesUpdated.contains(node.nodeID)){
+                        node.cleanOwnReachableSets(allNodesToTheirIDsMap);
+                    }
+                    node.removeUpdatedNodesFromReachableSet(nodesUpdated, allNodesToTheirIDsMap);
+                    node.totalUmbrellaCases = node.aboveUmbrellaCases + node.underneathUmbrellaCases;
+                });
+
+        final RoaringBitmap[] nodesThatWouldConfirmForEachClassCountingUpwards = new RoaringBitmap[numClasses];
+        for (int i = 0; i < numClasses; i++) {
+            nodesThatWouldConfirmForEachClassCountingUpwards[i] = new RoaringBitmap();
+        }
+        final RoaringBitmap[] nodesThatWouldConfirmForEachClassCountingDownwards = new RoaringBitmap[numClasses];
+        for (int i = 0; i < numClasses; i++) {
+            nodesThatWouldConfirmForEachClassCountingDownwards[i] = new RoaringBitmap();
+        }
+
+        // determine whether each node is going to be confirmed for each class, counting both up and downwards
+        for (final Node n : aliveNodes) {
+            for (int classification = n.classification; classification <= n.maxPossibleValue; classification++) {
+                // flag whether this node would be confirmed for each class or not, counting both up and down
+                if (n.wouldBeConfirmedForClass(classification, true)) {
+                    nodesThatWouldConfirmForEachClassCountingUpwards[classification].add(n.nodeID);
+                }
+
+                if (n.wouldBeConfirmedForClass(classification, false)) {
+                    nodesThatWouldConfirmForEachClassCountingDownwards[classification].add(n.nodeID);
+                }
+            }
+        }
+
+        aliveNodes.parallelStream()
+                .forEach(node -> {
+                    Arrays.fill(node.possibleConfirmationsByClass, NOT_SET);
+                    for (int classification = node.classification; classification <= node.maxPossibleValue; classification++) {
+                        node.possibleConfirmationsByClass[classification] = 0;
+                    }
+
+                    // now we must have each node go through the nodesThatWouldConfirm for each class, and increment their counts in these cases:
+                    // if the target node is in reachableBelow for a given node, we check if it would be confirmed counting downards for each class
+                    // if the target node is above, we check if it would be confirmed counting upwards for each class which our node can still be.
+                    node.updateConfirmationStats(nodesThatWouldConfirmForEachClassCountingUpwards, true);
+                    node.updateConfirmationStats(nodesThatWouldConfirmForEachClassCountingDownwards, false);
+                    Arrays.sort(node.possibleConfirmationsByClass);
+
+                    // compute the new magnitude of above and below umbrella case vector
+                    node.umbrellaMagnitude = node.computeUmbrellaMagnitude();
+                    node.balanceRatio = balanceRatio.computeBalanceRatio(node);
+                });
+    }
+
+    // takes in a datapoint, and makes a copy of that and stores that as our "point"
+    private Node(final Integer[] datapoint,
+                 final int numClasses,
+                 final int dimension,
+                 final int nodeID) {
+        // copy the passed in datapoint to this node's point.
+        this.values = Arrays.copyOf(datapoint, datapoint.length);
+
+        // set classification to 0.
+        this.classification = 0;
+        this.classificationConfirmed = false;
+
+        this.upExpansions = new Node[dimension];
+        this.downExpansions = new Node[dimension];
+
+        // Set the maximum possible classification value from Main
+        this.maxPossibleValue = numClasses - 1;
+
+        this.totalUmbrellaCases = 0;
+        this.underneathUmbrellaCases = 0;
+        this.aboveUmbrellaCases = 0;
+
+        this.possibleConfirmationsByClass = new Integer[numClasses];
+        Arrays.fill(this.possibleConfirmationsByClass, 0);
+        this.balanceRatio = 0.0f;
+
+        this.sum = sumUpDataPoint();
+        this.nodeID = nodeID;
+    }
+
+    public Node(final Node n) {
+        this(n.values, n.maxPossibleValue + 1, n.upExpansions.length, n.nodeID);
+    }
+
+    private void findExpansions(final HashMap<Integer, Node> nodes, final int dimension) {
+
+        // Parallel computation of expansions for each attribute
+        IntStream.range(0, dimension).parallel().forEach(attribute -> {
+            final Integer[] key = Arrays.copyOf(values, values.length);
+
+            // increment the value of key at this attribute, so we can find the one with + 1 in this digit.
+            key[attribute]++;
+            upExpansions[attribute] = nodes.get(hash(key));
+
+            // decrement by 2 to find the one with -1 in this attribute.
+            key[attribute] -= 2;
+            downExpansions[attribute] = nodes.get(hash(key));
+        });
+    }
+
+    private boolean nodeSatisfiesImpossibleAttributeCombination(final Map<Integer, Integer> impossibleAttributeCombination) {
+        return impossibleAttributeCombination.entrySet().stream()
+                .allMatch(entry -> this.values[entry.getKey()] >= entry.getValue());
+    }
+
     private PermeationStats expand(final int bound, final boolean countUpwards) {
         // BFS-based expansion to set ceiling of below nodes, and floor of above nodes.
         final Queue<Node> queue = new LinkedList<>();
         final Set<Node> visited = new HashSet<>();
         final RoaringBitmap nodesConfirmed = new RoaringBitmap();
         final RoaringBitmap nodesWithBoundChanges = new RoaringBitmap();
-        Integer numberOfNodesTouched = 0;
+        int numberOfNodesTouched = 0;
         queue.add(this);
         visited.add(this);
 
@@ -245,8 +337,8 @@ public class Node {
             }
         }
 
-        Integer numberOfNodesTouchedAbove = 0;
-        Integer numberOfNodesTouchedBelow = 0;
+        int numberOfNodesTouchedAbove = 0;
+        int numberOfNodesTouchedBelow = 0;
         if (countUpwards) {
             numberOfNodesTouchedAbove = numberOfNodesTouched;
         } else {
@@ -343,82 +435,6 @@ public class Node {
         this.underneathUmbrellaCases = this.reachableNodesBelow.getCardinality();
     }
 
-
-    // assume we had a node who's min classifications by class were [1, 2, 2] and another who's min classifications by class were:
-    //  [0 (because it is guaranteed to NOT be this class by monotonicity already), 6, 12] we would choose the first, since it's min is lower.
-    // but in reality, we want that second one, since the first class is just not possible. the real min is 6. not 0. so we have to have a flag for not set.
-    // the reason it's max value, is so that when we sort the counts, this number last still, and will serve as a tiebreaker
-    private static final Integer NOT_SET = Integer.MAX_VALUE;
-
-    // does a BFS from each node, updating rankings as we go. Ranking our umbrella size and the minimum classifications.
-    public static void updateAllNodeRankings(final ArrayList<Node> aliveNodes,
-                                             final BalanceRatio balanceRatio,
-                                             final int numClasses,
-                                             final PermeationStats statsFromLastUpdate,
-                                             final HashMap<Integer, Node> allNodesToTheirIDsMap) {
-
-        // this would happen on the FIRST question asked of the day.
-        if (statsFromLastUpdate == null)
-            return;
-
-        final RoaringBitmap nodesConfirmed = statsFromLastUpdate.nodesConfirmed;
-        final RoaringBitmap nodesUpdated = statsFromLastUpdate.nodesWithBoundChanges;
-
-        // for all nodes, if they weren't confirmed, we are going to remove confirmed from their list, and remove nodes which
-        // they can no longer update.
-        aliveNodes.parallelStream()
-                .filter(node -> !nodesConfirmed.contains(node.nodeID))
-                .forEach(node -> {
-                    node.removeConfirmedNodesFromReachableSet(nodesConfirmed);
-                    if (nodesUpdated.contains(node.nodeID)){
-                        node.cleanOwnReachableSets(allNodesToTheirIDsMap);
-                    }
-                    node.removeUpdatedNodesFromReachableSet(nodesUpdated, allNodesToTheirIDsMap);
-                    node.totalUmbrellaCases = node.aboveUmbrellaCases + node.underneathUmbrellaCases;
-                });
-
-        final RoaringBitmap[] nodesThatWouldConfirmForEachClassCountingUpwards = new RoaringBitmap[numClasses];
-        for (int i = 0; i < numClasses; i++) {
-            nodesThatWouldConfirmForEachClassCountingUpwards[i] = new RoaringBitmap();
-        }
-        final RoaringBitmap[] nodesThatWouldConfirmForEachClassCountingDownwards = new RoaringBitmap[numClasses];
-        for (int i = 0; i < numClasses; i++) {
-            nodesThatWouldConfirmForEachClassCountingDownwards[i] = new RoaringBitmap();
-        }
-
-        // determine whether each node is going to be confirmed for each class, counting both up and downwards
-        for (final Node n : aliveNodes) {
-            for (int classification = n.classification; classification <= n.maxPossibleValue; classification++) {
-                // flag whether this node would be confirmed for each class or not, counting both up and down
-                if (n.wouldBeConfirmedForClass(classification, true)) {
-                    nodesThatWouldConfirmForEachClassCountingUpwards[classification].add(n.nodeID);
-                }
-
-                if (n.wouldBeConfirmedForClass(classification, false)) {
-                    nodesThatWouldConfirmForEachClassCountingDownwards[classification].add(n.nodeID);
-                }
-            }
-        }
-
-        aliveNodes.parallelStream()
-                .forEach(node -> {
-                    Arrays.fill(node.possibleConfirmationsByClass, NOT_SET);
-                    for (int classification = node.classification; classification <= node.maxPossibleValue; classification++) {
-                        node.possibleConfirmationsByClass[classification] = 0;
-                    }
-
-                    // now we must have each node go through the nodesThatWouldConfirm for each class, and increment their counts in these cases:
-                    // if the target node is in reachableBelow for a given node, we check if it would be confirmed counting downards for each class
-                    // if the target node is above, we check if it would be confirmed counting upwards for each class which our node can still be.
-                    node.updateConfirmationStats(nodesThatWouldConfirmForEachClassCountingUpwards, true);
-                    node.updateConfirmationStats(nodesThatWouldConfirmForEachClassCountingDownwards, false);
-                    Arrays.sort(node.possibleConfirmationsByClass);
-
-                    // compute the new magnitude of above and below umbrella case vector
-                    node.umbrellaMagnitude = node.computeUmbrellaMagnitude();
-                    node.balanceRatio = balanceRatio.computeBalanceRatio(node);
-                });
-    }
 
     private void updateConfirmationStats(final RoaringBitmap[] nodesThatWouldConfirmForEachClass,
                                          final boolean countUpwards) {
@@ -564,7 +580,7 @@ public class Node {
 
             s.append("POSSIBLE CONFIRMATIONS:\n");
             for (int i = 0; i < possibleConfirmationsByClass.length; i++) {
-                s.append("\tClass: " + i + ": " + possibleConfirmationsByClass[i] + "\n");
+                s.append("\tClass: ").append(i).append(": ").append(possibleConfirmationsByClass[i]).append("\n");
             }
 
         }

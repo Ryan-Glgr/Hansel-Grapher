@@ -1000,6 +1000,7 @@ public class CreateFunctionWindow {
                                 classificationNames,
                                 null,
                                 subFunctionsForEachAttribute,
+                                null,
                                 magicFunctionMode));
 
                 interviewCreationTask.whenComplete((result, throwable) ->

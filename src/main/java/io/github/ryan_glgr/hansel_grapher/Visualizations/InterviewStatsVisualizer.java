@@ -3,11 +3,13 @@ package io.github.ryan_glgr.hansel_grapher.Visualizations;
 import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats;
 import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats.PermeationStatistic;
+import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.Interview;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.InterviewMode;
 
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.Styler;
 
+import java.io.File;
 import java.util.*;
 import java.io.IOException;
 
@@ -87,5 +89,35 @@ public class InterviewStatsVisualizer {
             }
         }
         return chart;
+    }
+
+    public static void visualizeStatistics(final Interview interview) {
+        try{
+            // ensure output directory exists
+            final File outputDir = new File("out/phony.txt").getParentFile();
+            if (outputDir != null && !outputDir.exists()) {
+                outputDir.mkdirs();
+            }
+            // visualize our results
+            VisualizationDOT.makeHanselChainDOT(interview.hanselChains, interview.adjustedLowUnitsByClass);
+
+            // make the expansions picture
+            final Integer[] kValues = interview.kVals;
+            VisualizationDOT.makeExpansionsDOT(interview.data, interview.adjustedLowUnitsByClass, kValues);
+            VisualizationDOT.makeRuleTreesDOT(interview.ruleTrees, interview.attributeNames);
+
+            final InterviewMode interviewMode = interview.interviewStats.interviewMode;
+            final String interviewStatsOutputString = interviewMode + " Interview Stats";
+            savePDF(interview.interviewStats,
+                "out/" + interviewStatsOutputString + ".pdf",
+                    interviewMode);
+
+            VisualizationDOT.compileDotAsync("out/HanselChains.dot");
+            VisualizationDOT.compileDotAsync("out/Expansions.dot");
+            VisualizationDOT.compileDotAsync("out/RuleTrees.dot");
+        }
+        catch (final Exception e){
+            e.printStackTrace();
+        }
     }
 }

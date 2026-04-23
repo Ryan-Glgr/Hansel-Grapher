@@ -1,36 +1,25 @@
 package io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview;
 
-import java.util.stream.IntStream;
+import io.github.ryan_glgr.hansel_grapher.helper.Util;
 
 public class InterviewHelperFunctions {
     public static Interview createSubFunction(final Integer[] kValues,
                                               final Float[] weights,
                                               final int numClasses,
                                               final InterviewMode mode,
-                                              final MagicFunctionMode magicMode,
-                                              final boolean findOptimalRuleTrees) {
+                                              final MagicFunctionMode magicMode) {
         return new Interview(
                 kValues,
                 weights,
                 mode,
                 numClasses,
-                createDefaultAttributeNames(kValues.length),
-                createDefaultClassificationNames(numClasses),
+                Util.createDefaultAttributeNames(kValues.length),
+                Util.createDefaultClassificationNames(numClasses),
                 null,
-                new Interview[kValues.length],
+                null,
+                null,
                 magicMode
         );
     }
 
-    public static String[] createDefaultAttributeNames(final int numAttributes) {
-        return IntStream.range(0, numAttributes)
-                .mapToObj(i -> "Attribute " + i)
-                .toArray(String[]::new);
-    }
-
-    public static String[] createDefaultClassificationNames(final int numClasses) {
-        return IntStream.range(0, numClasses)
-                .mapToObj(i -> "Classification " + i)
-                .toArray(String[]::new);
-    }
 }

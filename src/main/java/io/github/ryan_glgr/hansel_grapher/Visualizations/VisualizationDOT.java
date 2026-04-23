@@ -16,6 +16,15 @@ import java.util.concurrent.CompletableFuture;
 
 public class VisualizationDOT {
     
+    // --- Constants ---
+    private static final String NODE_SHAPE = "rectangle";
+    private static final String OUTPUT_DIRECTORY = "out";
+    private static final String EXPANSIONS_FILE_NAME = "Expansions.dot";
+    private static final String HANSEL_CHAINS_FILE_NAME = "HanselChains.dot";
+    private static final String RULE_TREES_FILE_NAME = "RuleTrees.dot";
+    private static final String COMPILE_SCRIPT_PATH = "Visualizations" + File.separator + "compile_dot.sh";
+    private static final String PHONY_FILE_NAME = "phony.txt";
+ 
     private static ArrayList<ArrayList<Node>> sortChainsForVisualization(final ArrayList<ArrayList<Node>> chainSet){
 
         // Apply the sort result back to hanselChainSet
@@ -38,6 +47,15 @@ public class VisualizationDOT {
 
     // Generate a color for a given classification using HSV color space
     private static String getColorForClass(final int classification, final boolean isLowUnit) {
+        // Special handling for impossible classifications - use dark gray
+        if (classification == Node.IMPOSSIBLE_CLASSIFICATION) {
+            // Dark gray color with transparency
+            final int grayValue = 64; // Dark gray (0-255 scale)
+            final float alpha = isLowUnit ? 1.0f : 0.65f;
+            final int alphaInt = Math.round(alpha * 255);
+            return String.format("#%02x%02x%02x%02x", grayValue, grayValue, grayValue, alphaInt);
+        }
+
         // Use golden ratio to space out hues nicely
         final float goldenRatio = 0.618033988749895f;
 
@@ -66,9 +84,6 @@ public class VisualizationDOT {
                 colorWithAlpha.getAlpha());
     }
 
-    // --- Constants ---
-    private static final String NODE_SHAPE = "rectangle";
-
     // --- Escaping helper ---
     private static String escapeQuote(final String s) {
         return s == null ? "" : s.replace("\"", "\\\"");
@@ -89,15 +104,15 @@ public class VisualizationDOT {
         fw.write(temp.hashCode() + " [" + attr.toString() + "];\n\t");
     }
 
-    private static void writeRuleNode(FileWriter fw,
-                                      RuleNode node,
-                                      int classification,
-                                      String color,
-                                      String[] attributeNames) throws IOException {
+    private static void writeRuleNode(final FileWriter fw,
+                                      final RuleNode node,
+                                      final int classification,
+                                      final String color,
+                                      final String[] attributeNames) throws IOException {
 
-        int id = System.identityHashCode(node);
+        final int id = System.identityHashCode(node);
 
-        String label;
+        final String label;
         if (node.attributeIndex == null) {
             label = "ROOT";
         } else {
@@ -114,15 +129,15 @@ public class VisualizationDOT {
 
     private static String nodeLabel(final Node temp, final boolean isLow) {
 
-        final String cls = (isLow)
-            ? String.format("*%s*", temp.classification)
-            : String.format(" %s ", temp.classification);
-
-        // 2. Values array line
-        final String valuesLine = Arrays.toString(temp.values);
-
-        // 3. Combine into multi-line DOT label
-        return valuesLine + "\\nClassification: " + cls;
+        final String cls;
+        if (Node.IMPOSSIBLE_CLASSIFICATION.equals(temp.classification)) {
+            cls = "N/A";
+        } else {
+            cls = (isLow)
+                ? String.format("*%s*", temp.classification)
+                : String.format(" %s ", temp.classification);
+        }
+        return Arrays.toString(temp.values) + "\\nClassification: " + cls;
     }
 
 
@@ -137,7 +152,7 @@ public class VisualizationDOT {
 
         final Integer[] kValsToMakeNode = Node.counterInitializer(kValues);
         final HashMap<Node, Node> usedNodes = new HashMap<>();
-        final FileWriter fw = new FileWriter("out/Expansions.dot");
+        final FileWriter fw = new FileWriter(OUTPUT_DIRECTORY + File.separator + EXPANSIONS_FILE_NAME);
         fw.write("digraph G {\n\trankdir = BT;\n\tbgcolor = white;\n\t");
 
         while (Node.incrementCounter(kValsToMakeNode, kValues)) {
@@ -171,7 +186,7 @@ public class VisualizationDOT {
             for (final ArrayList<Node> listForClass : lowUnitsByClass)
                 if (listForClass != null) lowSet.addAll(listForClass);
 
-        final FileWriter fw = new FileWriter("out/HanselChains.dot");
+        final FileWriter fw = new FileWriter(OUTPUT_DIRECTORY + File.separator + HANSEL_CHAINS_FILE_NAME);
         fw.write("digraph G {\n\trankdir = BT;\n\tbgcolor = white;\n\t");
 
         final ArrayList<Node> middleNodes = new ArrayList<>();
@@ -199,14 +214,14 @@ public class VisualizationDOT {
         fw.close();
     }
 
-    private static void traverseRuleTree(FileWriter fw,
-                                         RuleNode node,
-                                         String color,
-                                         String[] attributeNames) throws IOException {
+    private static void traverseRuleTree(final FileWriter fw,
+                                         final RuleNode node,
+                                         final String color,
+                                         final String[] attributeNames) throws IOException {
 
-        int id = System.identityHashCode(node);
+        final int id = System.identityHashCode(node);
 
-        String label = (node.attributeIndex == null)
+        final String label = (node.attributeIndex == null)
                 ? "ROOT"
                 : attributeNames[node.attributeIndex] + " >= " + node.attributeValue;
 
@@ -214,17 +229,17 @@ public class VisualizationDOT {
 
         if (node.children == null) return;
 
-        for (RuleNode child : node.children) {
-            int childId = System.identityHashCode(child);
+        for (final RuleNode child : node.children) {
+            final int childId = System.identityHashCode(child);
             traverseRuleTree(fw, child, color, attributeNames);
             fw.write(id + " -> " + childId + ";\n\t");
         }
     }
 
-    public static void makeRuleTreesDOT(RuleNode[] ruleTrees,
-                                        String[] attributeNames) throws IOException {
+    public static void makeRuleTreesDOT(final RuleNode[] ruleTrees,
+                                        final String[] attributeNames) throws IOException {
 
-        FileWriter fw = new FileWriter("out/RuleTrees.dot");
+        final FileWriter fw = new FileWriter(OUTPUT_DIRECTORY + File.separator + RULE_TREES_FILE_NAME);
         fw.write("digraph G {\n\trankdir=TB;\n\tbgcolor=white;\n\t");
 
         for (int c = 1; c < ruleTrees.length; c++) {
@@ -232,7 +247,7 @@ public class VisualizationDOT {
 
             fw.write("subgraph cluster_" + c + " {\n\tstyle=invis;\n\t");
 
-            String color = getColorForClass(c, true);
+            final String color = getColorForClass(c, true);
             traverseRuleTree(fw, ruleTrees[c], color, attributeNames);
 
             fw.write("}\n\t");
@@ -248,11 +263,11 @@ public class VisualizationDOT {
             try {
 
                 // ensure output directory exists
-                final File outputDir = new File("out/phony.txt").getParentFile();
+                final File outputDir = new File(OUTPUT_DIRECTORY + File.separator + PHONY_FILE_NAME).getParentFile();
                 if (outputDir != null && !outputDir.exists()) {
                     outputDir.mkdirs();
                 }
-                final ProcessBuilder pb = new ProcessBuilder("./Visualizations/compile_dot.sh", dotPath);
+                final ProcessBuilder pb = new ProcessBuilder("." + File.separator + COMPILE_SCRIPT_PATH, dotPath);
                 pb.directory(new File("."));
                 final Process process = pb.start();
                 process.onExit().thenAccept(p -> {

@@ -4,32 +4,37 @@ import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.Interview;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.InterviewHelperFunctions;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.InterviewMode;
 import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.MagicFunctionMode;
+import io.github.ryan_glgr.hansel_grapher.helper.Util;
 
-import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.IntStream;
 
 public class InterviewCreationTestCases {
 
-    public static Interview createBasicInterviewWithSubfunctions(final InterviewMode interviewMode,
-                                                                  final boolean findOptimalChildren) {
-        final Integer[] kValues = new Integer[] {3, 5, 4, 3, 4, 2};
-        final Float[] weights = new Float[] {.5f, 1.65f, 1.25f, 1.0f, 2.25f, 1.85f};
-        return createBasicInterviewWithSubfunctions(interviewMode, kValues, weights, findOptimalChildren);
+    public static Interview createBasicInterviewWithSubfunctions(final InterviewMode interviewMode) {
+        final Integer[] kValues = new Integer[] {2, 2, 3, 2, 2};
+        final Float[] weights = new Float[] {1.65f, 1.25f, 1.0f, 2.25f, 1.85f};
+
+        // x0 >= 1, and x2 >= 1 is IMPOSSIBLE is what we are saying
+        final Set<Map<Integer, Integer>> impossibleCombinations = Set.of(Map.of(
+            0, 1,
+            2, 1));
+        return createBasicInterviewWithSubfunctions(interviewMode, kValues, weights, impossibleCombinations);
     }
 
     public static Interview createBasicInterviewWithSubfunctions(final InterviewMode interviewMode,
                                                                  final Integer[] kValues,
                                                                  final Float[] weights,
-                                                                 final boolean findOptimalChildren) {
+                                                                 final Set<Map<Integer, Integer>> impossibleNodeCombinations) {
         
         final int maxSum = IntStream.range(0, kValues.length)
             .map(i -> (int) ((kValues[i] - 1) * weights[i]))
             .sum();
         final int numClasses = maxSum / kValues.length + 1;
 
-        final String[] attributeNames = InterviewHelperFunctions.createDefaultAttributeNames(kValues.length);
-        final String[] classificationNames = InterviewHelperFunctions.createDefaultClassificationNames(numClasses);
+        final String[] attributeNames = Util.createDefaultAttributeNames(kValues.length);
+        final String[] classificationNames = Util.createDefaultClassificationNames(numClasses);
 
         final Interview[] availableSubfunctions = new Interview[]{
             InterviewHelperFunctions.createSubFunction(
@@ -37,24 +42,21 @@ public class InterviewCreationTestCases {
                 new Float[] {.5f, 1.65f, 1.25f, 1.0f},
                 5,
                 interviewMode,
-                MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE,
-                findOptimalChildren
+                MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE
             ),
             InterviewHelperFunctions.createSubFunction(
                 new Integer[] {3, 4, 6, 7},
                 new Float[] {.5f, 2.25f, 1.85f, 1.0f},
                 5,
                 interviewMode,
-                MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE,
-                findOptimalChildren
+                MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE
             ),
             InterviewHelperFunctions.createSubFunction(
                 new Integer[] {2, 2, 7, 5},
                 new Float[] {.5f, 2.25f, 1.25f, 1.0f},
                 3,
                 interviewMode,
-                MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE,
-                findOptimalChildren
+                MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE
             )
         };
 
@@ -71,14 +73,9 @@ public class InterviewCreationTestCases {
                 classificationNames,
                 null,
                 childFunctions,
+                impossibleNodeCombinations,
                 MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE);
 
-        if (findOptimalChildren) {
-            System.out.println("GREEDY RULE TREE BUILDING INTERVIEW");
-        }
-        else{
-            System.out.println("OPTIMAL RULE TREE BUILDING INTERVIEW");
-        }
         System.out.println(interviewMode + " INTERVIEW COMPLETE!");
         System.out.println(interview);
         return interview;
@@ -117,123 +114,124 @@ public class InterviewCreationTestCases {
             "Time"
     };
 
-    private static final Set<Integer[]> knownLowUnitsFromHeartFailureStudy = Set.of(
-            new Integer[]{0,0,1,1,0,1,0,1,0,1,1,1}, // (x3≥1)x4x6x8x10x11(x12≥1)
-            new Integer[]{0,0,2,1,1,0,0,0,0,0,1,2}, // (x3≥2)x4x5x11(x12≥2)
-            new Integer[]{0,0,2,1,1,0,0,0,1,0,1,1}, // (x3≥2)x4x5x9x11(x12≥1)
-            new Integer[]{0,0,3,0,0,1,0,0,0,1,0,2}, // (x3≥3)x6x10(x12≥2)
-            new Integer[]{0,0,3,0,0,1,0,0,1,1,0,1}, // (x3≥3)x6x9x10(x12≥1)
-            new Integer[]{0,1,1,1,0,1,0,1,1,1,0,0}, // x2(x3≥1)x4x6x8x9x10
-            new Integer[]{0,0,2,1,0,0,0,1,0,1,1,1}, // (x3≥2)x4x8x10x11(x12≥1)
-            new Integer[]{1,1,0,1,0,1,0,0,1,1,1,1}, // (x1≥1)x2x4x6x9x10x11(x12≥1)
-            new Integer[]{0,0,1,1,1,0,0,0,1,1,1,1}, // (x3≥1)x4x5x9x10x11(x12≥1)
-            new Integer[]{0,0,1,1,1,0,0,0,0,1,1,2}, // (x3≥1)x4x5x10x11(x12≥2)
-            new Integer[]{0,1,0,1,1,0,0,1,1,0,1,0}, // x2x4x5x8x9x11
-            new Integer[]{0,1,3,0,1,0,0,1,0,1,1,0}, // x2(x3≥3)x5x8x10x11
-            new Integer[]{1,0,1,0,1,1,0,1,0,1,1,0}, // (x1≥1)(x3≥1)x5x6x8x10x11
-            new Integer[]{1,1,2,0,1,1,0,0,1,1,1,0}, // (x1≥1)x2(x3≥2)x5x6x9x10x11
-            new Integer[]{0,0,3,0,0,1,0,1,0,0,0,1}, // (x3≥3)x6x8(x12≥1)
-            new Integer[]{0,1,0,1,1,1,0,1,0,0,0,1}, // x2x4x5x6x8(x12≥1)
-            new Integer[]{0,0,3,0,1,0,0,0,1,0,0,1}, // (x3≥3)x5x9(x12≥1)
-            new Integer[]{0,0,2,0,1,1,0,0,1,0,0,1}, // (x3≥2)x5x6x9(x12≥1)
-            new Integer[]{0,0,3,0,0,0,0,1,0,1,0,1}, // (x3≥3)x8x10(x12≥1)
-            new Integer[]{0,0,2,0,0,1,0,1,0,1,0,1}, // (x3≥2)x6x8x10(x12≥1)
-            new Integer[]{0,1,1,0,1,0,0,0,1,1,0,1}, // x2(x3≥1)x5x9x10(x12≥1)
-            new Integer[]{0,0,2,0,1,0,0,0,1,1,0,1}, // (x3≥2)x5x9x10(x12≥1)
-            new Integer[]{0,0,1,0,1,1,0,0,1,1,0,1}, // (x3≥1)x5x6x9x10(x12≥1)
-            new Integer[]{0,0,3,1,0,0,0,1,0,0,1,1}, // (x3≥3)x4x8x11(x12≥1)
-            new Integer[]{1,1,0,1,0,1,0,1,0,0,1,1}, // (x1≥1)x2x4x6x8x11(x12≥1)
-            new Integer[]{1,0,2,1,0,0,0,0,1,0,1,1}, // (x1≥1)(x3≥2)x4x9x11(x12≥1)
-            new Integer[]{1,0,3,0,1,0,0,0,0,1,1,1}, // (x1≥1)(x3≥3)x5x10x11(x12≥1)
-            new Integer[]{1,0,1,1,0,0,0,0,1,1,1,1}, // (x1≥1)(x3≥1)x4x9x10x11(x12≥1)
-            new Integer[]{0,0,3,0,1,0,0,0,0,0,0,2}, // (x3≥3)x5(x12≥2)
-            new Integer[]{0,0,2,0,1,1,0,0,0,0,0,2}, // (x3≥2)x5x6(x12≥2)
-            new Integer[]{0,1,1,0,1,0,0,0,0,1,0,2}, // x2(x3≥1)x5x10(x12≥2)
-            new Integer[]{0,0,2,0,1,0,0,0,0,1,0,2}, // (x3≥2)x5x10(x12≥2)
-            new Integer[]{1,0,1,1,0,1,0,0,0,1,0,2}, // (x1≥1)(x3≥1)x4x6x10(x12≥2)
-            new Integer[]{0,0,1,0,1,1,0,0,0,1,0,2}, // (x3≥1)x5x6x10(x12≥2)
-            new Integer[]{0,1,2,1,0,1,0,1,1,0,0,0}, // x2(x3≥2)x4x6x8x9
-            new Integer[]{0,1,0,1,1,1,0,1,1,0,0,0}, // x2x4x5x6x8x9
-            new Integer[]{1,0,1,1,1,1,0,1,0,1,0,0}, // (x1≥1)(x3≥1)x4x5x6x8x10
-            new Integer[]{0,0,2,1,0,0,0,1,1,1,0,0}, // (x3≥2)x4x8x9x10
-            new Integer[]{0,0,2,0,0,1,0,1,1,1,0,0}, // (x3≥2)x6x8x9x10
-            new Integer[]{2,0,0,1,1,1,0,0,1,1,0,0}, // (x1≥2)x4x5x6x9x10
-            new Integer[]{1,0,3,0,1,0,0,0,1,1,0,0}, // (x1≥1)(x3≥3)x5x9x10
-            new Integer[]{0,1,2,0,1,0,0,0,1,0,0,1}, // x2(x3≥2)x5x9(x12≥1)
-            new Integer[]{1,0,2,0,0,1,0,0,0,0,0,2}, // (x1≥1)(x3≥2)x6(x12≥2)
-            new Integer[]{1,1,1,0,1,1,0,1,0,1,0,0}, // (x1≥1)x2(x3≥1)x5x6x8x10
-            new Integer[]{2,0,1,1,0,1,0,1,0,1,0,0}, // (x1≥2)(x3≥1)x4x6x8x10
-            new Integer[]{1,1,1,1,1,0,0,1,0,1,0,0}, // (x1≥1)x2(x3≥1)x4x5x8x10
-            new Integer[]{1,0,2,0,1,0,0,1,0,1,0,0}, // (x1≥1)(x3≥2)x5x8x10
-            new Integer[]{0,1,2,0,0,0,0,1,0,1,0,1}, // x2(x3≥2)x8x10(x12≥1)
-            new Integer[]{1,0,2,0,0,0,0,0,0,1,0,2}, // (x1≥1)(x3≥2)x10(x12≥2)
-            new Integer[]{0,0,3,0,0,0,0,1,1,0,0,0}, // (x3≥3)x8x9
-            new Integer[]{1,0,2,0,0,0,0,0,1,1,0,1}, // (x1≥1)(x3≥2)x9x10(x12≥1)
-            new Integer[]{1,1,1,1,0,0,0,0,0,1,0,2}, // (x1≥1)x2(x3≥1)x4x10(x12≥2)
-            new Integer[]{1,0,1,0,0,1,0,0,1,1,0,1}, // (x1≥1)(x3≥1)x6x9x10(x12≥1)
-            new Integer[]{1,1,0,1,0,1,0,1,1,0,0,0}, // (x1≥1)x2x4x6x8x9
-            new Integer[]{1,1,1,0,0,1,0,0,0,1,0,2}, // (x1≥1)x2(x3≥1)x6x10(x12≥2)
-            new Integer[]{1,0,2,0,0,1,0,0,1,0,0,1}, // (x1≥1)(x3≥2)x6x9(x12≥1)
-            new Integer[]{0,1,0,0,0,1,0,0,1,0,0,2}, // x2x6x9(x12≥2)
-            new Integer[]{0,1,2,0,0,0,0,1,1,1,0,0}, // x2(x3≥2)x8x9x10
-            new Integer[]{2,1,0,1,1,1,0,0,0,1,0,1}, // (x1≥2)x2x4x5x6x10(x12≥1)
-            new Integer[]{1,0,2,0,1,1,0,1,0,0,0,0}, // (x1≥1)(x3≥2)x5x6x8
-            new Integer[]{1,0,3,0,1,1,0,0,0,1,0,1}, // (x1≥1)(x3≥3)x5x6x10(x12≥1)
-            new Integer[]{2,0,0,0,1,1,0,0,1,1,1,0}, // (x1≥2)x5x6x9x10x11
-            new Integer[]{2,1,2,1,0,1,0,0,1,1,1,0}, // (x1≥2)x2(x3≥2)x4x6x9x10x11
-            new Integer[]{2,0,1,0,0,1,0,1,0,1,1,0}, // (x1≥2)(x3≥1)x6x8x10x11
-            new Integer[]{1,1,3,1,0,1,0,1,0,1,1,0}, // (x1≥1)x2(x3≥3)x4x6x8x10x11
-            new Integer[]{1,1,1,0,1,0,0,1,0,1,1,0}, // (x1≥1)x2(x3≥1)x5x8x10x11
-            new Integer[]{0,0,1,0,1,0,0,1,0,0,0,1}, // (x3≥1)x5x8(x12≥1)
-            new Integer[]{1,0,3,0,0,0,0,0,0,0,0,2}, // (x1≥1)(x3≥3)(x12≥2)
-            new Integer[]{2,0,3,0,0,1,0,0,0,1,0,1}, // (x1≥2)(x3≥3)x6x10(x12≥1)
-            new Integer[]{1,0,3,0,1,0,0,1,0,0,0,0}, // (x1≥1)(x3≥3)x5x8
-            new Integer[]{0,0,0,0,1,0,0,1,0,1,0,1}, // x5x8x10(x12≥1)
-            new Integer[]{0,1,3,0,0,0,0,1,0,0,0,1}, // x2(x3≥3)x8(x12≥1)
-            new Integer[]{2,0,1,0,1,0,0,0,0,1,0,1}, // (x1≥2)(x3≥1)x5x10(x12≥1)
-            new Integer[]{0,0,1,0,0,0,0,0,1,0,0,2}, // (x3≥1)x9(x12≥2)
-            new Integer[]{0,0,0,0,1,0,0,0,1,0,0,2}, // x5x9(x12≥2)
-            new Integer[]{1,1,3,0,1,0,0,0,0,1,0,1}, // (x1≥1)x2(x3≥3)x5x10(x12≥1)
-            new Integer[]{0,0,0,0,1,0,0,1,1,1,0,0}, // x5x8x9x10
-            new Integer[]{2,0,3,0,0,1,0,0,1,1,0,0}, // (x1≥2)(x3≥3)x6x9x10
-            new Integer[]{2,0,1,0,1,0,0,0,1,1,0,0}, // (x1≥2)(x3≥1)x5x9x10
-            new Integer[]{1,1,1,0,0,0,0,0,1,1,0,1}, // (x1≥1)x2(x3≥1)x9x10(x12≥1)
-            new Integer[]{2,0,3,1,0,0,0,0,0,1,1,1}, // (x1≥2)(x3≥3)x4x10x11(x12≥1)
-            new Integer[]{1,0,3,0,0,0,0,0,1,0,0,1}, // (x1≥1)(x3≥3)x9(x12≥1)
-            new Integer[]{0,0,0,0,0,0,0,0,1,1,0,2}, // x9x10(x12≥2)
-            new Integer[]{0,0,1,0,1,0,0,1,1,0,0,0}, // (x3≥1)x5x8x9
-            new Integer[]{1,0,0,0,1,0,0,1,0,0,0,1}, // (x1≥1)x5x8(x12≥1)
-            new Integer[]{2,0,2,0,0,0,0,1,0,1,0,0}, // (x1≥2)(x3≥2)x8x10
-            new Integer[]{2,0,0,0,1,0,0,1,0,1,0,0}, // (x1≥2)x5x8x10
-            new Integer[]{2,1,1,0,0,1,0,1,0,1,0,0}, // (x1≥2)x2(x3≥1)x6x8x10
-            new Integer[]{2,0,0,0,1,1,0,1,0,0,0,0}, // (x1≥2)x5x6x8
-            new Integer[]{2,0,2,0,0,1,0,1,0,0,0,0}, // (x1≥2)(x3≥2)x6x8
-            new Integer[]{1,0,0,0,0,0,0,1,1,1,0,0}, // (x1≥1)x8x9x10
-            new Integer[]{2,1,1,1,1,1,0,0,1,0,0,0}, // (x1≥2)x2(x3≥1)x4x5x6x9
-            new Integer[]{2,0,1,0,1,0,0,1,0,0,0,0}, // (x1≥2)(x3≥1)x5x8
-            new Integer[]{1,1,2,0,1,0,0,1,0,0,0,0}, // (x1≥1)x2(x3≥2)x5x8
-            new Integer[]{2,0,3,1,0,0,0,0,1,1,0,0}, // (x1≥2)(x3≥3)x4x9x10
-            new Integer[]{1,0,0,0,0,0,0,0,1,0,0,2}, // (x1≥1)x9(x12≥2)
-            new Integer[]{2,0,2,0,1,0,0,0,1,0,0,0}, // (x1≥2)(x3≥2)x5x9
-            new Integer[]{2,1,1,1,1,1,0,0,0,0,0,1}, // (x1≥2)x2(x3≥1)x4x5x6(x12≥1)
-            new Integer[]{2,0,2,0,1,0,0,0,0,0,0,1}, // (x1≥2)(x3≥2)x5(x12≥1)
-            new Integer[]{1,0,0,0,1,0,0,0,1,0,0,1}, // (x1≥1)x5x9(x12≥1)
-            new Integer[]{1,0,0,0,1,0,0,1,1,0,0,0}, // (x1≥1)x5x8x9
-            new Integer[]{1,0,0,0,0,0,0,1,0,1,0,1}, // (x1≥1)x8x10(x12≥1)
-            new Integer[]{1,1,2,0,0,0,0,0,1,0,0,1}, // (x1≥1)x2(x3≥2)x9(x12≥1)
-            new Integer[]{1,0,1,0,0,0,0,1,1,0,0,0}, // (x1≥1)(x3≥1)x8x9
-            new Integer[]{0,0,0,0,0,0,0,1,0,0,0,2}, // x8(x12≥2)
-            new Integer[]{1,0,1,0,0,0,0,1,0,0,0,1}, // (x1≥1)(x3≥1)x8(x12≥1)
-            new Integer[]{1,0,0,0,1,0,0,0,0,0,0,2}, // (x1≥1)x5(x12≥2)
-            new Integer[]{0,0,0,0,0,0,0,1,1,0,0,1}, // x8x9(x12≥1)
-            new Integer[]{2,0,0,0,0,0,0,0,1,0,0,1}, // (x1≥2)x9(x12≥1)
-            new Integer[]{2,1,0,0,1,0,0,1,0,0,0,0}, // (x1≥2)x2x5x8
-            new Integer[]{2,1,2,1,0,0,0,1,0,0,0,0}, // (x1≥2)x2(x3≥2)x4x8
-            new Integer[]{2,0,3,0,0,0,0,1,0,0,0,0}, // (x1≥2)(x3≥3)x8
-            new Integer[]{2,0,0,0,0,0,0,0,0,0,0,2}, // (x1≥2)(x12≥2)
-            new Integer[]{2,0,0,0,0,0,0,1,0,0,0,1}, // (x1≥2)x8(x12≥1)
-            new Integer[]{2,0,0,0,0,0,0,1,1,0,0,0}  // (x1≥2)x8x9
-    );
+    private static final Map<Integer, Set<Integer[]>> knownLowUnitsFromHeartFailureStudy = Map.of(
+            1, Set.of(
+                new Integer[]{0,0,1,1,0,1,0,1,0,1,1,1}, // (x3≥1)x4x6x8x10x11(x12≥1)
+                new Integer[]{0,0,2,1,1,0,0,0,0,0,1,2}, // (x3≥2)x4x5x11(x12≥2)
+                new Integer[]{0,0,2,1,1,0,0,0,1,0,1,1}, // (x3≥2)x4x5x9x11(x12≥1)
+                new Integer[]{0,0,3,0,0,1,0,0,0,1,0,2}, // (x3≥3)x6x10(x12≥2)
+                new Integer[]{0,0,3,0,0,1,0,0,1,1,0,1}, // (x3≥3)x6x9x10(x12≥1)
+                new Integer[]{0,1,1,1,0,1,0,1,1,1,0,0}, // x2(x3≥1)x4x6x8x9x10
+                new Integer[]{0,0,2,1,0,0,0,1,0,1,1,1}, // (x3≥2)x4x8x10x11(x12≥1)
+                new Integer[]{1,1,0,1,0,1,0,0,1,1,1,1}, // (x1≥1)x2x4x6x9x10x11(x12≥1)
+                new Integer[]{0,0,1,1,1,0,0,0,1,1,1,1}, // (x3≥1)x4x5x9x10x11(x12≥1)
+                new Integer[]{0,0,1,1,1,0,0,0,0,1,1,2}, // (x3≥1)x4x5x10x11(x12≥2)
+                new Integer[]{0,1,0,1,1,0,0,1,1,0,1,0}, // x2x4x5x8x9x11
+                new Integer[]{0,1,3,0,1,0,0,1,0,1,1,0}, // x2(x3≥3)x5x8x10x11
+                new Integer[]{1,0,1,0,1,1,0,1,0,1,1,0}, // (x1≥1)(x3≥1)x5x6x8x10x11
+                new Integer[]{1,1,2,0,1,1,0,0,1,1,1,0}, // (x1≥1)x2(x3≥2)x5x6x9x10x11
+                new Integer[]{0,0,3,0,0,1,0,1,0,0,0,1}, // (x3≥3)x6x8(x12≥1)
+                new Integer[]{0,1,0,1,1,1,0,1,0,0,0,1}, // x2x4x5x6x8(x12≥1)
+                new Integer[]{0,0,3,0,1,0,0,0,1,0,0,1}, // (x3≥3)x5x9(x12≥1)
+                new Integer[]{0,0,2,0,1,1,0,0,1,0,0,1}, // (x3≥2)x5x6x9(x12≥1)
+                new Integer[]{0,0,3,0,0,0,0,1,0,1,0,1}, // (x3≥3)x8x10(x12≥1)
+                new Integer[]{0,0,2,0,0,1,0,1,0,1,0,1}, // (x3≥2)x6x8x10(x12≥1)
+                new Integer[]{0,1,1,0,1,0,0,0,1,1,0,1}, // x2(x3≥1)x5x9x10(x12≥1)
+                new Integer[]{0,0,2,0,1,0,0,0,1,1,0,1}, // (x3≥2)x5x9x10(x12≥1)
+                new Integer[]{0,0,1,0,1,1,0,0,1,1,0,1}, // (x3≥1)x5x6x9x10(x12≥1)
+                new Integer[]{0,0,3,1,0,0,0,1,0,0,1,1}, // (x3≥3)x4x8x11(x12≥1)
+                new Integer[]{1,1,0,1,0,1,0,1,0,0,1,1}, // (x1≥1)x2x4x6x8x11(x12≥1)
+                new Integer[]{1,0,2,1,0,0,0,0,1,0,1,1}, // (x1≥1)(x3≥2)x4x9x11(x12≥1)
+                new Integer[]{1,0,3,0,1,0,0,0,0,1,1,1}, // (x1≥1)(x3≥3)x5x10x11(x12≥1)
+                new Integer[]{1,0,1,1,0,0,0,0,1,1,1,1}, // (x1≥1)(x3≥1)x4x9x10x11(x12≥1)
+                new Integer[]{0,0,3,0,1,0,0,0,0,0,0,2}, // (x3≥3)x5(x12≥2)
+                new Integer[]{0,0,2,0,1,1,0,0,0,0,0,2}, // (x3≥2)x5x6(x12≥2)
+                new Integer[]{0,1,1,0,1,0,0,0,0,1,0,2}, // x2(x3≥1)x5x10(x12≥2)
+                new Integer[]{0,0,2,0,1,0,0,0,0,1,0,2}, // (x3≥2)x5x10(x12≥2)
+                new Integer[]{1,0,1,1,0,1,0,0,0,1,0,2}, // (x1≥1)(x3≥1)x4x6x10(x12≥2)
+                new Integer[]{0,0,1,0,1,1,0,0,0,1,0,2}, // (x3≥1)x5x6x10(x12≥2)
+                new Integer[]{0,1,2,1,0,1,0,1,1,0,0,0}, // x2(x3≥2)x4x6x8x9
+                new Integer[]{0,1,0,1,1,1,0,1,1,0,0,0}, // x2x4x5x6x8x9
+                new Integer[]{1,0,1,1,1,1,0,1,0,1,0,0}, // (x1≥1)(x3≥1)x4x5x6x8x10
+                new Integer[]{0,0,2,1,0,0,0,1,1,1,0,0}, // (x3≥2)x4x8x9x10
+                new Integer[]{0,0,2,0,0,1,0,1,1,1,0,0}, // (x3≥2)x6x8x9x10
+                new Integer[]{2,0,0,1,1,1,0,0,1,1,0,0}, // (x1≥2)x4x5x6x9x10
+                new Integer[]{1,0,3,0,1,0,0,0,1,1,0,0}, // (x1≥1)(x3≥3)x5x9x10
+                new Integer[]{0,1,2,0,1,0,0,0,1,0,0,1}, // x2(x3≥2)x5x9(x12≥1)
+                new Integer[]{1,0,2,0,0,1,0,0,0,0,0,2}, // (x1≥1)(x3≥2)x6(x12≥2)
+                new Integer[]{1,1,1,0,1,1,0,1,0,1,0,0}, // (x1≥1)x2(x3≥1)x5x6x8x10
+                new Integer[]{2,0,1,1,0,1,0,1,0,1,0,0}, // (x1≥2)(x3≥1)x4x6x8x10
+                new Integer[]{1,1,1,1,1,0,0,1,0,1,0,0}, // (x1≥1)x2(x3≥1)x4x5x8x10
+                new Integer[]{1,0,2,0,1,0,0,1,0,1,0,0}, // (x1≥1)(x3≥2)x5x8x10
+                new Integer[]{0,1,2,0,0,0,0,1,0,1,0,1}, // x2(x3≥2)x8x10(x12≥1)
+                new Integer[]{1,0,2,0,0,0,0,0,0,1,0,2}, // (x1≥1)(x3≥2)x10(x12≥2)
+                new Integer[]{0,0,3,0,0,0,0,1,1,0,0,0}, // (x3≥3)x8x9
+                new Integer[]{1,0,2,0,0,0,0,0,1,1,0,1}, // (x1≥1)(x3≥2)x9x10(x12≥1)
+                new Integer[]{1,1,1,1,0,0,0,0,0,1,0,2}, // (x1≥1)x2(x3≥1)x4x10(x12≥2)
+                new Integer[]{1,0,1,0,0,1,0,0,1,1,0,1}, // (x1≥1)(x3≥1)x6x9x10(x12≥1)
+                new Integer[]{1,1,0,1,0,1,0,1,1,0,0,0}, // (x1≥1)x2x4x6x8x9
+                new Integer[]{1,1,1,0,0,1,0,0,0,1,0,2}, // (x1≥1)x2(x3≥1)x6x10(x12≥2)
+                new Integer[]{1,0,2,0,0,1,0,0,1,0,0,1}, // (x1≥1)(x3≥2)x6x9(x12≥1)
+                new Integer[]{0,1,0,0,0,1,0,0,1,0,0,2}, // x2x6x9(x12≥2)
+                new Integer[]{0,1,2,0,0,0,0,1,1,1,0,0}, // x2(x3≥2)x8x9x10
+                new Integer[]{2,1,0,1,1,1,0,0,0,1,0,1}, // (x1≥2)x2x4x5x6x10(x12≥1)
+                new Integer[]{1,0,2,0,1,1,0,1,0,0,0,0}, // (x1≥1)(x3≥2)x5x6x8
+                new Integer[]{1,0,3,0,1,1,0,0,0,1,0,1}, // (x1≥1)(x3≥3)x5x6x10(x12≥1)
+                new Integer[]{2,0,0,0,1,1,0,0,1,1,1,0}, // (x1≥2)x5x6x9x10x11
+                new Integer[]{2,1,2,1,0,1,0,0,1,1,1,0}, // (x1≥2)x2(x3≥2)x4x6x9x10x11
+                new Integer[]{2,0,1,0,0,1,0,1,0,1,1,0}, // (x1≥2)(x3≥1)x6x8x10x11
+                new Integer[]{1,1,3,1,0,1,0,1,0,1,1,0}, // (x1≥1)x2(x3≥3)x4x6x8x10x11
+                new Integer[]{1,1,1,0,1,0,0,1,0,1,1,0}, // (x1≥1)x2(x3≥1)x5x8x10x11
+                new Integer[]{0,0,1,0,1,0,0,1,0,0,0,1}, // (x3≥1)x5x8(x12≥1)
+                new Integer[]{1,0,3,0,0,0,0,0,0,0,0,2}, // (x1≥1)(x3≥3)(x12≥2)
+                new Integer[]{2,0,3,0,0,1,0,0,0,1,0,1}, // (x1≥2)(x3≥3)x6x10(x12≥1)
+                new Integer[]{1,0,3,0,1,0,0,1,0,0,0,0}, // (x1≥1)(x3≥3)x5x8
+                new Integer[]{0,0,0,0,1,0,0,1,0,1,0,1}, // x5x8x10(x12≥1)
+                new Integer[]{0,1,3,0,0,0,0,1,0,0,0,1}, // x2(x3≥3)x8(x12≥1)
+                new Integer[]{2,0,1,0,1,0,0,0,0,1,0,1}, // (x1≥2)(x3≥1)x5x10(x12≥1)
+                new Integer[]{0,0,1,0,0,0,0,0,1,0,0,2}, // (x3≥1)x9(x12≥2)
+                new Integer[]{0,0,0,0,1,0,0,0,1,0,0,2}, // x5x9(x12≥2)
+                new Integer[]{1,1,3,0,1,0,0,0,0,1,0,1}, // (x1≥1)x2(x3≥3)x5x10(x12≥1)
+                new Integer[]{0,0,0,0,1,0,0,1,1,1,0,0}, // x5x8x9x10
+                new Integer[]{2,0,3,0,0,1,0,0,1,1,0,0}, // (x1≥2)(x3≥3)x6x9x10
+                new Integer[]{2,0,1,0,1,0,0,0,1,1,0,0}, // (x1≥2)(x3≥1)x5x9x10
+                new Integer[]{1,1,1,0,0,0,0,0,1,1,0,1}, // (x1≥1)x2(x3≥1)x9x10(x12≥1)
+                new Integer[]{2,0,3,1,0,0,0,0,0,1,1,1}, // (x1≥2)(x3≥3)x4x10x11(x12≥1)
+                new Integer[]{1,0,3,0,0,0,0,0,1,0,0,1}, // (x1≥1)(x3≥3)x9(x12≥1)
+                new Integer[]{0,0,0,0,0,0,0,0,1,1,0,2}, // x9x10(x12≥2)
+                new Integer[]{0,0,1,0,1,0,0,1,1,0,0,0}, // (x3≥1)x5x8x9
+                new Integer[]{1,0,0,0,1,0,0,1,0,0,0,1}, // (x1≥1)x5x8(x12≥1)
+                new Integer[]{2,0,2,0,0,0,0,1,0,1,0,0}, // (x1≥2)(x3≥2)x8x10
+                new Integer[]{2,0,0,0,1,0,0,1,0,1,0,0}, // (x1≥2)x5x8x10
+                new Integer[]{2,1,1,0,0,1,0,1,0,1,0,0}, // (x1≥2)x2(x3≥1)x6x8x10
+                new Integer[]{2,0,0,0,1,1,0,1,0,0,0,0}, // (x1≥2)x5x6x8
+                new Integer[]{2,0,2,0,0,1,0,1,0,0,0,0}, // (x1≥2)(x3≥2)x6x8
+                new Integer[]{1,0,0,0,0,0,0,1,1,1,0,0}, // (x1≥1)x8x9x10
+                new Integer[]{2,1,1,1,1,1,0,0,1,0,0,0}, // (x1≥2)x2(x3≥1)x4x5x6x9
+                new Integer[]{2,0,1,0,1,0,0,1,0,0,0,0}, // (x1≥2)(x3≥1)x5x8
+                new Integer[]{1,1,2,0,1,0,0,1,0,0,0,0}, // (x1≥1)x2(x3≥2)x5x8
+                new Integer[]{2,0,3,1,0,0,0,0,1,1,0,0}, // (x1≥2)(x3≥3)x4x9x10
+                new Integer[]{1,0,0,0,0,0,0,0,1,0,0,2}, // (x1≥1)x9(x12≥2)
+                new Integer[]{2,0,2,0,1,0,0,0,1,0,0,0}, // (x1≥2)(x3≥2)x5x9
+                new Integer[]{2,1,1,1,1,1,0,0,0,0,0,1}, // (x1≥2)x2(x3≥1)x4x5x6(x12≥1)
+                new Integer[]{2,0,2,0,1,0,0,0,0,0,0,1}, // (x1≥2)(x3≥2)x5(x12≥1)
+                new Integer[]{1,0,0,0,1,0,0,0,1,0,0,1}, // (x1≥1)x5x9(x12≥1)
+                new Integer[]{1,0,0,0,1,0,0,1,1,0,0,0}, // (x1≥1)x5x8x9
+                new Integer[]{1,0,0,0,0,0,0,1,0,1,0,1}, // (x1≥1)x8x10(x12≥1)
+                new Integer[]{1,1,2,0,0,0,0,0,1,0,0,1}, // (x1≥1)x2(x3≥2)x9(x12≥1)
+                new Integer[]{1,0,1,0,0,0,0,1,1,0,0,0}, // (x1≥1)(x3≥1)x8x9
+                new Integer[]{0,0,0,0,0,0,0,1,0,0,0,2}, // x8(x12≥2)
+                new Integer[]{1,0,1,0,0,0,0,1,0,0,0,1}, // (x1≥1)(x3≥1)x8(x12≥1)
+                new Integer[]{1,0,0,0,1,0,0,0,0,0,0,2}, // (x1≥1)x5(x12≥2)
+                new Integer[]{0,0,0,0,0,0,0,1,1,0,0,1}, // x8x9(x12≥1)
+                new Integer[]{2,0,0,0,0,0,0,0,1,0,0,1}, // (x1≥2)x9(x12≥1)
+                new Integer[]{2,1,0,0,1,0,0,1,0,0,0,0}, // (x1≥2)x2x5x8
+                new Integer[]{2,1,2,1,0,0,0,1,0,0,0,0}, // (x1≥2)x2(x3≥2)x4x8
+                new Integer[]{2,0,3,0,0,0,0,1,0,0,0,0}, // (x1≥2)(x3≥3)x8
+                new Integer[]{2,0,0,0,0,0,0,0,0,0,0,2}, // (x1≥2)(x12≥2)
+                new Integer[]{2,0,0,0,0,0,0,1,0,0,0,1}, // (x1≥2)x8(x12≥1)
+                new Integer[]{2,0,0,0,0,0,0,1,1,0,0,0}  // (x1≥2)x8x9
+    ));
 
     public static Interview createHeartFailureInterview(final InterviewMode interviewMode) {
 
@@ -260,11 +258,9 @@ public class InterviewCreationTestCases {
                 2,
                 attributeNamesForHeartFailureStudy,
                 new String[] {"No Heart Failure", "Heart Failure"},
-                new Set[] {
-                        new HashSet(),
-                        knownLowUnitsFromHeartFailureStudy
-                },
-                new Interview[kValues.length],
+                knownLowUnitsFromHeartFailureStudy,
+                null,
+                null,
                 MagicFunctionMode.KNOWN_LOW_UNITS_MODE);
 
         System.out.println(interviewMode + " INTERVIEW COMPLETE!");

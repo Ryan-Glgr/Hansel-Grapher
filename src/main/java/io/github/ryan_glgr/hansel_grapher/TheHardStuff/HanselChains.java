@@ -1,10 +1,6 @@
 package io.github.ryan_glgr.hansel_grapher.TheHardStuff;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
@@ -92,7 +88,7 @@ public class HanselChains{
             for (int j = i + 1; j < n; j++) {
                 final ArrayList<Node> donatingChain = group.get(j);
                 if (!donatingChain.isEmpty()) {
-                    final Node topNode = donatingChain.remove(donatingChain.size() - 1);
+                    final Node topNode = donatingChain.removeLast();
                     receivingChain.add(topNode);
                 }
             }
@@ -130,6 +126,9 @@ public class HanselChains{
             
             // take the FIRST occurence of each class in the chain as the low unit for the
             for (final Node node : chain) {
+                if (Node.IMPOSSIBLE_CLASSIFICATION.equals(node.classification)) {
+                    continue;
+                }
                 if (lowestNodeInEachClassInsideThisChain[node.classification] == null) {
                     lowestNodeInEachClassInsideThisChain[node.classification] = node;
                 }
@@ -178,5 +177,4 @@ public class HanselChains{
         lowUnits.forEach(list -> list.sort(NodeComparisons.LEXICOGRAPHIC_NODE_COMPARATOR));
         return newLowUnits;
     }
-
 }
