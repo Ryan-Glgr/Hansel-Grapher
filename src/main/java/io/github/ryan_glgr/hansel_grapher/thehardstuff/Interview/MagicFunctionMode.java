@@ -1,4 +1,4 @@
-package io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview;
+package io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview;
 
 public enum MagicFunctionMode {
     KVAL_TIMES_WEIGHTS_MODE,

@@ -1,10 +1,6 @@
-package io.github.ryan_glgr.hansel_grapher.Stats;
+package io.github.ryan_glgr.hansel_grapher.stats;
 
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
-import org.roaringbitmap.IntConsumer;
 import org.roaringbitmap.RoaringBitmap;
-
-import java.util.HashSet;
 
 public class PermeationStats {
 
@@ -15,7 +11,7 @@ public class PermeationStats {
     public RoaringBitmap nodesConfirmed;
     public RoaringBitmap nodesWithBoundChanges;
 
-    public PermeationStats(Integer numberOfConfirmations, Integer numberOfNodesTouchedAbove, Integer numberOfNodesTouchedBelow, RoaringBitmap nodesConfirmed, RoaringBitmap nodesWithBoundChanges) {
+    public PermeationStats(final Integer numberOfConfirmations, final Integer numberOfNodesTouchedAbove, final Integer numberOfNodesTouchedBelow, final RoaringBitmap nodesConfirmed, final RoaringBitmap nodesWithBoundChanges) {
         this.numberOfConfirmations = numberOfConfirmations;
         this.numberOfNodesTouchedAbove = numberOfNodesTouchedAbove;
         this.numberOfNodesTouchedBelow = numberOfNodesTouchedBelow;

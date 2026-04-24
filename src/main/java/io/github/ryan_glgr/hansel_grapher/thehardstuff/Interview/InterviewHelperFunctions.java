@@ -1,4 +1,4 @@
-package io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview;
+package io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview;
 
 import io.github.ryan_glgr.hansel_grapher.helper.Util;
 

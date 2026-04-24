@@ -1,9 +1,9 @@
-package io.github.ryan_glgr.hansel_grapher.Visualizations.GUI;
+package io.github.ryan_glgr.hansel_grapher.visualizations.gui.screens;
 
-import com.formdev.flatlaf.FlatIntelliJLaf;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.Interview;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.InterviewMode;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.MagicFunctionMode;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.Interview;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.MagicFunctionMode;
+import io.github.ryan_glgr.hansel_grapher.helper.Util;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -17,20 +17,19 @@ import java.util.concurrent.CompletableFuture;
 
 public class CreateFunctionWindow {
 
-    private JPanel mainPanel;
-    private JLabel titleLabel;
-    private JPanel titlePanel;
-    private JPanel submitButtonPanel;
-    private JButton submitButton;
-    private JPanel inputTypePanel;
-    private JPanel userInputPanel;
-    private JScrollPane userInputScrollPane;
-    private JButton enterClassesButton;
-    private JButton attributesButton;
-    private JButton questionAskingTechniqueButton;
-    private JButton interviewModeButton;
-    private JSplitPane mainArea;
-    private JButton subFunctionsButton;
+    private final JPanel mainPanel;
+    private final JLabel titleLabel;
+    private final JPanel titlePanel;
+    private final JPanel submitButtonPanel;
+    private final JButton submitButton;
+    private final JPanel inputTypePanel;
+    private final JPanel userInputPanel;
+    private final JScrollPane userInputScrollPane;
+    private final JButton enterClassesButton;
+    private final JButton attributesButton;
+    private final JButton questionAskingTechniqueButton;
+    private final JButton interviewModeButton;
+    private final JButton subFunctionsButton;
 
     // our four panels which correspond to each button we can hit.
     private JPanel classificationPanel;
@@ -135,49 +134,49 @@ public class CreateFunctionWindow {
         final JPanel controlPanel = new JPanel(new GridBagLayout());
         controlPanel.setBorder(BorderFactory.createTitledBorder("Class Configuration"));
         controlPanel.setPreferredSize(new Dimension(350, 500));
-        
+
         final GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
-        
+
         // Input panel for number of classes
         final JPanel inputPanel = new JPanel(new GridBagLayout());
         inputPanel.setBorder(BorderFactory.createTitledBorder("Number of Classes"));
-        
+
         // Input field and label
         final JLabel numClassesLabel = new JLabel("Number of classes:");
         final JTextField numClassesField = new JTextField(5);
-        
+
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.weightx = 0.5;
         inputPanel.add(numClassesLabel, gbc);
-        
+
         gbc.gridx = 1;
         gbc.weightx = 0.5;
         inputPanel.add(numClassesField, gbc);
-        
+
         // Add input panel to control panel
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 2;
         gbc.weightx = 1.0;
         controlPanel.add(inputPanel, gbc);
-        
+
         // Generate button
         final JButton generateButton = new JButton("Generate Class Fields");
         generateButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, generateButton.getPreferredSize().height));
-        
+
         final JPanel buttonPanel = new JPanel(new GridBagLayout());
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-        
+
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.weighty = 0.0;
         gbc.insets = new Insets(15, 5, 5, 5);
         buttonPanel.add(generateButton, gbc);
-        
+
         gbc.gridx = 0;
         gbc.gridy = 1;
         controlPanel.add(buttonPanel, gbc);
@@ -185,12 +184,12 @@ public class CreateFunctionWindow {
         // Display panel for class names
         final JPanel displayPanel = new JPanel(new BorderLayout());
         displayPanel.setBorder(BorderFactory.createTitledBorder("Class Names"));
-        
+
         // Panel to hold the classification name fields
         final JPanel fieldsPanel = new JPanel();
         fieldsPanel.setLayout(new BoxLayout(fieldsPanel, BoxLayout.Y_AXIS));
         fieldsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
+
         final JScrollPane scrollPane = new JScrollPane(fieldsPanel);
         displayPanel.add(scrollPane, BorderLayout.CENTER);
 
@@ -199,13 +198,13 @@ public class CreateFunctionWindow {
         splitPane.setDividerLocation(300);
         splitPane.setResizeWeight(0.3);
         panel.add(splitPane, BorderLayout.CENTER);
-        
+
         // Add some vertical glue to push content to the top
         gbc.gridx = 0;
         gbc.gridy = 2;
         gbc.weighty = 1.0;
         controlPanel.add(Box.createVerticalGlue(), gbc);
-        
+
         // Set initial focus
         numClassesField.requestFocusInWindow();
 
@@ -214,27 +213,27 @@ public class CreateFunctionWindow {
                 final int numClasses = Integer.parseInt(numClassesField.getText().trim());
                 if (numClasses <= 0) {
                     JOptionPane.showMessageDialog(panel, "Please enter a positive number",
-                        "Invalid Input", JOptionPane.ERROR_MESSAGE);
+                            "Invalid Input", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
                 // Clear previous fields
                 fieldsPanel.removeAll();
-                classificationNames = new String[numClasses];
-                
+                classificationNames = Util.createDefaultClassificationNames(numClasses);
+
                 // Create a panel for the form
                 final JPanel formPanel = new JPanel(new GridBagLayout());
                 final GridBagConstraints gbcForm = new GridBagConstraints();
                 gbcForm.insets = new Insets(5, 5, 5, 5);
                 gbcForm.anchor = GridBagConstraints.WEST;
                 gbcForm.fill = GridBagConstraints.HORIZONTAL;
-                
+
                 // Add header
                 gbcForm.gridx = 0;
                 gbcForm.gridy = 0;
                 gbcForm.gridwidth = 2;
                 formPanel.add(new JLabel("Enter class names:"), gbcForm);
-                
+
                 // Create and add new fields with labels and editable text fields
                 final JTextField[] textFields = new JTextField[numClasses];
                 for (int i = 0; i < numClasses; i++) {
@@ -244,31 +243,29 @@ public class CreateFunctionWindow {
                     gbcForm.gridwidth = 1;
                     gbcForm.weightx = 0.0;
                     formPanel.add(new JLabel("Class " + i + ":"), gbcForm);
-                    
+
                     // Text field with default value
                     gbcForm.gridx = 1;
                     gbcForm.weightx = 1.0;
                     textFields[i] = new JTextField("Class: " + i);
                     textFields[i].setMaximumSize(new Dimension(Integer.MAX_VALUE, textFields[i].getPreferredSize().height));
                     formPanel.add(textFields[i], gbcForm);
-                    
+
                     // Store the default name
                     final int index = i;
                     textFields[i].getDocument().addDocumentListener(new DocumentListener() {
                         public void changedUpdate(final DocumentEvent e) { update(); }
                         public void removeUpdate(final DocumentEvent e) { update(); }
                         public void insertUpdate(final DocumentEvent e) { update(); }
-                        
+
                         private void update() {
                             classificationNames[index] = textFields[index].getText().trim();
                             classificationNamesConfirmed = !Arrays.stream(classificationNames)
-                                .anyMatch(s -> s == null || s.isEmpty());
+                                    .anyMatch(s -> s == null || s.isEmpty());
                         }
                     });
-                    
-                    classificationNames[i] = "class_" + i;
                 }
-                
+
                 // Add a submit button
                 final JButton submitButton = new JButton("Save Classes");
                 gbcForm.gridx = 0;
@@ -277,41 +274,41 @@ public class CreateFunctionWindow {
                 gbcForm.weighty = 1.0;
                 gbcForm.anchor = GridBagConstraints.NORTH;
                 formPanel.add(submitButton, gbcForm);
-                
+
                 // Add the form to the scrollable panel
                 fieldsPanel.add(formPanel);
-                
+
                 // Handle submit button click
                 submitButton.addActionListener(evt -> {
                     // Update the class names from the text fields
                     for (int i = 0; i < numClasses; i++) {
                         classificationNames[i] = textFields[i].getText().trim();
                         if (classificationNames[i].isEmpty()) {
-                            JOptionPane.showMessageDialog(panel, 
-                                "Please enter a name for class " + i,
-                                "Missing Class Name", 
-                                JOptionPane.ERROR_MESSAGE);
+                            JOptionPane.showMessageDialog(panel,
+                                    "Please enter a name for class " + i,
+                                    "Missing Class Name",
+                                    JOptionPane.ERROR_MESSAGE);
                             return;
                         }
                     }
-                    
+
                     // Switch to attribute panel by clicking the attributes button
                     attributesButton.doClick();
                     JOptionPane.showMessageDialog(panel,
-                        "Classes saved! Now configure attributes.",
-                        "Success",
-                        JOptionPane.INFORMATION_MESSAGE);
+                            "Classes saved! Now configure attributes.",
+                            "Success",
+                            JOptionPane.INFORMATION_MESSAGE);
                 });
-                
+
                 classificationNamesConfirmed = true;
-                
+
                 // Revalidate and repaint to update the UI
                 fieldsPanel.revalidate();
                 fieldsPanel.repaint();
-                
+
             } catch (final NumberFormatException ex) {
                 JOptionPane.showMessageDialog(panel, "Please enter a valid number",
-                    "Invalid Input", JOptionPane.ERROR_MESSAGE);
+                        "Invalid Input", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -327,53 +324,53 @@ public class CreateFunctionWindow {
         final JPanel controlPanel = new JPanel(new GridBagLayout());
         controlPanel.setBorder(BorderFactory.createTitledBorder("Attribute Configuration"));
         controlPanel.setPreferredSize(new Dimension(350, 500));
-        
+
         final GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
-        
+
         // Input panel for number of attributes
         final JPanel inputPanel = new JPanel(new GridBagLayout());
         inputPanel.setBorder(BorderFactory.createTitledBorder("Number of Attributes"));
-        
+
         // Input field and label
         final JLabel numAttrsLabel = new JLabel("Number of attributes:");
         final JTextField numAttrsField = new JTextField(5);
-        
+
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.weightx = 0.5;
         inputPanel.add(numAttrsLabel, gbc);
-        
+
         gbc.gridx = 1;
         gbc.weightx = 0.5;
         inputPanel.add(numAttrsField, gbc);
-        
+
         // Add input panel to control panel
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 2;
         gbc.weightx = 1.0;
         controlPanel.add(inputPanel, gbc);
-        
+
         // Generate button
         final JButton generateButton = new JButton("Generate Attribute Fields");
         generateButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, generateButton.getPreferredSize().height));
-        
+
         final JPanel buttonPanel = new JPanel(new GridBagLayout());
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-        
+
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.weighty = 0.0;
         gbc.insets = new Insets(15, 5, 5, 5);
         buttonPanel.add(generateButton, gbc);
-        
+
         gbc.gridx = 0;
         gbc.gridy = 1;
         controlPanel.add(buttonPanel, gbc);
-        
+
         // Add some vertical glue to push content to the top
         gbc.gridx = 0;
         gbc.gridy = 2;
@@ -383,12 +380,12 @@ public class CreateFunctionWindow {
         // Display panel for attributes
         final JPanel displayPanel = new JPanel(new BorderLayout());
         displayPanel.setBorder(BorderFactory.createTitledBorder("Attribute Details"));
-        
+
         // Panel to hold the attribute fields
         final JPanel fieldsPanel = new JPanel();
         fieldsPanel.setLayout(new BoxLayout(fieldsPanel, BoxLayout.Y_AXIS));
         fieldsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
+
         final JScrollPane scrollPane = new JScrollPane(fieldsPanel);
         displayPanel.add(scrollPane, BorderLayout.CENTER);
 
@@ -397,10 +394,10 @@ public class CreateFunctionWindow {
         splitPane.setDividerLocation(250);
         splitPane.setResizeWeight(0.3);
         panel.add(splitPane, BorderLayout.CENTER);
-        
+
         // Set initial focus
         numAttrsField.requestFocusInWindow();
-        
+
         // No submit button needed as we'll update the model directly
         attributeNames = new String[0];
         attributeKValues = new Integer[0];
@@ -416,7 +413,7 @@ public class CreateFunctionWindow {
 
                 // Clear previous fields
                 fieldsPanel.removeAll();
-                attributeNames = new String[numAttrs];
+                attributeNames = Util.createDefaultAttributeNames(numAttrs);
                 attributeKValues = new Integer[numAttrs];
 
                 // create the array to contain all the subfunctions. all the interview are null obviously, but all of the subfunction flags are disabled to start, since boolean initializes false.
@@ -428,29 +425,29 @@ public class CreateFunctionWindow {
                 gbcForm.insets = new Insets(5, 5, 5, 5);
                 gbcForm.anchor = GridBagConstraints.WEST;
                 gbcForm.fill = GridBagConstraints.HORIZONTAL;
-                
+
                 // Add header
                 gbcForm.gridx = 0;
                 gbcForm.gridy = 0;
                 gbcForm.gridwidth = 3;
                 formPanel.add(new JLabel("Enter attribute details:"), gbcForm);
-                
+
                 // Add column headers
                 gbcForm.gridy = 1;
                 gbcForm.gridx = 0;
                 gbcForm.gridwidth = 1;
                 formPanel.add(new JLabel("Attribute"), gbcForm);
-                
+
                 gbcForm.gridx = 1;
                 formPanel.add(new JLabel("Name"), gbcForm);
-                
+
                 gbcForm.gridx = 2;
                 formPanel.add(new JLabel("K-value"), gbcForm);
-                
+
                 // Create arrays to hold the input fields
                 final JTextField[] nameFields = new JTextField[numAttrs];
                 final JTextField[] kValueFields = new JTextField[numAttrs];
-                
+
                 // Add input fields for each attribute
                 for (int i = 0; i < numAttrs; i++) {
                     // Attribute number
@@ -458,42 +455,40 @@ public class CreateFunctionWindow {
                     gbcForm.gridx = 0;
                     gbcForm.weightx = 0.0;
                     formPanel.add(new JLabel("Attribute " + i + ":"), gbcForm);
-                    
+
                     // Name field with default value
                     gbcForm.gridx = 1;
                     gbcForm.weightx = 0.7;
                     nameFields[i] = new JTextField("Attribute: " + i);
                     nameFields[i].setMaximumSize(new Dimension(Integer.MAX_VALUE, nameFields[i].getPreferredSize().height));
                     formPanel.add(nameFields[i], gbcForm);
-                    
+
                     // K-value field with default value of 2
                     gbcForm.gridx = 2;
                     gbcForm.weightx = 0.3;
                     kValueFields[i] = new JTextField("2");
                     kValueFields[i].setMaximumSize(new Dimension(60, kValueFields[i].getPreferredSize().height));
                     formPanel.add(kValueFields[i], gbcForm);
-                    
-                    // Store default values
-                    attributeNames[i] = "Attribute: " + i;
+
                     attributeKValues[i] = 2;
-                    
+
                     // Add document listeners to update the arrays when fields change
                     final int index = i;
                     nameFields[i].getDocument().addDocumentListener(new DocumentListener() {
                         public void changedUpdate(final DocumentEvent e) { update(); }
                         public void removeUpdate(final DocumentEvent e) { update(); }
                         public void insertUpdate(final DocumentEvent e) { update(); }
-                        
+
                         private void update() {
                             attributeNames[index] = nameFields[index].getText().trim();
                         }
                     });
-                    
+
                     kValueFields[i].getDocument().addDocumentListener(new DocumentListener() {
                         public void changedUpdate(final DocumentEvent e) { update(); }
                         public void removeUpdate(final DocumentEvent e) { update(); }
                         public void insertUpdate(final DocumentEvent e) { update(); }
-                        
+
                         private void update() {
                             try {
                                 attributeKValues[index] = Integer.parseInt(kValueFields[index].getText().trim());
@@ -503,7 +498,7 @@ public class CreateFunctionWindow {
                         }
                     });
                 }
-                
+
                 // Add a save button
                 final JButton saveButton = new JButton("Save Attributes");
                 gbcForm.gridy = numAttrs + 2;
@@ -512,10 +507,10 @@ public class CreateFunctionWindow {
                 gbcForm.weighty = 1.0;
                 gbcForm.anchor = GridBagConstraints.NORTH;
                 formPanel.add(saveButton, gbcForm);
-                
+
                 // Add the form to the scrollable panel
                 fieldsPanel.add(formPanel);
-                
+
                 // Handle save button click
                 saveButton.addActionListener(evt -> {
 
@@ -525,39 +520,39 @@ public class CreateFunctionWindow {
                         final String name = nameFields[i].getText().trim();
                         if (name.isEmpty()) {
                             JOptionPane.showMessageDialog(panel,
-                                "Please enter a name for attribute " + i,
-                                "Missing Attribute Name",
-                                JOptionPane.ERROR_MESSAGE);
+                                    "Please enter a name for attribute " + i,
+                                    "Missing Attribute Name",
+                                    JOptionPane.ERROR_MESSAGE);
                             return;
                         }
-                        
+
                         // Validate K-value
                         try {
                             final int kValue = Integer.parseInt(kValueFields[i].getText().trim());
                             if (kValue < 2) {
                                 JOptionPane.showMessageDialog(panel,
-                                    "K-value must be at least 2 for attribute " + i,
-                                    "Invalid K-value",
-                                    JOptionPane.ERROR_MESSAGE);
+                                        "K-value must be at least 2 for attribute " + i,
+                                        "Invalid K-value",
+                                        JOptionPane.ERROR_MESSAGE);
                                 return;
                             }
                         } catch (final NumberFormatException ex) {
                             JOptionPane.showMessageDialog(panel,
-                                "Please enter a valid number for K-value of attribute " + i,
-                                "Invalid K-value",
-                                JOptionPane.ERROR_MESSAGE);
+                                    "Please enter a valid number for K-value of attribute " + i,
+                                    "Invalid K-value",
+                                    JOptionPane.ERROR_MESSAGE);
                             return;
                         }
                     }
-                    
+
                     // All valid, switch to question picking technique panel
                     questionAskingTechniqueButton.doClick();
                     JOptionPane.showMessageDialog(panel,
-                        "Attributes saved! Now select question picking technique.",
-                        "Success",
-                        JOptionPane.INFORMATION_MESSAGE);
+                            "Attributes saved! Now select question picking technique.",
+                            "Success",
+                            JOptionPane.INFORMATION_MESSAGE);
                 });
-                
+
                 // Revalidate and repaint to update the UI
                 fieldsPanel.revalidate();
                 fieldsPanel.repaint();
@@ -658,7 +653,7 @@ public class CreateFunctionWindow {
             // Proceed to Interview Mode configuration after successful selection
             interviewModeButton.doClick();
             JOptionPane.showMessageDialog(panel, "Interview mode set to: " + selectedMode +
-                    "\nProceeding to Interview Mode setup...",
+                            "\nProceeding to Interview Mode setup...",
                     "Success", JOptionPane.INFORMATION_MESSAGE);
         });
 
@@ -718,9 +713,9 @@ public class CreateFunctionWindow {
             attributeWeights = new Float[attributeNames.length];
             weightsConfirmed = false;
 
-            for (int i = 0; i < attributeNames.length; i++) {
+            for (final String attributeName : attributeNames) {
                 final JPanel weightPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-                weightPanel.add(new JLabel(attributeNames[i] + " weight:"));
+                weightPanel.add(new JLabel(attributeName + " weight:"));
                 final JTextField weightField = new JTextField(5);
                 weightPanel.add(weightField);
                 weightsPanel.add(weightPanel);
@@ -795,22 +790,22 @@ public class CreateFunctionWindow {
                 final JPanel row = new JPanel(new BorderLayout(10, 0));
                 final JLabel nameLabel = new JLabel(attrName);
                 final JButton createButton = new JButton("CREATE SUB FUNCTION");
-                
+
                 createButton.addActionListener(e -> {
                     // Launch sub-function creation for this attribute
                     final String title = "Create Sub-Function For: " + attrName;
                     final CreateFunctionWindow subFunctionWindow = new CreateFunctionWindow();
                     final CompletableFuture<Interview> subFunctionFuture = subFunctionWindow.createFunctionAndReturnInterviewObject(title);
-                    
+
                     // When the sub-function is created, store it
                     subFunctionFuture.thenAccept(subInterview -> {
                         if (subInterview != null) {
                             subFunctionsForEachAttribute[attributeIndex] = subInterview;
                             SwingUtilities.invokeLater(() -> {
                                 createButton.setText("EDIT SUB FUNCTION");
-                                JOptionPane.showMessageDialog(panel, 
-                                    "Sub-function created for: " + attrName,
-                                    "Success", JOptionPane.INFORMATION_MESSAGE);
+                                JOptionPane.showMessageDialog(panel,
+                                        "Sub-function created for: " + attrName,
+                                        "Success", JOptionPane.INFORMATION_MESSAGE);
                             });
                         }
                     });
@@ -831,8 +826,6 @@ public class CreateFunctionWindow {
     }
 
     public CreateFunctionWindow(){
-
-        applyLookAndFeel();
 
         // instantiate shared UI components
         titleLabel = new JLabel("Create Interview", SwingConstants.CENTER);
@@ -1035,14 +1028,6 @@ public class CreateFunctionWindow {
         });
 
         magicFunctionMode = MagicFunctionMode.EXPERT_MODE;
-    }
-
-    private void applyLookAndFeel() {
-        try {
-            UIManager.setLookAndFeel(new FlatIntelliJLaf());
-        } catch (final UnsupportedLookAndFeelException ex) {
-            ex.printStackTrace();
-        }
     }
 
     private void setInputEnabled(final boolean enabled) {

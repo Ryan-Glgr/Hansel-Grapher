@@ -1,11 +1,11 @@
-package io.github.ryan_glgr.hansel_grapher.Stats;
+package io.github.ryan_glgr.hansel_grapher.stats;
 
 import java.util.Arrays;
 import java.util.List;
 
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.InterviewMode;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.MagicFunctionMode;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.MagicFunctionMode;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
 
 // data class used to track how we did on a particular run of an interview.
 public class InterviewStats {
@@ -20,13 +20,13 @@ public class InterviewStats {
     public List<Node> nodesAsked;
     public List<PermeationStats> permeationStatsForEachNodeAsked;
 
-    public InterviewStats(Integer[] kValues,
-            int numHanselChains,
-            int numNodes,
-            InterviewMode interviewMode,
-            MagicFunctionMode magicFunctionMode,
-            List<Node> nodesAsked,
-            List<PermeationStats> permeationStatsForEachNodeAsked) {
+    public InterviewStats(final Integer[] kValues,
+                          final int numHanselChains,
+                          final int numNodes,
+                          final InterviewMode interviewMode,
+                          final MagicFunctionMode magicFunctionMode,
+                          final List<Node> nodesAsked,
+                          final List<PermeationStats> permeationStatsForEachNodeAsked) {
 
         this.kValues = Arrays.copyOf(kValues, kValues.length);
         this.numberOfHanselChains = numHanselChains;
@@ -37,14 +37,14 @@ public class InterviewStats {
         this.permeationStatsForEachNodeAsked = permeationStatsForEachNodeAsked;
     }
 
-    public InterviewStats(List<Node> nodesAsked, List<PermeationStats> permeationStats){
+    public InterviewStats(final List<Node> nodesAsked, final List<PermeationStats> permeationStats){
         this.nodesAsked = nodesAsked;
         this.permeationStatsForEachNodeAsked = permeationStats;
     }
 
     public String toString(){
 
-        StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder();
 
         sb.append("kValues: ").append(Arrays.toString(kValues)).append("\n");
         sb.append("numberOfHanselChains: ").append(numberOfHanselChains).append("\n");
@@ -53,8 +53,8 @@ public class InterviewStats {
         sb.append("interviewMode: ").append(interviewMode).append("\n");
         sb.append("expertMode: ").append(magicFunctionMode).append("\n");
 
-        PermeationStats[] permeationStatsArray = permeationStatsForEachNodeAsked.toArray(new PermeationStats[0]);
-        Node[] questionsAsked = nodesAsked.toArray(new Node[0]);
+        final PermeationStats[] permeationStatsArray = permeationStatsForEachNodeAsked.toArray(new PermeationStats[0]);
+        final Node[] questionsAsked = nodesAsked.toArray(new Node[0]);
         for(int i = 0; i < questionsAsked.length; i++){
             sb.append(questionsAsked[i]);
             sb.append("\n");

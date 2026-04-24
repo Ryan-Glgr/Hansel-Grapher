@@ -10,16 +10,16 @@ Umbrella cases are a counter of how many **unconfirmed** nodes are above/below a
         - in testing, finding the nodes which are most balanced with largest umbrella is most performant.
     - Umbrella cases are recomputed after each time we ask a question. This is done in the updateNodeRankings function.
 
-![Node Expansion Graph](./AlgorithmDiagrams/GraphExpansionsBaseVisualization.drawio.png)
+![Node Expansion Graph](algorithmdiagrams/GraphExpansionsBaseVisualization.drawio.png)
 Consider this graph for our expansions. The arrows connecting Nodes represent possible expansions between Nodes.
 - In this dimension = 3 example, each Node has up to 3 nodes above, and up to three below expansions. 
 
-![Above Umbrella Example](./AlgorithmDiagrams/UmbrellaCasesConfirmingNodesAbove.drawio.png)
+![Above Umbrella Example](algorithmdiagrams/UmbrellaCasesConfirmingNodesAbove.drawio.png)
 In this example, we see Node D in pink, showing it has been confirmed as the highest classification for this example. Nodes H, I, J are all above Node D, so they are also confirmed to the pink. 
 - For example now, Node A's above umbrella would be made up of nodes B, C, E, F, G. for a total of 5.
 - Confirmed nodes don't count towards umbrellas, because we are counting how many nodes would be updated, and those aren't getting updated any more.
 
-![Below Umbrella Example](./AlgorithmDiagrams/UmbrellaCasesConfirmingNodesBelow.png)
+![Below Umbrella Example](algorithmdiagrams/UmbrellaCasesConfirmingNodesBelow.png)
 - In this example, we have confirmed Node F to be as class 0. We are immediately able to mark B, C, A all as class 0 as well, by the properties of monotonicity.
 - This means, Nodes E and G are not confirmed, but have an umbrella size of 0, since they have no other nodes which they can update anymore.
 - Node D would have an underneathUmbrella of size 0, and size 3 above.
@@ -89,11 +89,11 @@ The longest Hansel Chain/Portion of a Hansel Chain, may not actually be the long
 Consider the following example to see an illustration of why this version outperforms the typical binary search. 
 - The highlighted in Green portions show which section would be chosen by each binary search version, respectively.
 
-![BinarySearchVersions](./AlgorithmDiagrams/BinarySearchModes.drawio.png)
+![BinarySearchVersions](algorithmdiagrams/BinarySearchModes.drawio.png)
 
 ### Isomorphic Adjustment Example:
 When creating Hansel Chains, for each digit, we take all existing chains, copy each one, and append the new digit (with each possible k value). For example, if we have a k value of 4 for a particular digit, we would make 3 new copies, and put 1, 2, 3 onto the front of each Node in the input chain which we copied. 
 
 Then, you take the end of each chain, and move it to the one previous. See Isomorphic Adjustment Example.
 
-![Isomorphic Adjustment Example](./AlgorithmDiagrams/IsomorphicAdjustmentExample.drawio.png)
+![Isomorphic Adjustment Example](algorithmdiagrams/IsomorphicAdjustmentExample.drawio.png)

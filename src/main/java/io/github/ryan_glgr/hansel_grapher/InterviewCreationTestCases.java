@@ -1,9 +1,9 @@
 package io.github.ryan_glgr.hansel_grapher;
 
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.Interview;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.InterviewHelperFunctions;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.InterviewMode;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.MagicFunctionMode;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.Interview;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.InterviewHelperFunctions;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.MagicFunctionMode;
 import io.github.ryan_glgr.hansel_grapher.helper.Util;
 
 import java.util.Map;

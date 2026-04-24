@@ -1,4 +1,4 @@
-package io.github.ryan_glgr.hansel_grapher.Visualizations;
+package io.github.ryan_glgr.hansel_grapher.visualizations;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -8,8 +8,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleNode;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
+import io.github.ryan_glgr.hansel_grapher.functionrules.RuleNode;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
 
 import java.awt.Color;
 import java.util.concurrent.CompletableFuture;
@@ -22,7 +22,7 @@ public class VisualizationDOT {
     private static final String EXPANSIONS_FILE_NAME = "Expansions.dot";
     private static final String HANSEL_CHAINS_FILE_NAME = "HanselChains.dot";
     private static final String RULE_TREES_FILE_NAME = "RuleTrees.dot";
-    private static final String COMPILE_SCRIPT_PATH = "Visualizations" + File.separator + "compile_dot.sh";
+    private static final String COMPILE_SCRIPT_PATH = "visualizationscripts" + File.separator + "compile_dot.sh";
     private static final String PHONY_FILE_NAME = "phony.txt";
  
     private static ArrayList<ArrayList<Node>> sortChainsForVisualization(final ArrayList<ArrayList<Node>> chainSet){

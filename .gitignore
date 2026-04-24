@@ -13,4 +13,10 @@ out/
 *.xml
 
 debug
-src/*.class
+*.class*
+*.lock
+*.bin
+*.properties
+*.MF
+*.probe
+*.jar

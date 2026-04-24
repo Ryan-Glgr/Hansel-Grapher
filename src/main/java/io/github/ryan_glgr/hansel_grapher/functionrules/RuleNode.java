@@ -1,10 +1,10 @@
-package io.github.ryan_glgr.hansel_grapher.FunctionRules;
+package io.github.ryan_glgr.hansel_grapher.functionrules;
 
 import java.util.*;
 import java.util.stream.IntStream;
 
-import io.github.ryan_glgr.hansel_grapher.Stats.AttributeStats;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
+import io.github.ryan_glgr.hansel_grapher.stats.AttributeStats;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
 
 public class RuleNode {
     public final Integer attributeIndex;

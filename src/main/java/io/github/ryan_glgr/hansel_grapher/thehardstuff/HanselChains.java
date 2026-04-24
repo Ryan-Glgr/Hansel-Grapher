@@ -1,7 +1,6 @@
-package io.github.ryan_glgr.hansel_grapher.TheHardStuff;
+package io.github.ryan_glgr.hansel_grapher.thehardstuff;
 
 import java.util.*;
-import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,7 +30,8 @@ public class HanselChains{
             final int digitFinalBecauseJavaSucks = digit;
             hanselChainSet = hanselChainSet
                 .parallelStream()
-                .flatMap(chain -> copyChainAndAdjustCopies(nodes, 
+                .flatMap(chain -> copyChainAndAdjustCopies(
+                    nodes,
                     chain, 
                     digitFinalBecauseJavaSucks, 
                     kValues[digitFinalBecauseJavaSucks])

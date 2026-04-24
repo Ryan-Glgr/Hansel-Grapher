@@ -1,9 +1,9 @@
-package io.github.ryan_glgr.hansel_grapher.FunctionRules;
+package io.github.ryan_glgr.hansel_grapher.functionrules;
 
 import java.util.ArrayList;
 import java.util.stream.IntStream;
 
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
 
 
 public class RuleCreation {

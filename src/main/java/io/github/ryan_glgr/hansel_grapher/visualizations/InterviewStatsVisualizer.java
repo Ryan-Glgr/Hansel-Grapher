@@ -1,10 +1,10 @@
-package io.github.ryan_glgr.hansel_grapher.Visualizations;
+package io.github.ryan_glgr.hansel_grapher.visualizations;
 
-import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
-import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats;
-import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats.PermeationStatistic;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.Interview;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.stats.InterviewStats;
+import io.github.ryan_glgr.hansel_grapher.stats.PermeationStats;
+import io.github.ryan_glgr.hansel_grapher.stats.PermeationStats.PermeationStatistic;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.Interview;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.InterviewMode;
 
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.Styler;

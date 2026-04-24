@@ -1,11 +1,11 @@
 package io.github.ryan_glgr.hansel_grapher.experimental;
 
-import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.HanselChains;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.Interview;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.InterviewMode;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview.MagicFunctionMode;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
+import io.github.ryan_glgr.hansel_grapher.stats.InterviewStats;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.HanselChains;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.Interview;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.MagicFunctionMode;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
 
 import java.util.*;
 import java.util.stream.Collectors;

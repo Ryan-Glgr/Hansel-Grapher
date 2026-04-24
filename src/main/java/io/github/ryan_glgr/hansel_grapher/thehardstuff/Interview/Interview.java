@@ -1,4 +1,4 @@
-package io.github.ryan_glgr.hansel_grapher.TheHardStuff.Interview;
+package io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -6,15 +6,15 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import io.github.ryan_glgr.hansel_grapher.FunctionRules.Attribute;
-import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleCreation;
-import io.github.ryan_glgr.hansel_grapher.FunctionRules.RuleNode;
-import io.github.ryan_glgr.hansel_grapher.Stats.InterviewStats;
-import io.github.ryan_glgr.hansel_grapher.Stats.PermeationStats;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.BalanceRatio;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.HanselChains;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.Node;
-import io.github.ryan_glgr.hansel_grapher.TheHardStuff.NodeComparisons;
+import io.github.ryan_glgr.hansel_grapher.functionrules.Attribute;
+import io.github.ryan_glgr.hansel_grapher.functionrules.RuleCreation;
+import io.github.ryan_glgr.hansel_grapher.functionrules.RuleNode;
+import io.github.ryan_glgr.hansel_grapher.stats.InterviewStats;
+import io.github.ryan_glgr.hansel_grapher.stats.PermeationStats;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.BalanceRatio;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.HanselChains;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.NodeComparisons;
 import io.github.ryan_glgr.hansel_grapher.helper.Util;
 import org.roaringbitmap.RoaringBitmap;
 
