@@ -4,9 +4,17 @@ import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GL2;
 import com.jogamp.opengl.GL2;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.Interview;
 
 
 public class RuleTreeRenderer implements GLEventListener {
+
+    private Interview interview;
+    public RuleTreeRenderer(final Interview interview) {
+        this.interview = interview;
+    }
+
+
     @Override
     public void init(final GLAutoDrawable drawable) {
         // Called once when the GL context is created

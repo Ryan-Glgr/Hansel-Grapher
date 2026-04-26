@@ -1,17 +1,14 @@
 package io.github.ryan_glgr.hansel_grapher.visualizations.gui.screens;
 
+import com.jogamp.opengl.GLCapabilities;
+import com.jogamp.opengl.GLEventListener;
+import com.jogamp.opengl.GLProfile;
+import com.jogamp.opengl.awt.GLJPanel;
 import io.github.ryan_glgr.hansel_grapher.stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.Interview;
 import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.InterviewMode;
 import io.github.ryan_glgr.hansel_grapher.visualizations.InterviewStatsVisualizer;
 import io.github.ryan_glgr.hansel_grapher.visualizations.VisualizationDOT;
-
-import com.jogamp.opengl.awt.GLJPanel;
-import com.jogamp.opengl.GLProfile;
-import com.jogamp.opengl.GLCapabilities;
-import com.jogamp.opengl.GLEventListener;
-import com.jogamp.opengl.GLAutoDrawable;
-import com.jogamp.opengl.GL2;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.BlankRenderer;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.ExpansionRenderer;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.HanselChainRenderer;
@@ -159,22 +156,12 @@ public class MainWindow {
     private void handleVisualizationChange(final String viewToApply) {
         currentView = viewToApply;
 
-        final GLEventListener next;
-        switch (currentView) {
-            case HANSEL_CHAIN_VIEW:
-                next = new HanselChainRenderer();
-                break;
-            case EXPANSION_VIEW:
-                next = new ExpansionRenderer();
-                break;
-            case RULE_TREE_VIEW:
-                next = new RuleTreeRenderer();
-                break;
-            case NO_INTERVIEW_YET:
-            default:
-                next = new BlankRenderer();
-                break;
-        }
+        final GLEventListener next = switch (currentView) {
+            case HANSEL_CHAIN_VIEW -> new HanselChainRenderer(interview);
+            case EXPANSION_VIEW -> new ExpansionRenderer(interview);
+            case RULE_TREE_VIEW -> new RuleTreeRenderer(interview);
+            default -> new BlankRenderer();
+        };
 
         glPanel.removeGLEventListener(currentListener);
         glPanel.addGLEventListener(next);

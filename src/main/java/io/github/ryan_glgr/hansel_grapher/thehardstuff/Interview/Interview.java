@@ -29,8 +29,6 @@ public class Interview {
     public final MagicFunctionMode magicFunctionMode;
     public BalanceRatio balanceRatio;
 
-    private final int highestPossibleClassification; // needed when we are doing these magic function interviews in GUI, since the user may put in less classes than the function wants to make.
-
     public final InterviewStats interviewStats;
     public final HashMap<Integer, Node> data;
     public final HashMap<Integer, Node> allNodesToTheirIDsMap; // all the same nodes, but this way we can look up a node by it's ID as well.
@@ -39,12 +37,12 @@ public class Interview {
     public final ArrayList<ArrayList<Node>> adjustedLowUnitsByClass;
     public final RuleNode[] ruleTrees;
 
-    private final int numClasses;
+    public final int numClasses;
     public final String[] classificationNames;
     public final Attribute[] attributes;
     public final String[] attributeNames;
     public final Integer[] kVals;
-    private final Map<Integer, Set<Node>> lowUnitsForEachClassification; // used for the magic function mode when we know what the low units are already, and we are trying to run the interview.
+    public final Map<Integer, Set<Node>> lowUnitsForEachClassification; // used for the magic function mode when we know what the low units are already, and we are trying to run the interview.
 
     private final Scanner inputScanner;
 
@@ -59,7 +57,6 @@ public class Interview {
                      final Interview[] subFunctionsForEachAttribute,       // needs to at least be an Interview[numAttributes], but they can all be null if you want no subfunctions.
                      final Set<Map<Integer, Integer>> impossibleAttributeCombinations, // the combinations of attributes which we are marking as impossible. any node which matches all entries in any one of these maps as >= each value is marked as impossible. in the future we could expand to also use <= and not just >=.
                      final MagicFunctionMode magicFunctionMode) {          // the mode which actually determines how we know a nodes classification
-        this.highestPossibleClassification = numClasses - 1;
         this.classificationNames = Objects.isNull(classificationNames)
                 ? Util.createDefaultClassificationNames(numClasses) : classificationNames;
 	    this.attributeNames = Objects.isNull(attributeNames)
@@ -286,7 +283,7 @@ public class Interview {
             sum += (int)(datapoint.values[i] * attributes[i].weight);
         }
         // need this because our magic function may try and spit out more classes than the user specifies.
-        return min((sum / datapoint.values.length), highestPossibleClassification);
+        return min((sum / datapoint.values.length), (numClasses - 1));
     }
 
     // used when we already know the function, and we want to re run the interview.

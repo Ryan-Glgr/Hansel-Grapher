@@ -13,13 +13,13 @@ import java.util.stream.IntStream;
 public class InterviewCreationTestCases {
 
     public static Interview createBasicInterviewWithSubfunctions(final InterviewMode interviewMode) {
-        final Integer[] kValues = new Integer[] {2, 2, 3, 2, 2};
-        final Float[] weights = new Float[] {1.65f, 1.25f, 1.0f, 2.25f, 1.85f};
+        final Integer[] kValues = new Integer[] {5, 2, 3, 2};
+        final Float[] weights = new Float[] {1.65f, 1.25f, 1.0f, 2.25f};
 
         // x0 >= 1, and x2 >= 1 is IMPOSSIBLE is what we are saying
         final Set<Map<Integer, Integer>> impossibleCombinations = Set.of(Map.of(
-            0, 1,
-            2, 1));
+            0, 4,
+            2, 2));
         return createBasicInterviewWithSubfunctions(interviewMode, kValues, weights, impossibleCombinations);
     }
 
