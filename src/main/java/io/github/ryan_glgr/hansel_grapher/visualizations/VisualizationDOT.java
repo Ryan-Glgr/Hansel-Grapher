@@ -3,9 +3,7 @@ package io.github.ryan_glgr.hansel_grapher.visualizations;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 
 import io.github.ryan_glgr.hansel_grapher.functionrules.RuleNode;
 import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
@@ -71,12 +69,12 @@ public class VisualizationDOT {
 
     // --- makeExpansionsDOT ---
     public static void makeExpansionsDOT(final HashMap<Integer, Node> allNodes,
-                                         final ArrayList<ArrayList<Node>> lowUnitsByClass,
+                                         final Map<Integer, Set<Node>> lowUnitsByClass,
                                          final Integer[] kValues) throws IOException {
         final HashSet<Node> lowSet = new HashSet<>();
         if (lowUnitsByClass != null)
-            for (final ArrayList<Node> listForClass : lowUnitsByClass)
-                if (listForClass != null) lowSet.addAll(listForClass);
+            for (final Set<Node> setForClass : lowUnitsByClass.values())
+                if (setForClass != null) lowSet.addAll(setForClass);
 
         final Integer[] kValsToMakeNode = Node.counterInitializer(kValues);
         final HashMap<Node, Node> usedNodes = new HashMap<>();
@@ -106,13 +104,13 @@ public class VisualizationDOT {
     }
 
     // --- makeHanselChainDOT ---
-    public static void makeHanselChainDOT(ArrayList<ArrayList<Node>> chains, final ArrayList<ArrayList<Node>> lowUnitsByClass) throws IOException {
+    public static void makeHanselChainDOT(ArrayList<ArrayList<Node>> chains, final Map<Integer, Set<Node>> lowUnitsByClass) throws IOException {
         chains = GUIHelper.sortChainsForVisualization(chains);
 
         final HashSet<Node> lowSet = new HashSet<>();
         if (lowUnitsByClass != null)
-            for (final ArrayList<Node> listForClass : lowUnitsByClass)
-                if (listForClass != null) lowSet.addAll(listForClass);
+            for (final Set<Node> setForClass : lowUnitsByClass.values())
+                if (setForClass != null) lowSet.addAll(setForClass);
 
         final FileWriter fw = new FileWriter(OUTPUT_DIRECTORY + File.separator + HANSEL_CHAINS_FILE_NAME);
         fw.write("digraph G {\n\trankdir = BT;\n\tbgcolor = white;\n\t");

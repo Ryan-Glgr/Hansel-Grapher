@@ -10,12 +10,13 @@ public class GUIHelper {
 
     private static final String LEFT_FLOOR  = "⌊";
     private static final String RIGHT_FLOOR = "⌋";
+    private static final Float NON_LOW_UNIT_COLOR_FADE = 0.5f;
 
     // Returns a Color object (with alpha baked in)
     public static Color getColorForClass(final int classification, final boolean isLowUnit) {
         if (classification == Node.IMPOSSIBLE_CLASSIFICATION) {
             final int grayValue = 64;
-            final int alphaInt = Math.round((isLowUnit ? 1.0f : 0.65f) * 255);
+            final int alphaInt = Math.round((isLowUnit ? 1.0f : NON_LOW_UNIT_COLOR_FADE) * 255);
             return new Color(grayValue, grayValue, grayValue, alphaInt);
         }
 
@@ -23,7 +24,7 @@ public class GUIHelper {
         final float hue = (classification * goldenRatio) % 1.0f;
         final int rgb = Color.HSBtoRGB(hue, 0.7f, 0.95f);
         final Color baseColor = new Color(rgb);
-        final int alphaInt = Math.round((isLowUnit ? 1.0f : 0.65f) * 255);
+        final int alphaInt = Math.round((isLowUnit ? 1.0f : NON_LOW_UNIT_COLOR_FADE) * 255);
         return new Color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), alphaInt);
     }
 

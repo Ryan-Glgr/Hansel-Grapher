@@ -114,11 +114,11 @@ public class HanselChains{
     }
     
     // takes in our fully classified data, and just finds the low units in each chain.
-    public static ArrayList<ArrayList<Node>> findLowUnitsForEachClass(final ArrayList<ArrayList<Node>> hanselChainSet, final int numClasses) {
+    public static Map<Integer, Set<Node>> findLowUnitsForEachClass(final ArrayList<ArrayList<Node>> hanselChainSet, final int numClasses) {
         
-        final ArrayList<ArrayList<Node>> lowUnits = new ArrayList<>();
+        final Map<Integer, Set<Node>> lowUnits = new HashMap<>();
         for (int i = 0; i < numClasses; i++) {
-            lowUnits.add(new ArrayList<>());
+            lowUnits.put(i, new HashSet<>());
         }
 
         for(final ArrayList<Node> chain : hanselChainSet){
@@ -143,20 +143,19 @@ public class HanselChains{
             }
         }
 
-        lowUnits.forEach(list -> list.sort(NodeComparisons.LEXICOGRAPHIC_NODE_COMPARATOR));
         return lowUnits;
     }
 
-    public static ArrayList<ArrayList<Node>> removeUselessLowUnits(final ArrayList<ArrayList<Node>> lowUnits) {
+    public static Map<Integer, Set<Node>> removeUselessLowUnits(final Map<Integer, Set<Node>> lowUnits) {
 
-        final ArrayList<ArrayList<Node>> newLowUnits = new ArrayList<>();
-        for (int i = 0; i < lowUnits.size(); i++) {
-            newLowUnits.add(new ArrayList<>());
+        final Map<Integer, Set<Node>> newLowUnits = new HashMap<>();
+        for (final Integer classification : lowUnits.keySet()) {
+            newLowUnits.put(classification, new HashSet<>());
         }
 
         final boolean dominatingInAnUpwardFashion = true; // meaning that "otherNode" is dominating from the top...                                                                                   pause
 
-        for (int classification = 0; classification < lowUnits.size(); classification++) {
+        for (final Integer classification : lowUnits.keySet()) {
             // add all the low units for this class
             newLowUnits.get(classification).addAll(lowUnits.get(classification));
 
@@ -174,7 +173,6 @@ public class HanselChains{
             }
             newLowUnits.get(classification).removeIf(nodesWhichAreNotNeeded::contains);
         }
-        lowUnits.forEach(list -> list.sort(NodeComparisons.LEXICOGRAPHIC_NODE_COMPARATOR));
         return newLowUnits;
     }
 }

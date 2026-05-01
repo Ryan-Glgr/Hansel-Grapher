@@ -564,52 +564,6 @@ public class CreateFunctionWindow {
             }
         });
 
-        submitButton.addActionListener(e -> {
-            // Collect all attribute names and K values
-            final Component[] components = fieldsPanel.getComponents();
-            boolean allFilled = true;
-            int attrIndex = 0;
-
-            for (final Component comp : components) {
-                if (comp instanceof JPanel) {
-                    final JPanel attrPanel = (JPanel) comp;
-                    final JPanel namePanel = (JPanel) attrPanel.getComponent(0);
-                    final JPanel kValuePanel = (JPanel) attrPanel.getComponent(1);
-
-                    final JTextField nameField = (JTextField) namePanel.getComponent(1);
-                    final JTextField kValueField = (JTextField) kValuePanel.getComponent(1);
-
-                    if (nameField.getText().trim().isEmpty() || kValueField.getText().trim().isEmpty()) {
-                        allFilled = false;
-                        break;
-                    }
-
-                    try {
-                        attributeNames[attrIndex] = nameField.getText().trim();
-                        attributeKValues[attrIndex] = Integer.parseInt(kValueField.getText().trim());
-                        if (attributeKValues[attrIndex] <= 0) {
-                            JOptionPane.showMessageDialog(panel, "K values must be positive numbers",
-                                    "Invalid Input", JOptionPane.ERROR_MESSAGE);
-                            return;
-                        }
-                        attrIndex++;
-                    } catch (final NumberFormatException ex) {
-                        JOptionPane.showMessageDialog(panel, "Please enter valid numbers for K values",
-                                "Invalid Input", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-                }
-            }
-
-            if (allFilled) {
-                JOptionPane.showMessageDialog(panel, "Attribute information saved successfully!",
-                        "Success", JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(panel, "Please fill in all attribute information",
-                        "Incomplete Information", JOptionPane.WARNING_MESSAGE);
-            }
-        });
-
         return panel;
     }
 
@@ -840,6 +794,10 @@ public class CreateFunctionWindow {
         interviewModeButton = new JButton("Interview Mode");
         subFunctionsButton = new JButton("Sub-Functions");
 
+        submitButton = new JButton("Create Interview");
+        submitButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        submitButtonPanel.add(submitButton);
+
         inputTypePanel = new JPanel(new GridLayout(1, 5, 10, 0));
         inputTypePanel.add(enterClassesButton);
         inputTypePanel.add(attributesButton);
@@ -858,10 +816,6 @@ public class CreateFunctionWindow {
         userInputScrollPane.setBorder(null);
         userInputScrollPane.getVerticalScrollBar().setUnitIncrement(16);
         userInputPanel.add(userInputScrollPane, BorderLayout.CENTER);
-
-        submitButton = new JButton("Create Interview");
-        submitButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        submitButtonPanel.add(submitButton);
 
         final JPanel topPanel = new JPanel();
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
@@ -984,17 +938,16 @@ public class CreateFunctionWindow {
                 setInputEnabled(false);
                 submitButton.setText("Creating Interview...");
 
-                interviewCreationTask = CompletableFuture.supplyAsync(() ->
-                        new Interview(attributeKValues,
-                                attributeWeights,
-                                interviewMode,
-                                classificationNames.length,
-                                attributeNames,
-                                classificationNames,
-                                null,
-                                subFunctionsForEachAttribute,
-                                null,
-                                magicFunctionMode));
+                interviewCreationTask = CompletableFuture.supplyAsync(() -> new Interview(attributeKValues,
+                        attributeWeights,
+                        classificationNames.length,
+                        attributeNames,
+                        classificationNames,
+                        null,
+                        subFunctionsForEachAttribute,
+                        null,
+                        magicFunctionMode));
+
 
                 interviewCreationTask.whenComplete((result, throwable) ->
                         SwingUtilities.invokeLater(() -> {
@@ -1023,6 +976,7 @@ public class CreateFunctionWindow {
                             if (currentDialog != null) {
                                 currentDialog.dispose();
                             }
+                            result.beginInterview(interviewMode);
                         }));
             });
         });

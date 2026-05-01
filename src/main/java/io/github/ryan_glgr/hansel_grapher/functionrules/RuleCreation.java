@@ -1,6 +1,8 @@
 package io.github.ryan_glgr.hansel_grapher.functionrules;
 
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
@@ -9,17 +11,13 @@ import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
 public class RuleCreation {
 
     // takes in the set of low units, broken up by classification.
-    public static RuleNode[] createRuleTrees(final ArrayList<ArrayList<Node>> lowUnitSet,
+    public static RuleNode[] createRuleTrees(final Map<Integer, Set<Node>> lowUnitSet,
                                              final int numAttributes){
 
-        final RuleNode[] roots = new RuleNode[lowUnitSet.size()];
-        roots[0] = RuleNode.createRuleNodes(new ArrayList<>(), numAttributes);
-        
-        IntStream.range(1, lowUnitSet.size())
+        return IntStream.range(0, lowUnitSet.size())
                 .parallel()
-                .forEach(classification -> 
-                    roots[classification] = RuleNode.createRuleNodes(lowUnitSet.get(classification),
-                            numAttributes));
-        return roots;
+                .mapToObj(classification -> 
+                    RuleNode.createRuleNodes(new ArrayList<>(lowUnitSet.getOrDefault(classification, Set.of())), numAttributes))
+                .toArray(RuleNode[]::new);
     }
 }

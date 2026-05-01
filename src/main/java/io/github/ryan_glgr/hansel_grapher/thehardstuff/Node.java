@@ -196,6 +196,10 @@ public class Node {
 
         // determine whether each node is going to be confirmed for each class, counting both up and downwards
         for (final Node n : aliveNodes) {
+
+            if (n.classification.equals(IMPOSSIBLE_CLASSIFICATION))
+               continue;
+
             for (int classification = n.classification; classification <= n.maxPossibleValue; classification++) {
                 // flag whether this node would be confirmed for each class or not, counting both up and down
                 if (n.wouldBeConfirmedForClass(classification, true)) {
@@ -208,23 +212,25 @@ public class Node {
             }
         }
 
-        aliveNodes.forEach(node -> {
-            Arrays.fill(node.possibleConfirmationsByClass, NOT_SET);
-            for (int classification = node.classification; classification <= node.maxPossibleValue; classification++) {
-                node.possibleConfirmationsByClass[classification] = 0;
-            }
+        aliveNodes.stream()
+                .filter(node -> !Objects.equals(node.classification, IMPOSSIBLE_CLASSIFICATION))
+                .forEach(node -> {
+                    Arrays.fill(node.possibleConfirmationsByClass, NOT_SET);
+                    for (int classification = node.classification; classification <= node.maxPossibleValue; classification++) {
+                        node.possibleConfirmationsByClass[classification] = 0;
+                    }
 
-            // now we must have each node go through the nodesThatWouldConfirm for each class, and increment their counts in these cases:
-            // if the target node is in reachableBelow for a given node, we check if it would be confirmed counting downards for each class
-            // if the target node is above, we check if it would be confirmed counting upwards for each class which our node can still be.
-            node.updateConfirmationStats(nodesThatWouldConfirmForEachClassCountingUpwards, true);
-            node.updateConfirmationStats(nodesThatWouldConfirmForEachClassCountingDownwards, false);
-            Arrays.sort(node.possibleConfirmationsByClass);
+                    // now we must have each node go through the nodesThatWouldConfirm for each class, and increment their counts in these cases:
+                    // if the target node is in reachableBelow for a given node, we check if it would be confirmed counting downards for each class
+                    // if the target node is above, we check if it would be confirmed counting upwards for each class which our node can still be.
+                    node.updateConfirmationStats(nodesThatWouldConfirmForEachClassCountingUpwards, true);
+                    node.updateConfirmationStats(nodesThatWouldConfirmForEachClassCountingDownwards, false);
+                    Arrays.sort(node.possibleConfirmationsByClass);
 
-            // compute the new magnitude of above and below umbrella case vector
-            node.umbrellaMagnitude = node.computeUmbrellaMagnitude();
-            node.balanceRatio = balanceRatio.computeBalanceRatio(node);
-        });
+                    // compute the new magnitude of above and below umbrella case vector
+                    node.umbrellaMagnitude = node.computeUmbrellaMagnitude();
+                    node.balanceRatio = balanceRatio.computeBalanceRatio(node);
+                });
     }
 
     // takes in a datapoint, and makes a copy of that and stores that as our "point"

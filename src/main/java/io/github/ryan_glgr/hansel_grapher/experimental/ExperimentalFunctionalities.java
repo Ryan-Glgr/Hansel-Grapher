@@ -27,7 +27,7 @@ public class ExperimentalFunctionalities {
         final HashMap<Integer, Node> data = Node.makeNodes(kVals, numClasses);
         ArrayList<ArrayList<Node>> hanselChains;
         ArrayList<ArrayList<Node>> defaultChains = HanselChains.generateHanselChainSet(kVals, data);
-        final HashSet<HashSet<Node>> lowUnits = new HashSet<>();
+        final HashSet<Set<Node>> lowUnits = new HashSet<>();
         final int[] sizes = defaultChains.stream().mapToInt(ArrayList::size).toArray();
         final int[] lowValueIndices = new int[sizes.length];
         final MagicFunctionMode magicFunctionMode = MagicFunctionMode.KNOWN_LOW_UNITS_MODE;
@@ -52,7 +52,7 @@ public class ExperimentalFunctionalities {
                     }
                     final var lowUnitsByClass = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
                     final var adjustedLowUnitsByClass = HanselChains.removeUselessLowUnits(lowUnitsByClass);
-                    lowUnits.add(new HashSet<>(adjustedLowUnitsByClass.get(1)));
+                    lowUnits.add(adjustedLowUnitsByClass.get(1));
                     // for(Node n : adjustedLowUnitsByClass.get(1)) {
                     //     System.out.print(Arrays.toString(n.values));
                     //     System.out.print(" ");
@@ -96,7 +96,6 @@ public class ExperimentalFunctionalities {
             for(int i = 0; i < modes.length; i++) {
                 final Interview interview = new Interview(kVals,
                     fakeWeights,
-                    modes[i],
                     numClasses,
                     fakeNames,
                     fakeNames,
@@ -104,6 +103,7 @@ public class ExperimentalFunctionalities {
                     subFunctionsForEachAttribute,
                     null,
                     magicFunctionMode);
+                interview.beginInterview(modes[i]);
 
                 final InterviewStats interviewStats = interview.interviewStats;
                 questions[i] += interviewStats.nodesAsked.size();

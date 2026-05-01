@@ -3,7 +3,9 @@ package io.github.ryan_glgr.hansel_grapher.visualizations.gui.screens;
 import com.jogamp.opengl.GLCapabilities;
 import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLProfile;
+import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.awt.GLJPanel;
+import io.github.ryan_glgr.hansel_grapher.InterviewCreationTestCases;
 import io.github.ryan_glgr.hansel_grapher.stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.Interview;
 import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.InterviewMode;
@@ -11,12 +13,13 @@ import io.github.ryan_glgr.hansel_grapher.visualizations.InterviewStatsVisualize
 import io.github.ryan_glgr.hansel_grapher.visualizations.VisualizationDOT;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.BlankRenderer;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.ExpansionRenderer;
-import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.HanselChainRenderer;
+import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.hanselchain.HanselChainRenderer;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.RuleTreeRenderer;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
@@ -30,7 +33,9 @@ public class MainWindow {
     private static final String RULE_TREE_VIEW = "RULE_TREE_VIEW";
     private static final String NO_INTERVIEW_YET = "NO_INTERVIEW_YET";
 
-    private final GLJPanel glPanel;
+    // change the field:
+    private final GLCanvas glPanel;
+
     private GLEventListener currentListener;
     private String currentView;
 
@@ -49,9 +54,10 @@ public class MainWindow {
         currentListener = new BlankRenderer();
 
         // --- OpenGL setup ---
-        final GLProfile profile = GLProfile.get(GLProfile.GL2);
+        // change construction:
+        final GLProfile profile = GLProfile.get(GLProfile.GL3);
         final GLCapabilities caps = new GLCapabilities(profile);
-        glPanel = new GLJPanel(caps);
+        glPanel = new GLCanvas(caps);
         glPanel.addGLEventListener(currentListener);
 
         // --- Buttons ---
@@ -91,6 +97,7 @@ public class MainWindow {
 
         mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
+        mainPanel.add(buttonPanel, BorderLayout.NORTH);
         mainPanel.add(glPanel, BorderLayout.CENTER);
 
     }
@@ -100,8 +107,9 @@ public class MainWindow {
     }
 
     private void handleNewInterview() {
-        final CreateFunctionWindow functionWindow = new CreateFunctionWindow();
-        final CompletableFuture<Interview> interviewFuture = functionWindow.createFunctionAndReturnInterviewObject("Create Interview");
+//        final CreateFunctionWindow functionWindow = new CreateFunctionWindow();
+//        final CompletableFuture<Interview> interviewFuture = functionWindow.createFunctionAndReturnInterviewObject("Create Interview");
+        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createBasicInterviewWithSubfunctions(InterviewMode.BEST_MINIMUM_CONFIRMED));
 
         interviewFuture.thenAccept(createdInterview -> {
             if (createdInterview == null) {
@@ -154,6 +162,13 @@ public class MainWindow {
     }
 
     private void handleVisualizationChange(final String viewToApply) {
+        if (Objects.isNull(interview)) {
+            JOptionPane.showMessageDialog(mainPanel,
+                    "Please conduct an interview first.",
+                    "No Interview",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         currentView = viewToApply;
 
         final GLEventListener next = switch (currentView) {

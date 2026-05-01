@@ -29,13 +29,16 @@ public class Interview {
     public final MagicFunctionMode magicFunctionMode;
     public BalanceRatio balanceRatio;
 
-    public final InterviewStats interviewStats;
+    public InterviewStats interviewStats;
     public final HashMap<Integer, Node> data;
     public final HashMap<Integer, Node> allNodesToTheirIDsMap; // all the same nodes, but this way we can look up a node by it's ID as well.
     public final ArrayList<ArrayList<Node>> hanselChains;
-    public final ArrayList<ArrayList<Node>> lowUnitsByClass;
-    public final ArrayList<ArrayList<Node>> adjustedLowUnitsByClass;
-    public final RuleNode[] ruleTrees;
+    public Map<Integer, Set<Node>> lowUnitsByClass;
+    public Map<Integer, Set<Node>> adjustedLowUnitsByClass;
+    public RuleNode[] ruleTrees;
+
+    // to be used if we are running gui mode. this allows us to tell the GUI when updates have happened.
+    private LiveInterviewVisualizer liveInterviewVisualizer = null;
 
     public final int numClasses;
     public final String[] classificationNames;
@@ -44,12 +47,10 @@ public class Interview {
     public final Integer[] kVals;
     public final Map<Integer, Set<Node>> lowUnitsForEachClassification; // used for the magic function mode when we know what the low units are already, and we are trying to run the interview.
 
-    private final Scanner inputScanner;
-
+    private Scanner inputScanner;
 
     public Interview(final Integer[] kVals,
                      final Float[] weights,                                 // pass in the weights of each attribute. needed IFF you are doing MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE
-                     final InterviewMode mode,                              // question asking mode
                      final int numClasses,
                      final String[] attributeNames,
                      final String[] classificationNames,
@@ -61,7 +62,6 @@ public class Interview {
                 ? Util.createDefaultClassificationNames(numClasses) : classificationNames;
 	    this.attributeNames = Objects.isNull(attributeNames)
                 ? Util.createDefaultAttributeNames(kVals.length) : attributeNames;
-        this.inputScanner = new Scanner(System.in);
         this.magicFunctionMode = magicFunctionMode;
         this.numClasses = numClasses;
 
@@ -84,20 +84,28 @@ public class Interview {
         }
 
         this.lowUnitsForEachClassification = getKnownLowUnitsOfEachClassification(setOfLowUnitsByClassification);
-
         this.hanselChains = HanselChains.generateHanselChainSet(kVals, data);
         Node.markImpossibleNodes(impossibleAttributeCombinations, new ArrayList<>(data.values()));
+    }
+
+    public void beginInterview(final InterviewMode interviewMode) {
+        this.inputScanner = new Scanner(System.in);
 
         // this is where the magic happens
-        this.interviewStats = conductInterview(mode);
+        this.interviewStats = conductInterview(interviewMode);
 
         // once the interview is conducted, we are in the Monotone ordinal function recreation stage:
         this.lowUnitsByClass = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
         this.adjustedLowUnitsByClass = HanselChains.removeUselessLowUnits(lowUnitsByClass);
-        this.ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnitsByClass, numAttributes);
-
+        this.ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnitsByClass, this.kVals.length);
         inputScanner.close();
     }
+
+    public void beginInterviewWithGUI(final LiveInterviewVisualizer liveInterviewVisualizer, final InterviewMode interviewMode) {
+        this.liveInterviewVisualizer = liveInterviewVisualizer;
+        beginInterview(interviewMode);
+    }
+
 
     private Map<Integer, Set<Node>> getKnownLowUnitsOfEachClassification(final Map<Integer, Set<Integer[]>> setOfLowUnitsByClassification) {
 
@@ -353,6 +361,9 @@ public class Interview {
 
             // this sets all the upper bounds below, and all the lower bounds above.
             final PermeationStats stats = n.permeateClassification(classification);
+            if (Objects.nonNull(liveInterviewVisualizer)) {
+                liveInterviewVisualizer.notifyClassificationsChanged();
+            }
             nodesAsked.add(n);
             permeationStatsForEachNodeAsked.add(stats);
 
@@ -408,6 +419,9 @@ public class Interview {
             final int classification = askQuestion(nodeToQuestion);
 
             final PermeationStats permStats = nodeToQuestion.permeateClassification(classification);
+            if (Objects.nonNull(liveInterviewVisualizer)) {
+                liveInterviewVisualizer.notifyClassificationsChanged();
+            }
             questionsAsked.add(nodeToQuestion);
             permeationStats.add(permStats);
 
@@ -484,6 +498,9 @@ public class Interview {
                 // ask the expert or ML
                 final int classification = askQuestion(nodeToQuestion);
                 final PermeationStats permStats = nodeToQuestion.permeateClassification(classification);
+                if (Objects.nonNull(liveInterviewVisualizer)) {
+                    liveInterviewVisualizer.notifyClassificationsChanged();
+                }
                 questionsAsked.add(nodeToQuestion);
                 permeationStats.add(permStats);
             }
@@ -633,6 +650,9 @@ public class Interview {
             final int classification = askQuestion(middleNode);
             // Permeate classification
             final PermeationStats permeationStatsForNode = middleNode.permeateClassification(classification);
+            if (Objects.nonNull(liveInterviewVisualizer)) {
+                liveInterviewVisualizer.notifyClassificationsChanged();
+            }
             nodesAsked.add(middleNode);
             permeationStats.add(permeationStatsForNode);
         }
@@ -692,6 +712,9 @@ public class Interview {
                 final int classification = askQuestion(nodeToQuestion);
 
                 final PermeationStats permStats = nodeToQuestion.permeateClassification(classification);
+                if (Objects.nonNull(liveInterviewVisualizer)) {
+                    liveInterviewVisualizer.notifyClassificationsChanged();
+                }
                 questionsAsked.add(nodeToQuestion);
                 permeationStats.add(permStats);
             }
@@ -812,6 +835,9 @@ public class Interview {
 
             // this sets all the upper bounds below, and all the lower bounds above.
             final PermeationStats thisNodeStats = nodeToAsk.permeateClassification(classification);
+            if (Objects.nonNull(liveInterviewVisualizer)) {
+                liveInterviewVisualizer.notifyClassificationsChanged();
+            }
             nodesToAsk.remove(nodeToAsk);
             nodesAsked.add(nodeToAsk);
             permeationStatsForEachNodeAsked.add(thisNodeStats);
@@ -834,15 +860,16 @@ public class Interview {
             .append(interviewStats.nodesAsked.size())
             .append('\n');
 
-        final int totalLowUnits = lowUnitsByClass.stream()
-            .mapToInt(List::size)
+        final int totalLowUnits = lowUnitsByClass.values().stream()
+            .mapToInt(Set::size)
             .sum();
         sb.append("TOTAL NUMBER OF LOW UNITS:\t")
             .append(totalLowUnits)
             .append('\n');
 
-        for (int classification = 0; classification < lowUnitsByClass.size(); classification++) {
-            final List<Node> lowUnits = lowUnitsByClass.get(classification);
+        for (int classification = 0; classification < numClasses; classification++) {
+            final Set<Node> lowUnits = lowUnitsByClass.get(classification);
+            if (lowUnits == null) continue;
             sb.append("NUMBER OF LOW UNITS FOR CLASS ")
                 .append(classification)
                 .append(":\t")
@@ -851,19 +878,20 @@ public class Interview {
             sb.append("LOW UNITS FOR CLASS ")
                 .append(classification)
                 .append(":\n")
-                .append(Util.printListOfNodes(lowUnits))
+                .append(Util.printListOfNodes(new ArrayList<>(lowUnits)))
                 .append('\n');
         }
 
-        final int totalAdjustedLowUnits = adjustedLowUnitsByClass.stream()
-            .mapToInt(List::size)
+        final int totalAdjustedLowUnits = adjustedLowUnitsByClass.values().stream()
+            .mapToInt(Set::size)
             .sum();
         sb.append("\nTOTAL NUMBER OF ADJUSTED LOW UNITS:\t")
             .append(totalAdjustedLowUnits)
             .append('\n');
 
-        for (int classification = 0; classification < adjustedLowUnitsByClass.size(); classification++) {
-            final List<Node> adjustedLowUnits = adjustedLowUnitsByClass.get(classification);
+        for (int classification = 0; classification < numClasses; classification++) {
+            final Set<Node> adjustedLowUnits = adjustedLowUnitsByClass.get(classification);
+            if (adjustedLowUnits == null) continue;
             sb.append("NUMBER OF ADJUSTED LOW UNITS FOR CLASS ")
                 .append(classification)
                 .append(":\t")
@@ -872,7 +900,7 @@ public class Interview {
             sb.append("ADJUSTED LOW UNITS FOR CLASS ")
                 .append(classification)
                 .append(":\n")
-                .append(Util.printListOfNodes(adjustedLowUnits))
+                .append(Util.printListOfNodes(new ArrayList<>(adjustedLowUnits)))
                 .append('\n');
         }
 

@@ -8,10 +8,9 @@ public class InterviewHelperFunctions {
                                               final int numClasses,
                                               final InterviewMode mode,
                                               final MagicFunctionMode magicMode) {
-        return new Interview(
+        final Interview interview = new Interview(
                 kValues,
                 weights,
-                mode,
                 numClasses,
                 Util.createDefaultAttributeNames(kValues.length),
                 Util.createDefaultClassificationNames(numClasses),
@@ -20,6 +19,8 @@ public class InterviewHelperFunctions {
                 null,
                 magicMode
         );
+        interview.beginInterview(mode);
+        return interview;
     }
 
 }

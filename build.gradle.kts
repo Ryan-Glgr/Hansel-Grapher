@@ -1,7 +1,6 @@
 plugins {
     java
     application
-    id("io.github.goooler.shadow") version "8.1.8"
 }
 
 group = "io.github.ryan_glgr.hansel_grapher"
@@ -34,31 +33,24 @@ dependencies {
     implementation("org.jogamp.gluegen:gluegen-rt:2.4.0")
     implementation("org.jogamp.jogl:jogl-all:2.4.0")
 
-    // macOS (covers both Intel and Apple Silicon)
-    runtimeOnly("org.jogamp.gluegen:gluegen-rt:2.4.0:natives-macosx-universal")
-    runtimeOnly("org.jogamp.jogl:jogl-all:2.4.0:natives-macosx-universal")
+    val os = System.getProperty("os.name").lowercase()
 
-    // Windows
-    runtimeOnly("org.jogamp.gluegen:gluegen-rt:2.4.0:natives-windows-amd64")
-    runtimeOnly("org.jogamp.jogl:jogl-all:2.4.0:natives-windows-amd64")
-
-    // Linux
-    runtimeOnly("org.jogamp.gluegen:gluegen-rt:2.4.0:natives-linux-amd64")
-    runtimeOnly("org.jogamp.jogl:jogl-all:2.4.0:natives-linux-amd64")
-    runtimeOnly("org.jogamp.gluegen:gluegen-rt:2.4.0:natives-linux-aarch64")
-    runtimeOnly("org.jogamp.jogl:jogl-all:2.4.0:natives-linux-aarch64")
+    when {
+        os.contains("linux") -> {
+            runtimeOnly("org.jogamp.gluegen:gluegen-rt:2.4.0:natives-linux-amd64")
+            runtimeOnly("org.jogamp.jogl:jogl-all:2.4.0:natives-linux-amd64")
+        }
+        os.contains("windows") -> {
+            runtimeOnly("org.jogamp.gluegen:gluegen-rt:2.4.0:natives-windows-amd64")
+            runtimeOnly("org.jogamp.jogl:jogl-all:2.4.0:natives-windows-amd64")
+        }
+        os.contains("mac") -> {
+            runtimeOnly("org.jogamp.gluegen:gluegen-rt:2.4.0:natives-macosx-universal")
+            runtimeOnly("org.jogamp.jogl:jogl-all:2.4.0:natives-macosx-universal")
+        }
+    }
 }
 
 application {
     mainClass.set("io.github.ryan_glgr.hansel_grapher.Main")
-}
-
-tasks.shadowJar {
-    archiveClassifier.set("all")
-
-    manifest {
-        attributes["Main-Class"] = application.mainClass.get()
-    }
-
-    exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
 }

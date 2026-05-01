@@ -67,7 +67,6 @@ public class InterviewCreationTestCases {
 
         final Interview interview = new Interview(kValues,
                 weights,
-                interviewMode,
                 numClasses,
                 attributeNames,
                 classificationNames,
@@ -75,6 +74,7 @@ public class InterviewCreationTestCases {
                 childFunctions,
                 impossibleNodeCombinations,
                 MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE);
+        interview.beginInterview(interviewMode);
 
         System.out.println(interviewMode + " INTERVIEW COMPLETE!");
         System.out.println(interview);
@@ -254,7 +254,6 @@ public class InterviewCreationTestCases {
 
         final Interview interview = new Interview(kValues,
                 ldaWeightsForHeartFailureStudy,
-                interviewMode,
                 2,
                 attributeNamesForHeartFailureStudy,
                 new String[] {"No Heart Failure", "Heart Failure"},
@@ -262,6 +261,7 @@ public class InterviewCreationTestCases {
                 null,
                 null,
                 MagicFunctionMode.KNOWN_LOW_UNITS_MODE);
+        interview.beginInterview(interviewMode);
 
         System.out.println(interviewMode + " INTERVIEW COMPLETE!");
         System.out.println(interview);
