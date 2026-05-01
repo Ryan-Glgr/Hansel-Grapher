@@ -174,8 +174,9 @@ public class Node {
 
         // for all nodes, if they weren't confirmed, we are going to remove confirmed from their list, and remove nodes which
         // they can no longer update.
-        aliveNodes.parallelStream()
+        aliveNodes.stream()
                 .filter(node -> !nodesConfirmed.contains(node.nodeID))
+                .parallel()
                 .forEach(node -> {
                     node.removeConfirmedNodesFromReachableSet(nodesConfirmed);
                     if (nodesUpdated.contains(node.nodeID)){
@@ -214,6 +215,7 @@ public class Node {
 
         aliveNodes.stream()
                 .filter(node -> !Objects.equals(node.classification, IMPOSSIBLE_CLASSIFICATION))
+                .parallel()
                 .forEach(node -> {
                     Arrays.fill(node.possibleConfirmationsByClass, NOT_SET);
                     for (int classification = node.classification; classification <= node.maxPossibleValue; classification++) {

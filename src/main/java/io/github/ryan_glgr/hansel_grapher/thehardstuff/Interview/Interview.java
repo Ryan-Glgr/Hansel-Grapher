@@ -462,7 +462,7 @@ public class Interview {
             while(!chainToQuestion.isEmpty()) {
 
                 // for each chunk we have remaining of each chain, we are going to chop them up, splitting on parts where they are confirmed.
-                chainToQuestion = chainToQuestion.stream()
+                chainToQuestion = chainToQuestion.parallelStream()
                         .flatMap(chunk -> splitChunkIntoPiecesHelper(chunk)
                                 .stream())
                         .collect(Collectors.toCollection(ArrayList::new));

@@ -23,7 +23,6 @@ public class HanselChainRenderer implements GLEventListener, LiveInterviewVisual
     private static final float SIDE_SPACING = 0.75f;
     private static final float VERTICAL_SPACING = 0.75f;
     private static final float MARGIN = 1.5f;
-    private static final float DEFAULT_GRAPH_HEIGHT = 10f;
 
     private static final int POSITION_COMPONENTS = 2;   // x, y
     private static final int X_POSITION_IN_ARRAY = 0;
@@ -39,8 +38,6 @@ public class HanselChainRenderer implements GLEventListener, LiveInterviewVisual
     private static final int SHADER_LOG_BUFFER_SIZE = 1024;
 
     private static final float[] CLEAR_COLOR = {0.15f, 0.15f, 0.15f, 1.0f};
-
-
 
     private int vaoId;
     private int shaderProgram;
@@ -188,7 +185,6 @@ public class HanselChainRenderer implements GLEventListener, LiveInterviewVisual
             final byte[] log = new byte[SHADER_LOG_BUFFER_SIZE];
             gl.glGetProgramInfoLog(shaderProgram, SHADER_LOG_BUFFER_SIZE, null, 0, log, 0);
         }
-        // =----------------------------------=
 
         // ------------------------------------------------------------
         // 4. VAO
@@ -207,20 +203,16 @@ public class HanselChainRenderer implements GLEventListener, LiveInterviewVisual
         // ------------------------------------------------------------
         gl.glGenBuffers(2, vboIds, 0);
 
-
         // --- Position VBO (static, GL_STATIC_DRAW) ---
         gl.glBindBuffer(GL3.GL_ARRAY_BUFFER, vboIds[VBO_POSITIONS]);
 
-
-        if (chains != null && !chains.isEmpty()) {
-            final FloatBuffer positionBuffer = buildPositionBuffer();
-            gl.glBufferData(
-                    GL3.GL_ARRAY_BUFFER,
-                    (long) positionBuffer.capacity() * Float.BYTES,
-                    positionBuffer,
-                    GL3.GL_STATIC_DRAW
-            );
-        }
+        final FloatBuffer positionBuffer = buildPositionBuffer();
+        gl.glBufferData(
+                GL3.GL_ARRAY_BUFFER,
+                (long) positionBuffer.capacity() * Float.BYTES,
+                positionBuffer,
+                GL3.GL_STATIC_DRAW
+        );
 
         gl.glEnableVertexAttribArray(0);
         gl.glVertexAttribPointer(0, POSITION_COMPONENTS, GL3.GL_FLOAT, false, 0, 0);
@@ -228,16 +220,13 @@ public class HanselChainRenderer implements GLEventListener, LiveInterviewVisual
         // --- Color VBO (dynamic, GL_DYNAMIC_DRAW) ---
         gl.glBindBuffer(GL3.GL_ARRAY_BUFFER, vboIds[VBO_COLORS]);
 
-        if (chains != null && !chains.isEmpty()) {
-            final FloatBuffer colorBuffer = buildColorBuffer();
-            gl.glBufferData(
-                    GL3.GL_ARRAY_BUFFER,
-                    (long) colorBuffer.capacity() * Float.BYTES,
-                    colorBuffer,
-                    GL3.GL_DYNAMIC_DRAW
-            );
-
-        }
+        final FloatBuffer colorBuffer = buildColorBuffer();
+        gl.glBufferData(
+                GL3.GL_ARRAY_BUFFER,
+                (long) colorBuffer.capacity() * Float.BYTES,
+                colorBuffer,
+                GL3.GL_DYNAMIC_DRAW
+        );
 
         gl.glEnableVertexAttribArray(1);
         gl.glVertexAttribPointer(1, COLOR_COMPONENTS, GL3.GL_FLOAT, false, 0, 0);
@@ -255,7 +244,7 @@ public class HanselChainRenderer implements GLEventListener, LiveInterviewVisual
         reshape(drawable, 0, 0, drawable.getSurfaceWidth(), drawable.getSurfaceHeight());
     }
 
-    // Overwrites the color VBO in-place. Node count is stable so SubData is safe.
+    // Overwrites the color VBO in-place. Node count is unchanging so SubData is safe.
     private void rebuildColorVBO(final GL3 gl) {
         final FloatBuffer colorBuffer = buildColorBuffer();
         gl.glBindBuffer(GL3.GL_ARRAY_BUFFER, vboIds[VBO_COLORS]);
@@ -272,9 +261,6 @@ public class HanselChainRenderer implements GLEventListener, LiveInterviewVisual
     public void display(final GLAutoDrawable drawable) {
         final GL3 gl = drawable.getGL().getGL3();
         gl.glClear(GL3.GL_COLOR_BUFFER_BIT);
-
-        if (chains == null || chains.isEmpty())
-            return;
 
         if (colorsDirty) {
             rebuildColorVBO(gl);
@@ -298,9 +284,6 @@ public class HanselChainRenderer implements GLEventListener, LiveInterviewVisual
         // 2. Draw
         // ------------------------------------------------------------
         gl.glDrawArrays(GL3.GL_TRIANGLES, 0, totalNodes * VERTICES_PER_NODE);
-        final int err = gl.glGetError();
-        gl.glFinish(); // force GPU to complete before continuing
-
 
         // ------------------------------------------------------------
         // 3. Cleanup
@@ -320,14 +303,6 @@ public class HanselChainRenderer implements GLEventListener, LiveInterviewVisual
         final GL3 gl = drawable.getGL().getGL3();
         gl.glViewport(0, 0, width, height);
 
-        if (nodePositions.isEmpty()) {
-            pendingProjection = orthographicMatrix(
-                    -DEFAULT_GRAPH_HEIGHT, DEFAULT_GRAPH_HEIGHT,
-                    -DEFAULT_GRAPH_HEIGHT, DEFAULT_GRAPH_HEIGHT,
-                    -1f, 1f);
-            return;
-        }
-
         // --- Compute tight bounds from actual node positions ---
         float minX = Float.MAX_VALUE, maxX = -Float.MAX_VALUE;
         float minY = Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
@@ -339,8 +314,10 @@ public class HanselChainRenderer implements GLEventListener, LiveInterviewVisual
             maxY = Math.max(maxY, pos[1] + NODE_HEIGHT / 2f);
         }
 
-        minX -= MARGIN; maxX += MARGIN;
-        minY -= MARGIN; maxY += MARGIN;
+        minX -= MARGIN;
+        maxX += MARGIN;
+        minY -= MARGIN;
+        maxY += MARGIN;
 
         // --- Adjust for aspect ratio ---
         final float aspect = (float) width / height;
