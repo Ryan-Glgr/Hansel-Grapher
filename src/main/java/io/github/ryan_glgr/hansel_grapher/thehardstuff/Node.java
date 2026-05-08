@@ -3,6 +3,7 @@ package io.github.ryan_glgr.hansel_grapher.thehardstuff;
 import java.util.*;
 import java.util.stream.IntStream;
 
+import io.github.ryan_glgr.hansel_grapher.helper.BalanceRatio;
 import io.github.ryan_glgr.hansel_grapher.stats.PermeationStats;
 import org.roaringbitmap.RoaringBitmap;
 
@@ -145,7 +146,7 @@ public class Node {
      * this means that attribute (x0 >= 2 AND x1 >= 0) is an IMPOSSIBLE combination. And any node which satisfies x0 >=2
      * AND x1 >= 0 is an IMPOSSIBLE combination.
      */
-    public static void markImpossibleNodes(final Map<Integer, Integer> impossibleAttributeCombinations, final ArrayList<Node> nodes) {
+    public static void markImpossibleNodes(final Set<Map<Integer, Integer>> impossibleAttributeCombinations, final ArrayList<Node> nodes) {
         if (Objects.isNull(impossibleAttributeCombinations))
             return;
 
@@ -284,9 +285,15 @@ public class Node {
         });
     }
 
-    private boolean nodeSatisfiesImpossibleAttributeCombination(final Map<Integer, Integer> impossibleAttributeCombinations) {
-        return impossibleAttributeCombinations.entrySet().stream()
-                .allMatch(entry -> this.values[entry.getKey()] >= entry.getValue());
+    private boolean nodeSatisfiesImpossibleAttributeCombination(final Set<Map<Integer, Integer>> impossibleAttributeCombinations) {
+        // if all the entries in a map are satisfied, that means we have satisfied some impossible combination of attributes.
+        return impossibleAttributeCombinations.stream().anyMatch(impossibleAttributeCombination -> impossibleAttributeCombination
+                .entrySet()
+                .stream()
+                // key of entry is the attribute index, value is the impossible combo. So if all match the predicate,
+                // this node is >= the combination we said is impossible.
+                .allMatch(entry ->
+                        this.values[entry.getKey()] >= entry.getValue()));
     }
 
     private PermeationStats expand(final int bound, final boolean countUpwards) {

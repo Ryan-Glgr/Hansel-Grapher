@@ -14,19 +14,19 @@ public class InterviewCreationTestCases {
 
     public static Interview createBasicInterviewWithSubfunctions(final InterviewMode interviewMode) {
         final Integer[] kValues = new Integer[] {5, 10, 7, 6};
-        final Float[] weights = new Float[] {1.65f, 1.25f, 1.0f, 2.25f, 3.25f, 4.2f};
+        final Float[] weights = new Float[] {.15f, 0.05f, 1.0f, 0.25f};
 
         // x0 >= 1, and x2 >= 1 is IMPOSSIBLE is what we are saying
-        final Map<Integer, Integer> impossibleCombinations = Map.of(
+        final Set<Map<Integer, Integer>> impossibleCombinations = Set.of(Map.of(
             0, 4,
-            2, 2);
+            2, 2));
         return createBasicInterviewWithSubfunctions(interviewMode, kValues, weights, impossibleCombinations);
     }
 
     public static Interview createBasicInterviewWithSubfunctions(final InterviewMode interviewMode,
                                                                  final Integer[] kValues,
                                                                  final Float[] weights,
-                                                                 final Map<Integer, Integer> impossibleNodeCombinations) {
+                                                                 final Set<Map<Integer, Integer>> impossibleNodeCombinations) {
         
         final int maxSum = IntStream.range(0, kValues.length)
             .map(i -> (int) ((kValues[i] - 1) * weights[i]))
@@ -73,7 +73,9 @@ public class InterviewCreationTestCases {
                 null,
                 childFunctions,
                 impossibleNodeCombinations,
-                MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE);
+                MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE,
+                null,
+                null);
         interview.beginInterview(interviewMode);
 
         System.out.println(interviewMode + " INTERVIEW COMPLETE!");
@@ -260,7 +262,9 @@ public class InterviewCreationTestCases {
                 knownLowUnitsFromHeartFailureStudy,
                 null,
                 null,
-                MagicFunctionMode.KNOWN_LOW_UNITS_MODE);
+                MagicFunctionMode.KNOWN_LOW_UNITS_MODE,
+                null,
+                null);
         interview.beginInterview(interviewMode);
 
         System.out.println(interviewMode + " INTERVIEW COMPLETE!");

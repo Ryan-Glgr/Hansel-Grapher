@@ -102,7 +102,9 @@ public class ExperimentalFunctionalities {
                     lowUnitsToMakeTheFunctionTrue,
                     subFunctionsForEachAttribute,
                     null,
-                    magicFunctionMode);
+                    magicFunctionMode,
+                        null,
+                        null);
                 interview.beginInterview(modes[i]);
 
                 final InterviewStats interviewStats = interview.interviewStats;

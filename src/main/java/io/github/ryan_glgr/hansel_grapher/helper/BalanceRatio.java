@@ -1,4 +1,6 @@
-package io.github.ryan_glgr.hansel_grapher.thehardstuff;
+package io.github.ryan_glgr.hansel_grapher.helper;
+
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
 
 // The balance ratio to determine how "good" a node is to be classified
 public interface BalanceRatio {

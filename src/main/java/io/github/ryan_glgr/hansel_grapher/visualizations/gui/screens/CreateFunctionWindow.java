@@ -2,6 +2,7 @@ package io.github.ryan_glgr.hansel_grapher.visualizations.gui.screens;
 
 import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.Interview;
 import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.MLModel;
 import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.MagicFunctionMode;
 import io.github.ryan_glgr.hansel_grapher.helper.Util;
 
@@ -11,11 +12,16 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 
 public class CreateFunctionWindow {
+
+    private static final String DATASETS_DIR = String.join(File.separator, "datasets");
+    private static final String NO_DATASETS_FOUND = "No datasets found";
 
     private final JPanel mainPanel;
     private final JLabel titleLabel;
@@ -614,6 +620,7 @@ public class CreateFunctionWindow {
         return panel;
     }
 
+
     private JPanel createInterviewModePanel() {
         final JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -625,24 +632,56 @@ public class CreateFunctionWindow {
         final ButtonGroup modeGroup = new ButtonGroup();
         final JRadioButton magicFunctionButton = new JRadioButton("Magic Function Mode");
         final JRadioButton interactiveButton = new JRadioButton("Interactive Interview Mode");
+        final JRadioButton machineLearningButton = new JRadioButton("Machine Learning Model Mode");
         modeGroup.add(magicFunctionButton);
         modeGroup.add(interactiveButton);
-        interactiveButton.setSelected(true); // Default selection
+        modeGroup.add(machineLearningButton);
+        interactiveButton.setSelected(true);
 
         modePanel.add(modeLabel);
         modePanel.add(magicFunctionButton);
         modePanel.add(interactiveButton);
+        modePanel.add(machineLearningButton);
         panel.add(modePanel);
 
         // Panel for weight inputs (only visible in Magic Function Mode)
         final JPanel weightsPanel = new JPanel();
         weightsPanel.setLayout(new BoxLayout(weightsPanel, BoxLayout.Y_AXIS));
         weightsPanel.setBorder(BorderFactory.createTitledBorder("Attribute Weights"));
-        weightsPanel.setVisible(false); // Initially hidden
+        weightsPanel.setVisible(false);
+
+        // Panel for ML options (only visible in Machine Learning Mode)
+        final JPanel mlPanel = new JPanel();
+        mlPanel.setLayout(new BoxLayout(mlPanel, BoxLayout.Y_AXIS));
+        mlPanel.setBorder(BorderFactory.createTitledBorder("Machine Learning Options"));
+        mlPanel.setVisible(false);
+
+        final JPanel mlModelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        mlModelPanel.add(new JLabel("Model:"));
+        final JComboBox<MLModel> mlModelComboBox = new JComboBox<>(MLModel.values()); // syntax error until enum is populated
+        mlModelPanel.add(mlModelComboBox);
+
+        final JPanel mlDatasetPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        mlDatasetPanel.add(new JLabel("Dataset:"));
+        final JComboBox<String> mlDatasetComboBox = new JComboBox<>(loadDatasetNames());
+        mlDatasetPanel.add(mlDatasetComboBox);
+
+        mlPanel.add(mlModelPanel);
+        mlPanel.add(mlDatasetPanel);
 
         // Toggle visibility based on mode selection
-        magicFunctionButton.addActionListener(e -> weightsPanel.setVisible(true));
-        interactiveButton.addActionListener(e -> weightsPanel.setVisible(false));
+        magicFunctionButton.addActionListener(e -> {
+            weightsPanel.setVisible(true);
+            mlPanel.setVisible(false);
+        });
+        interactiveButton.addActionListener(e -> {
+            weightsPanel.setVisible(false);
+            mlPanel.setVisible(false);
+        });
+        machineLearningButton.addActionListener(e -> {
+            weightsPanel.setVisible(false);
+            mlPanel.setVisible(true);
+        });
 
         // Create submit button
         final JButton submitButton = new JButton("Submit");
@@ -650,7 +689,8 @@ public class CreateFunctionWindow {
 
         // Add components to main panel
         panel.add(weightsPanel);
-        panel.add(Box.createRigidArea(new Dimension(0, 10))); // Add spacing
+        panel.add(mlPanel);
+        panel.add(Box.createRigidArea(new Dimension(0, 10)));
         panel.add(submitButton);
 
         // Generate weight fields when needed
@@ -682,7 +722,6 @@ public class CreateFunctionWindow {
         // Submit action
         submitButton.addActionListener(e -> {
             if (magicFunctionButton.isSelected()) {
-                // Validate and collect weights
                 boolean allValid = true;
                 final Component[] components = weightsPanel.getComponents();
 
@@ -690,7 +729,6 @@ public class CreateFunctionWindow {
                     if (components[i] instanceof JPanel) {
                         final JPanel weightPanel = (JPanel) components[i];
                         final JTextField weightField = (JTextField) weightPanel.getComponent(1);
-
                         try {
                             attributeWeights[i] = Float.parseFloat(weightField.getText().trim());
                         } catch (final NumberFormatException ex) {
@@ -704,7 +742,6 @@ public class CreateFunctionWindow {
                     JOptionPane.showMessageDialog(panel, "Weights saved successfully!",
                             "Success", JOptionPane.INFORMATION_MESSAGE);
                     weightsConfirmed = true;
-                    // proceed to Sub-Functions setup
                     if (subFunctionsButton != null) {
                         subFunctionsButton.doClick();
                     }
@@ -713,14 +750,46 @@ public class CreateFunctionWindow {
                             "Invalid Input", JOptionPane.ERROR_MESSAGE);
                     weightsConfirmed = false;
                 }
+
+            } else if (machineLearningButton.isSelected()) {
+                final MLModel selectedModel = (MLModel) mlModelComboBox.getSelectedItem();
+                final String selectedDataset = (String) mlDatasetComboBox.getSelectedItem();
+
+                if (selectedModel == null || selectedDataset == null
+                        || selectedDataset.equals(NO_DATASETS_FOUND)) {
+                    JOptionPane.showMessageDialog(panel, "Please select a valid model and dataset.",
+                            "Invalid Selection", JOptionPane.ERROR_MESSAGE);
+                } else {
+                    // TODO: store selectedModel and selectedDataset, proceed to next setup step
+                    JOptionPane.showMessageDialog(panel, "Model and dataset confirmed.",
+                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                    if (subFunctionsButton != null) {
+                        subFunctionsButton.doClick();
+                    }
+                }
+
             } else {
-                // Interactive mode not available in GUI
                 JOptionPane.showMessageDialog(panel, "Interactive Interview Not Available In GUI Mode.",
                         "Error", JOptionPane.ERROR_MESSAGE);
                 weightsConfirmed = false;
             }
         });
+
         return panel;
+    }
+
+    private String[] loadDatasetNames() {
+        final URL resourceUrl = getClass().getClassLoader().getResource(DATASETS_DIR);
+        if (resourceUrl == null) {
+            return new String[]{NO_DATASETS_FOUND};
+        }
+        final File datasetsFolder = new File(resourceUrl.getPath());
+        final String[] names = datasetsFolder.list();
+        if (names == null || names.length == 0) {
+            return new String[]{NO_DATASETS_FOUND};
+        }
+        Arrays.sort(names);
+        return names;
     }
 
     private JPanel createSubFunctionsPanel() {
@@ -946,7 +1015,9 @@ public class CreateFunctionWindow {
                         null,
                         subFunctionsForEachAttribute,
                         null,
-                        magicFunctionMode));
+                        magicFunctionMode,
+                        null,
+                        null));
 
 
                 interviewCreationTask.whenComplete((result, throwable) ->

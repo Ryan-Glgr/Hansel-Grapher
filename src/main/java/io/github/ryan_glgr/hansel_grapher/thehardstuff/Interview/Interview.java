@@ -1,24 +1,24 @@
 package io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview;
 
+import io.github.ryan_glgr.hansel_grapher.functionrules.Attribute;
+import io.github.ryan_glgr.hansel_grapher.functionrules.RuleCreation;
+import io.github.ryan_glgr.hansel_grapher.functionrules.RuleNode;
+import io.github.ryan_glgr.hansel_grapher.helper.Util;
+import io.github.ryan_glgr.hansel_grapher.stats.InterviewStats;
+import io.github.ryan_glgr.hansel_grapher.stats.PermeationStats;
+import io.github.ryan_glgr.hansel_grapher.helper.BalanceRatio;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.HanselChains;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
+import io.github.ryan_glgr.hansel_grapher.helper.NodeComparisons;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.PythonInterpreter;
+import org.roaringbitmap.RoaringBitmap;
+
+import java.io.IOException;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
-import io.github.ryan_glgr.hansel_grapher.functionrules.Attribute;
-import io.github.ryan_glgr.hansel_grapher.functionrules.RuleCreation;
-import io.github.ryan_glgr.hansel_grapher.functionrules.RuleNode;
-import io.github.ryan_glgr.hansel_grapher.stats.InterviewStats;
-import io.github.ryan_glgr.hansel_grapher.stats.PermeationStats;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.BalanceRatio;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.HanselChains;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.NodeComparisons;
-import io.github.ryan_glgr.hansel_grapher.helper.Util;
-import org.roaringbitmap.RoaringBitmap;
-
-import static java.lang.Math.min;
 
 // this class is where we are going to handle anything classification related.
 public class Interview {
@@ -47,7 +47,30 @@ public class Interview {
     public final Integer[] kVals;
     public final Map<Integer, Set<Node>> lowUnitsForEachClassification; // used for the magic function mode when we know what the low units are already, and we are trying to run the interview.
 
+    private final PythonInterpreter pythonInterpreter;
+
     private Scanner inputScanner;
+
+    // used to create an interactive Interview.
+    public Interview(final Integer[] kVals,
+                     final int numClasses,
+                     final String[] attributeNames,
+                     final String[] classificationNames,
+                     final Interview[] subFunctionsForEachAttribute,
+                     final Set<Map<Integer, Integer>> impossibleAttributeCombinations) {
+        this(kVals,
+                new Float[kVals.length],
+                numClasses,
+                attributeNames,
+                classificationNames,
+                null,
+                subFunctionsForEachAttribute,
+                impossibleAttributeCombinations,
+                MagicFunctionMode.EXPERT_MODE,
+                null,
+                null);
+    }
+
 
     public Interview(final Integer[] kVals,
                      final Float[] weights,                                 // pass in the weights of each attribute. needed IFF you are doing MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE
@@ -56,13 +79,25 @@ public class Interview {
                      final String[] classificationNames,
                      final Map<Integer, Set<Integer[]>> setOfLowUnitsByClassification, // pass in the nodes which are going to satisfy our magic function. NEEDED IFF YOU ARE DOING MagicFunctionMode.KNOWN_LOW_UNITS_MODE!
                      final Interview[] subFunctionsForEachAttribute,       // needs to at least be an Interview[numAttributes], but they can all be null if you want no subfunctions.
-                     final Map<Integer, Integer> impossibleAttributeCombinations, // the combinations of attributes which we are marking as impossible. any node which matches all entries in any one of these maps as >= each value is marked as impossible. in the future we could expand to also use <= and not just >=.
-                     final MagicFunctionMode magicFunctionMode) {          // the mode which actually determines how we know a nodes classification
+                     final Set<Map<Integer, Integer>> impossibleAttributeCombinations, // the combinations of attributes which we are marking as impossible. any node which matches all entries in any one of these maps as >= each value is marked as impossible. in the future we could expand to also use <= and not just >=.
+                     final MagicFunctionMode magicFunctionMode,
+                     final MLModel mlModel,
+                     final String datasetPath) {          // the mode which actually determines how we know a nodes classification
         this.classificationNames = Objects.isNull(classificationNames)
                 ? Util.createDefaultClassificationNames(numClasses) : classificationNames;
 	    this.attributeNames = Objects.isNull(attributeNames)
                 ? Util.createDefaultAttributeNames(kVals.length) : attributeNames;
+
         this.magicFunctionMode = magicFunctionMode;
+        if (MagicFunctionMode.MACHINE_LEARNING.equals(magicFunctionMode)) {
+            assert (!Objects.isNull(mlModel) && !Objects.isNull(datasetPath));
+
+           this.pythonInterpreter = this.teachTheMachine(mlModel, datasetPath);
+
+        }
+        else this.pythonInterpreter = null;
+
+
         this.numClasses = numClasses;
 
         this.kVals = kVals;
@@ -72,7 +107,7 @@ public class Interview {
                 .mapToObj(index -> new Attribute(
                         kVals[index],
                         index,
-                        weights[index],
+                        Objects.isNull(weights) ? Float.MIN_VALUE : weights[index],
                         Objects.isNull(subFunctionsForEachAttribute) ? null : subFunctionsForEachAttribute[index],
                         attributeNames[index]))
                 .toArray(Attribute[]::new);
@@ -83,7 +118,7 @@ public class Interview {
             allNodesToTheirIDsMap.put(node.nodeID, node);
         }
 
-        this.lowUnitsForEachClassification = getKnownLowUnitsOfEachClassification(setOfLowUnitsByClassification);
+        this.lowUnitsForEachClassification = InterviewHelperFunctions.getKnownLowUnitsOfEachClassification(setOfLowUnitsByClassification, data);
         this.hanselChains = HanselChains.generateHanselChainSet(kVals, data);
         Node.markImpossibleNodes(impossibleAttributeCombinations, new ArrayList<>(data.values()));
     }
@@ -101,24 +136,14 @@ public class Interview {
         inputScanner.close();
     }
 
-    public void beginInterviewWithGUI(final LiveInterviewVisualizer liveInterviewVisualizer, final InterviewMode interviewMode) {
-        this.liveInterviewVisualizer = liveInterviewVisualizer;
-        beginInterview(interviewMode);
-    }
-
-
-    private Map<Integer, Set<Node>> getKnownLowUnitsOfEachClassification(final Map<Integer, Set<Integer[]>> setOfLowUnitsByClassification) {
-
-        if (Objects.isNull(setOfLowUnitsByClassification))
-            return null;
-        return setOfLowUnitsByClassification.entrySet().stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry -> entry.getValue().stream()
-                                .map(lowUnit -> data.get(Node.hash(lowUnit)))
-                                .filter(Objects::nonNull)
-                                .collect(Collectors.toSet())
-                ));
+    private PythonInterpreter teachTheMachine(final MLModel model, final String datasetPath) {
+        try {
+            return new PythonInterpreter(model, datasetPath);
+        } catch (final IOException ioException) {
+            System.out.println("something has gone wrong in starting up the python process.");
+            ioException.printStackTrace();
+            throw new RuntimeException(ioException);
+        }
     }
 
     // mega function which determines how we are going to ask questions.
@@ -278,49 +303,11 @@ public class Interview {
 
     private int askQuestion(final Node n) {
         return switch (magicFunctionMode) {
-            case KVAL_TIMES_WEIGHTS_MODE -> linearFunctionQuestion(n);
-            case KNOWN_LOW_UNITS_MODE -> knownLowUnitsQuestion(n);
-            case EXPERT_MODE -> questionExpert(n);
+            case KVAL_TIMES_WEIGHTS_MODE -> QuestionHelper.linearFunctionQuestion(n, attributes, numClasses);
+            case KNOWN_LOW_UNITS_MODE -> QuestionHelper.knownLowUnitsQuestion(n, lowUnitsForEachClassification);
+            case EXPERT_MODE -> QuestionHelper.questionExpert(n, inputScanner);
+            case MACHINE_LEARNING -> QuestionHelper.queryPython(n, pythonInterpreter);
         };
-    }
-
-    // just returns k values[i] * weights[i] for this node / divided by the dimension to keep the class count in check.
-    private int linearFunctionQuestion(final Node datapoint){
-        int sum = 0;
-        for (int i = 0; i < datapoint.values.length; i++){
-            sum += (int)(datapoint.values[i] * attributes[i].weight);
-        }
-        // need this because our magic function may try and spit out more classes than the user specifies.
-        return min((sum / datapoint.values.length), (numClasses - 1));
-    }
-
-    // used when we already know the function, and we want to re run the interview.
-// useful for recreating results where we know their low units or boolean function.
-    private int knownLowUnitsQuestion(final Node datapoint){
-        // we can just assume that every node is always going to be at least class 0, by the properties of monotonicity.
-        return lowUnitsForEachClassification.entrySet().stream()
-                .filter(entry -> entry.getKey() > 0) // skip classification 0
-                .filter(entry -> entry.getValue().stream()
-                        .anyMatch(lowUnit -> lowUnit.isDominatedBy(datapoint, true)))
-                .map(Map.Entry::getKey)
-                .max(Integer::compareTo)
-                .orElse(0);
-    }
-
-    // asks the expert by printing the node and having them enter a datapoint
-    private int questionExpert(final Node datapoint){
-
-        System.out.println("WHAT IS THE CLASSIFICATION FOR THIS DATAPOINT?");
-        System.out.println(Arrays.toString(datapoint.values));
-        System.out.println("\tCURRENT MINIMUM:\t" + datapoint.classification);
-        System.out.println("\tCURRENT MAXIMUM:\t" + datapoint.maxPossibleValue);
-        System.out.println("INPUT:\t");
-        final int expertInput =inputScanner.nextInt();
-        if (expertInput < datapoint.classification || expertInput > datapoint.maxPossibleValue){
-            System.out.println("MONOTONICITY VIOLATION!");
-            throw new RuntimeException("MONOTONICITY RUINED!"); // use Runtime exception so that it blows up the program. we want it unchecked.
-        }
-        return expertInput;
     }
 
     // Sort nodes based on umbrella strategy
@@ -427,7 +414,7 @@ public class Interview {
 
             // for each chunk we have remaining of each chain, we are going to chop them up, splitting on parts where they are confirmed.
             chunks = chunks.parallelStream()
-                .flatMap(chunk -> splitChunkIntoPiecesHelper(chunk).stream())
+                .flatMap(chunk -> InterviewHelperFunctions.splitChunkIntoPiecesHelper(chunk).stream())
                 .collect(Collectors.toCollection(ArrayList::new));
         }
 
@@ -463,7 +450,7 @@ public class Interview {
 
                 // for each chunk we have remaining of each chain, we are going to chop them up, splitting on parts where they are confirmed.
                 chainToQuestion = chainToQuestion.parallelStream()
-                        .flatMap(chunk -> splitChunkIntoPiecesHelper(chunk)
+                        .flatMap(chunk -> InterviewHelperFunctions.splitChunkIntoPiecesHelper(chunk)
                                 .stream())
                         .collect(Collectors.toCollection(ArrayList::new));
 
@@ -507,7 +494,7 @@ public class Interview {
 
             // update all our HCs with the results now that we are done with that chain.
             chunks = chunks.parallelStream()
-                    .flatMap(chunk -> splitChunkIntoPiecesHelper(chunk).stream())
+                    .flatMap(chunk -> InterviewHelperFunctions.splitChunkIntoPiecesHelper(chunk).stream())
                     .collect(Collectors.toCollection(ArrayList::new));
         }
 
@@ -515,32 +502,6 @@ public class Interview {
 
 
 
-    }
-
-
-    // splits a list of nodes (part or whole hansel chain) on nodes which are confirmed
-    private ArrayList<ArrayList<Node>> splitChunkIntoPiecesHelper(final ArrayList<Node> chunk) {
-        final ArrayList<ArrayList<Node>> newChunks = new ArrayList<>();
-        final ArrayList<Node> currentChunk = new ArrayList<>();
-    
-        for (final Node node : chunk) {
-            if (node.classificationConfirmed) {
-                // End current chunk if we have nodes collected
-                if (!currentChunk.isEmpty()) {
-                    newChunks.add(new ArrayList<>(currentChunk));
-                    currentChunk.clear();
-                }
-            } else {
-                currentChunk.add(node);
-            }
-        }
-    
-        // Add last chunk if there are remaining nodes
-        if (!currentChunk.isEmpty()) {
-            newChunks.add(currentChunk);
-        }
-    
-        return newChunks;
     }
 
     private Node getBestSquareCompletion(
@@ -721,7 +682,7 @@ public class Interview {
 
             // for each chunk we have remaining of each chain, we are going to chop them up, splitting on parts where they are confirmed.
             chunks = chunks.parallelStream()
-                    .flatMap(chunk -> splitChunkIntoPiecesHelper(chunk).stream())
+                    .flatMap(chunk -> InterviewHelperFunctions.splitChunkIntoPiecesHelper(chunk).stream())
                     .collect(Collectors.toCollection(ArrayList::new));
         }
 

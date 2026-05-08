@@ -27,6 +27,10 @@ public class MainWindow {
     private final JPanel mainPanel;
     private final JPanel buttonPanel;
     private final JButton newInterviewButton;
+    private HanselChainRenderer hanselChainRenderer;
+    private ExpansionRenderer expansionRenderer;
+    private RuleTreeRenderer ruleTreeRenderer;
+    private BlankRenderer blankRenderer;
 
     private static final String HANSEL_CHAIN_VIEW = "HANSEL_CHAIN_VIEW";
     private static final String EXPANSION_VIEW = "EXPANSION_VIEW";

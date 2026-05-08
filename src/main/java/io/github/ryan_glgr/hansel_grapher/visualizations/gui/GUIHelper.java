@@ -10,14 +10,14 @@ public class GUIHelper {
 
     private static final String LEFT_FLOOR  = "⌊";
     private static final String RIGHT_FLOOR = "⌋";
-    private static final Float NON_LOW_UNIT_COLOR_FADE = 0.5f;
+    private static final Float NON_LOW_UNIT_COLOR_FADE = 0.55f;
+    private static final int IMPOSSIBLE_CLASS_GREY = 140;
 
     // Returns a Color object (with alpha baked in)
     public static Color getColorForClass(final int classification, final boolean isLowUnit) {
         if (classification == Node.IMPOSSIBLE_CLASSIFICATION) {
-            final int grayValue = 64;
             final int alphaInt = Math.round((isLowUnit ? 1.0f : NON_LOW_UNIT_COLOR_FADE) * 255);
-            return new Color(grayValue, grayValue, grayValue, alphaInt);
+            return new Color(IMPOSSIBLE_CLASS_GREY, IMPOSSIBLE_CLASS_GREY, IMPOSSIBLE_CLASS_GREY, alphaInt);
         }
 
         final float goldenRatio = 0.618033988749895f;
