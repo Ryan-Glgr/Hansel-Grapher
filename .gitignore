@@ -9,6 +9,7 @@
 target/
 
 out/
+build/
 .gitignore
 *.xml
 
@@ -20,3 +21,7 @@ debug
 *.MF
 *.probe
 *.jar
+*.sav
+*.csv
+*.json
+*.pyc

@@ -1,16 +1,20 @@
 package io.github.ryan_glgr.hansel_grapher;
 
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.Interview;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.InterviewHelperFunctions;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.InterviewMode;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.MagicFunctionMode;
+import io.github.ryan_glgr.hansel_grapher.datamanipulation.DatasetNormalizer;
+import io.github.ryan_glgr.hansel_grapher.datamanipulation.NormalizedDataset;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.*;
 import io.github.ryan_glgr.hansel_grapher.helper.Util;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.IntStream;
 
 public class InterviewCreationTestCases {
+
+    private static final String DATASETS_DIR = String.join(File.separator, "src", "main", "resources", "data", "datasets");
 
     public static Interview createBasicInterviewWithSubfunctions(final InterviewMode interviewMode) {
         final Integer[] kValues = new Integer[] {5, 10, 7, 6};
@@ -79,6 +83,27 @@ public class InterviewCreationTestCases {
         interview.beginInterview(interviewMode);
 
         System.out.println(interviewMode + " INTERVIEW COMPLETE!");
+        System.out.println(interview);
+        return interview;
+    }
+
+    public static Interview createBasicInterviewInPython(final MLModel mlModel) {
+
+        final String breastCancerDataset = String.join(File.separator, DATASETS_DIR, "breast-cancer-wisconsin-diagnostic.csv");
+        final NormalizedDataset normalizedDataset;
+        try {
+            normalizedDataset = DatasetNormalizer.loadOrCreateNormalizedDataset(breastCancerDataset,
+                    DatasetNormalizer.NormalizationMode.UNIQUE_INTEGERS_SOME_RESOLUTION,
+                    0.4f);
+
+        } catch (final IOException ioException) {
+            throw new RuntimeException(ioException);
+        }
+        final Interview interview = new Interview(normalizedDataset, mlModel);
+        System.out.println("Beginning interview. k values: " + Arrays.toString(interview.kVals));
+        System.out.println("Number of nodes: " + interview.data.size());
+        interview.beginInterview(InterviewMode.BEST_MINIMUM_CONFIRMED);
+        System.out.println("INTERVIEW COMPLETE!");
         System.out.println(interview);
         return interview;
     }

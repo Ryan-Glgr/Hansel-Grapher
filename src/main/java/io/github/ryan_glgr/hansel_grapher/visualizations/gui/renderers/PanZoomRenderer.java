@@ -18,9 +18,6 @@ import java.awt.event.*;
 public abstract class PanZoomRenderer
         implements GLEventListener, MouseListener, MouseMotionListener, MouseWheelListener {
 
-    private static final float MAX_ZOOM_OUT_FRACTION_OF_ENTIRE_WORLDVIEW = 0.05f;
-    private static final float MAX_ZOOM_IN_MULTIPLIER_OF_WORLDVIEW = 150f;
-
     // --- Pan / zoom state (all on the EDT) ---
     private float panX    = 0f;
     private float panY    = 0f;
@@ -34,8 +31,6 @@ public abstract class PanZoomRenderer
 
     // Pending projection matrix (set on reshape/mouse event, consumed in display)
     private volatile float[] pendingProjection = null;
-    private GLAutoDrawable glDrawable;
-    private Animator animator;
 
 
     // Last known surface size, so mouse events can rebuild the projection
@@ -91,7 +86,6 @@ public abstract class PanZoomRenderer
     public void reshape(final GLAutoDrawable drawable,
                         final int x, final int y,
                         final int width, final int height) {
-        glDrawable = drawable;
         final GL3 gl = drawable.getGL().getGL3();
         gl.glViewport(0, 0, width, height);
         surfaceWidth  = width;
@@ -189,8 +183,6 @@ public abstract class PanZoomRenderer
         final float mouseWorldY = (0.5f - e.getY() / (float) surfaceHeight) * worldH + panY;
 
         zoom *= factor;
-        zoom = Math.max(MAX_ZOOM_OUT_FRACTION_OF_ENTIRE_WORLDVIEW,
-                Math.min(zoom, MAX_ZOOM_IN_MULTIPLIER_OF_WORLDVIEW));
 
         // Recompute world size at new zoom and shift pan so mouse world point stays fixed
         final float newWorldW = (b[1] - b[0]) / zoom;
@@ -205,7 +197,6 @@ public abstract class PanZoomRenderer
 
     @Override
     public void init(final GLAutoDrawable drawable) {
-        glDrawable = drawable;
         if (drawable instanceof final java.awt.Component comp) {
             comp.addMouseListener(this);
             comp.addMouseMotionListener(this);
@@ -213,15 +204,6 @@ public abstract class PanZoomRenderer
         } else {
             throw new RuntimeException("PanZoomRenderer requires an AWT-backed drawable.");
         }
-        if (animator == null) {
-            animator = new Animator(drawable);
-            animator.start();
-        }
-    }
-
-    @Override
-    public void dispose(final GLAutoDrawable drawable) {
-        if (animator != null) animator.stop();
     }
 
 

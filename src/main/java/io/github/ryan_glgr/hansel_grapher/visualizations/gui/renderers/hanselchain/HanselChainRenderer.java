@@ -329,24 +329,26 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
         textRenderer.beginRendering(surfaceWidth, surfaceHeight);
         textRenderer.setColor(0f, 0f, 0f, 1f);
 
-        nodeLabels.entrySet()
-                .forEach(nodeToLabelEntry -> {
-                    final Node key = nodeToLabelEntry.getKey();
-                    final String[] lines = nodeToLabelEntry.getValue();
+        nodeLabels.forEach((key, lines) -> {
 
-                    final float[] pos = nodePositions.get(key);
+            // skip a node if it's not in screen
+            final float[] pos = nodePositions.get(key);
+            final float screenX = (pos[0] - getLiveLeft()) / viewW * surfaceWidth;
+            final float screenY = (pos[1] - getLiveBottom()) / viewH * surfaceHeight;
 
-                    final float screenX = (pos[X_POSITION_IN_ARRAY] - getLiveLeft()) / viewW * surfaceWidth;
-                    final float screenY = (pos[Y_POSITION_IN_ARRAY] - getLiveBottom()) / viewH * surfaceHeight;
+            // skip nodes outside the screen entirely
+            if (screenX < -nodeWidthPx || screenX > surfaceWidth + nodeWidthPx) return;
+            if (screenY < -nodeHeightPx || screenY > surfaceHeight + nodeHeightPx) return;
 
-                    final float startY = (float)(screenY + totalHeight / 2 - lineHeight);
-                    for (int i = 0; i < lines.length; i++) {
-                        final double lineW = textRenderer.getBounds(lines[i]).getWidth();
-                        final int drawX = (int)(screenX - lineW / 2);
-                        final int drawY = (int)(startY - i * lineHeight);
-                        textRenderer.draw(lines[i], drawX, drawY);
-                    }
-                });
+
+            final float startY = (float) (screenY + totalHeight / 2 - lineHeight);
+            for (int i = 0; i < lines.length; i++) {
+                final double lineW = textRenderer.getBounds(lines[i]).getWidth();
+                final int drawX = (int) (screenX - lineW / 2);
+                final int drawY = (int) (startY - i * lineHeight);
+                textRenderer.draw(lines[i], drawX, drawY);
+            }
+        });
 
         textRenderer.endRendering();
     }

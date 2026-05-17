@@ -1,5 +1,6 @@
 package io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview;
 
+import io.github.ryan_glgr.hansel_grapher.datamanipulation.NormalizedDataset;
 import io.github.ryan_glgr.hansel_grapher.functionrules.Attribute;
 import io.github.ryan_glgr.hansel_grapher.functionrules.RuleCreation;
 import io.github.ryan_glgr.hansel_grapher.functionrules.RuleNode;
@@ -71,6 +72,22 @@ public class Interview {
                 null);
     }
 
+    public Interview(final NormalizedDataset normalizedDataset,
+                     final MLModel mlModel) {
+        this(
+                normalizedDataset.getKValues(),
+                null,
+                normalizedDataset.getNumClasses(),
+                normalizedDataset.getAttributeNames(),
+                Util.createDefaultClassificationNames(normalizedDataset.getNumClasses()),
+                null,
+                null,
+                null,
+                MagicFunctionMode.MACHINE_LEARNING,
+                mlModel,
+                normalizedDataset);
+    }
+
 
     public Interview(final Integer[] kVals,
                      final Float[] weights,                                 // pass in the weights of each attribute. needed IFF you are doing MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE
@@ -82,7 +99,7 @@ public class Interview {
                      final Set<Map<Integer, Integer>> impossibleAttributeCombinations, // the combinations of attributes which we are marking as impossible. any node which matches all entries in any one of these maps as >= each value is marked as impossible. in the future we could expand to also use <= and not just >=.
                      final MagicFunctionMode magicFunctionMode,
                      final MLModel mlModel,
-                     final String datasetPath) {          // the mode which actually determines how we know a nodes classification
+                     final NormalizedDataset dataset) {          // the mode which actually determines how we know a nodes classification
         this.classificationNames = Objects.isNull(classificationNames)
                 ? Util.createDefaultClassificationNames(numClasses) : classificationNames;
 	    this.attributeNames = Objects.isNull(attributeNames)
@@ -90,16 +107,12 @@ public class Interview {
 
         this.magicFunctionMode = magicFunctionMode;
         if (MagicFunctionMode.MACHINE_LEARNING.equals(magicFunctionMode)) {
-            assert (!Objects.isNull(mlModel) && !Objects.isNull(datasetPath));
-
-           this.pythonInterpreter = this.teachTheMachine(mlModel, datasetPath);
-
+            assert (!Objects.isNull(mlModel) && !Objects.isNull(dataset));
+           this.pythonInterpreter = PythonInterpreter.getNormalizedDatasetAndBeginPredictionServer(mlModel, dataset);
         }
         else this.pythonInterpreter = null;
 
-
         this.numClasses = numClasses;
-
         this.kVals = kVals;
         final int numAttributes = kVals.length;
 
@@ -134,16 +147,6 @@ public class Interview {
         this.adjustedLowUnitsByClass = HanselChains.removeUselessLowUnits(lowUnitsByClass);
         this.ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnitsByClass, this.kVals.length);
         inputScanner.close();
-    }
-
-    private PythonInterpreter teachTheMachine(final MLModel model, final String datasetPath) {
-        try {
-            return new PythonInterpreter(model, datasetPath);
-        } catch (final IOException ioException) {
-            System.out.println("something has gone wrong in starting up the python process.");
-            ioException.printStackTrace();
-            throw new RuntimeException(ioException);
-        }
     }
 
     // mega function which determines how we are going to ask questions.
@@ -292,6 +295,13 @@ public class Interview {
             }
         };
 
+        if (pythonInterpreter != null) {
+            try {
+                pythonInterpreter.killPython();
+            } catch (final IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
         return new InterviewStats(kVals,
             hanselChains.size(),
             data.size(),
@@ -815,6 +825,21 @@ public class Interview {
     public String toString() {
         final StringBuilder sb = new StringBuilder();
 
+        for (int classification = 0; classification < numClasses; classification++) {
+            final Set<Node> adjustedLowUnits = adjustedLowUnitsByClass.get(classification);
+            if (adjustedLowUnits == null) continue;
+            sb.append("NUMBER OF ADJUSTED LOW UNITS FOR CLASS ")
+                    .append(classification)
+                    .append(":\t")
+                    .append(adjustedLowUnits.size())
+                    .append('\n');
+//            sb.append("ADJUSTED LOW UNITS FOR CLASS ")
+//                .append(classification)
+//                .append(":\n")
+//                .append(Util.printListOfNodes(new ArrayList<>(adjustedLowUnits)))
+//                .append('\n');
+        }
+
         sb.append(interviewStats.interviewMode).append(" MODE\n");
         sb.append("TOTAL NUMBER OF NODES: ").append(interviewStats.numberOfNodes).append("\n");
         sb.append("NUMBER OF QUESTIONS ASKED: ")
@@ -828,42 +853,12 @@ public class Interview {
             .append(totalLowUnits)
             .append('\n');
 
-        for (int classification = 0; classification < numClasses; classification++) {
-            final Set<Node> lowUnits = lowUnitsByClass.get(classification);
-            if (lowUnits == null) continue;
-            sb.append("NUMBER OF LOW UNITS FOR CLASS ")
-                .append(classification)
-                .append(":\t")
-                .append(lowUnits.size())
-                .append('\n');
-            sb.append("LOW UNITS FOR CLASS ")
-                .append(classification)
-                .append(":\n")
-                .append(Util.printListOfNodes(new ArrayList<>(lowUnits)))
-                .append('\n');
-        }
-
         final int totalAdjustedLowUnits = adjustedLowUnitsByClass.values().stream()
             .mapToInt(Set::size)
             .sum();
         sb.append("\nTOTAL NUMBER OF ADJUSTED LOW UNITS:\t")
             .append(totalAdjustedLowUnits)
             .append('\n');
-
-        for (int classification = 0; classification < numClasses; classification++) {
-            final Set<Node> adjustedLowUnits = adjustedLowUnitsByClass.get(classification);
-            if (adjustedLowUnits == null) continue;
-            sb.append("NUMBER OF ADJUSTED LOW UNITS FOR CLASS ")
-                .append(classification)
-                .append(":\t")
-                .append(adjustedLowUnits.size())
-                .append('\n');
-            sb.append("ADJUSTED LOW UNITS FOR CLASS ")
-                .append(classification)
-                .append(":\n")
-                .append(Util.printListOfNodes(new ArrayList<>(adjustedLowUnits)))
-                .append('\n');
-        }
 
         if (ruleTrees != null && ruleTrees.length > 0) {
             sb.append('\n');

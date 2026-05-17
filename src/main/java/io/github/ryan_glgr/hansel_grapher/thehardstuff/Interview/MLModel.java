@@ -1,9 +1,16 @@
 package io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview;
 
+import lombok.AllArgsConstructor;
+
+@AllArgsConstructor
 public enum MLModel {
-    NEURAL_NETWORK,
-    DECISION_TREE,
-    SVM,
-    LINEAR_FUNCTION,
-    ;
+    DECISION_TREE               ("DecisionTree"),
+    RANDOM_FOREST               ("RandomForest"),
+    EXTRA_TREES                 ("ExtraTrees"),
+    ADA_BOOST                   ("AdaBoost"),
+    HIST_GRAD_BOOST             ("HistGradBoost"),
+    MLP                         ("MLP"),
+    LINEAR_DISCRIMINANT_ANALYSIS("LinearDiscriminantAnalysis");
+
+    public final String pythonName;
 }

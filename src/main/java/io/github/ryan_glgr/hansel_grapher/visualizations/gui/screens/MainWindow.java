@@ -5,10 +5,12 @@ import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLProfile;
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.awt.GLJPanel;
+import com.jogamp.opengl.util.Animator;
 import io.github.ryan_glgr.hansel_grapher.InterviewCreationTestCases;
 import io.github.ryan_glgr.hansel_grapher.stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.Interview;
 import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.MLModel;
 import io.github.ryan_glgr.hansel_grapher.visualizations.InterviewStatsVisualizer;
 import io.github.ryan_glgr.hansel_grapher.visualizations.VisualizationDOT;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.BlankRenderer;
@@ -61,15 +63,15 @@ public class MainWindow {
         // change construction:
         final GLProfile profile = GLProfile.get(GLProfile.GL4bc);
         final GLCapabilities caps = new GLCapabilities(GLProfile.get(GLProfile.GL4bc));
-        caps.setDoubleBuffered(true);
-        final GLCanvas canvas = new GLCanvas(caps);
-        canvas.invoke(false, glAutoDrawable -> {
-            glAutoDrawable.getGL().setSwapInterval(1);  // 1 = vsync. using this so that it runs at fps of the monitor.
+        glPanel = new GLCanvas(caps);
+        glPanel.invoke(false, drawable -> {
+            drawable.getGL().setSwapInterval(1);  // vsync
             return true;
         });
-
-        glPanel = new GLCanvas(caps);
         glPanel.addGLEventListener(currentListener);
+
+        final Animator animator = new Animator(glPanel);
+        animator.start();  // runs forever, drives whatever listener is attached
 
         // --- Buttons ---
         newInterviewButton = new JButton("Conduct New Interview");
@@ -120,9 +122,11 @@ public class MainWindow {
     private void handleNewInterview() {
 //        final CreateFunctionWindow functionWindow = new CreateFunctionWindow();
 //        final CompletableFuture<Interview> interviewFuture = functionWindow.createFunctionAndReturnInterviewObject("Create Interview");
-        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createBasicInterviewWithSubfunctions(InterviewMode.BEST_MINIMUM_CONFIRMED));
 
+//        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createBasicInterviewWithSubfunctions(InterviewMode.BEST_MINIMUM_CONFIRMED));
+        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createBasicInterviewInPython(MLModel.LINEAR_DISCRIMINANT_ANALYSIS));
         interviewFuture.thenAccept(createdInterview -> {
+
             if (createdInterview == null) {
                 return;
             }

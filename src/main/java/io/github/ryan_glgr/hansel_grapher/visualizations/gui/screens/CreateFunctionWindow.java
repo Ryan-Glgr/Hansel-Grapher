@@ -20,7 +20,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class CreateFunctionWindow {
 
-    private static final String DATASETS_DIR = String.join(File.separator, "datasets");
+    private static final String DATASETS_DIR = String.join(File.separator, "src", "main", "resources", "data", "datasets");
     private static final String NO_DATASETS_FOUND = "No datasets found";
 
     private final JPanel mainPanel;

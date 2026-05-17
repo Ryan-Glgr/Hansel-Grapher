@@ -33,6 +33,13 @@ dependencies {
     implementation("org.jogamp.gluegen:gluegen-rt:2.4.0")
     implementation("org.jogamp.jogl:jogl-all:2.4.0")
 
+    // GSON for serialization to json
+    implementation("com.google.code.gson:gson:2.11.0")
+
+    // lombok for annotations
+    compileOnly("org.projectlombok:lombok:1.18.32")
+    annotationProcessor("org.projectlombok:lombok:1.18.32")
+
     val os = System.getProperty("os.name").lowercase()
 
     when {
