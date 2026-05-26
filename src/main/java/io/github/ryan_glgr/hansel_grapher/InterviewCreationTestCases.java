@@ -2,7 +2,7 @@ package io.github.ryan_glgr.hansel_grapher;
 
 import io.github.ryan_glgr.hansel_grapher.datamanipulation.DatasetNormalizer;
 import io.github.ryan_glgr.hansel_grapher.datamanipulation.NormalizedDataset;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.*;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.*;
 import io.github.ryan_glgr.hansel_grapher.helper.Util;
 
 import java.io.File;

@@ -1,4 +1,4 @@
-package io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview;
+package io.github.ryan_glgr.hansel_grapher.functionallogic.Interview;
 
 import lombok.AllArgsConstructor;
 

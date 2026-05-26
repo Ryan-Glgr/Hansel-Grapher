@@ -1,7 +1,7 @@
-package io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview;
+package io.github.ryan_glgr.hansel_grapher.functionallogic.Interview;
 
 import io.github.ryan_glgr.hansel_grapher.helper.Util;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Node;
 
 import java.util.*;
 import java.util.stream.Collectors;

@@ -1,6 +1,6 @@
 package io.github.ryan_glgr.hansel_grapher.helper;
 
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Node;
 
 import java.util.Arrays;
 import java.util.List;

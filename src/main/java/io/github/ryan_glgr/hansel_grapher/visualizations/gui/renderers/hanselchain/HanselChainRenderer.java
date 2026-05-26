@@ -4,19 +4,21 @@ import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.GL3;
 import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.util.awt.TextRenderer;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.Interview;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.LiveInterviewVisualizer;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.Interview;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.LiveInterviewVisualizer;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Node;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.lowunits.LowUnit;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.GUIHelper;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.PanZoomRenderer;
 
 import java.awt.*;
-import java.awt.geom.Rectangle2D;
 import java.io.InputStream;
 import java.nio.FloatBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class HanselChainRenderer extends PanZoomRenderer implements LiveInterviewVisualizer {
 
@@ -58,6 +60,8 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
     // All inter-thread communication goes through colorsDirty.
     private ArrayList<ArrayList<Node>> chains;
     private int totalNodes;
+    private Map<Node, LowUnit> lowUnitNodes;
+
     // Per-node layout: maps Node -> [centerX, centerY]
     private final HashMap<Node, float[]> nodePositions = new HashMap<>();
     private final HashMap<Node, String[]> nodeLabels = new HashMap<>();
@@ -142,12 +146,14 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
 
     // [r, g, b, a] per node — rebuilt whenever classifications change.
     private FloatBuffer buildColorBuffer() {
+
         final FloatBuffer buffer = Buffers.newDirectFloatBuffer(totalNodes * VERTICES_PER_NODE * COLOR_COMPONENTS);
 
         for (final ArrayList<Node> chain : chains) {
             for (final Node node : chain) {
-                final boolean isLow = isLowUnit(node);
-                final Color c = GUIHelper.getColorForClass(node.classification, isLow);
+
+                final LowUnit.Type lowUnitType = isLowUnit(node);
+                final Color c = GUIHelper.getColorForClass(node.classification, lowUnitType);
                 final float r = c.getRed()   / 255f;
                 final float g = c.getGreen() / 255f;
                 final float b = c.getBlue()  / 255f;
@@ -186,6 +192,13 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
         // ------------------------------------------------------------
         chains = GUIHelper.sortChainsForVisualization(interview.hanselChains);
         totalNodes = chains.stream().mapToInt(List::size).sum();
+        final Map<Integer, Set<LowUnit>> lowUnitsByClass = interview.lowUnitsByClass;
+        // reverse map all the low unit nodes to their "low unit"
+        lowUnitNodes = lowUnitsByClass.values()
+                .stream()
+                .flatMap(Set::stream)
+                .collect(Collectors.toMap(LowUnit::getDatapoint, Function.identity()));
+
         computeLayout();
 
         // ------------------------------------------------------------
@@ -412,13 +425,14 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
     }
 
     // --- Helpers ---
-    private boolean isLowUnit(final Node node) {
-        final Map<Integer, Set<Node>> lowUnits = interview.adjustedLowUnitsByClass;
-        if (lowUnits == null)
-            return false;
-        final Set<Node> lowUnitsOfThisClassification = lowUnits.get(node.classification);
-        if (lowUnitsOfThisClassification == null)
-            return false;
-        return lowUnitsOfThisClassification.contains(node);
+    private LowUnit.Type isLowUnit(final Node node) {
+
+        if (lowUnitNodes == null)
+            return null;
+
+        final LowUnit lowUnit = lowUnitNodes.get(node);
+        return lowUnit == null
+                ? null
+                : lowUnit.getLowUnitType();
     }
 }

@@ -1,8 +1,8 @@
-package io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview;
+package io.github.ryan_glgr.hansel_grapher.functionallogic.Interview;
 
 import io.github.ryan_glgr.hansel_grapher.functionrules.Attribute;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.PythonInterpreter;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Node;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.PythonInterpreter;
 
 import java.util.*;
 

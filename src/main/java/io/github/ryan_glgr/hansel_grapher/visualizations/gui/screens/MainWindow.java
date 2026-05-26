@@ -4,13 +4,12 @@ import com.jogamp.opengl.GLCapabilities;
 import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLProfile;
 import com.jogamp.opengl.awt.GLCanvas;
-import com.jogamp.opengl.awt.GLJPanel;
 import com.jogamp.opengl.util.Animator;
 import io.github.ryan_glgr.hansel_grapher.InterviewCreationTestCases;
 import io.github.ryan_glgr.hansel_grapher.stats.InterviewStats;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.Interview;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.InterviewMode;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.MLModel;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.Interview;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.MLModel;
 import io.github.ryan_glgr.hansel_grapher.visualizations.InterviewStatsVisualizer;
 import io.github.ryan_glgr.hansel_grapher.visualizations.VisualizationDOT;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.BlankRenderer;
@@ -151,9 +150,9 @@ public class MainWindow {
     private void exportChainsAndExpansions() {
         try {
             VisualizationDOT.makeExpansionsDOT(interview.data,
-                    interview.adjustedLowUnitsByClass,
+                    interview.lowUnitsByClass,
                     interview.interviewStats.kValues);
-            VisualizationDOT.makeHanselChainDOT(interview.hanselChains, interview.adjustedLowUnitsByClass);
+            VisualizationDOT.makeHanselChainDOT(interview.hanselChains, interview.lowUnitsByClass);
             VisualizationDOT.compileDotAsync("out/Expansions.dot");
             VisualizationDOT.compileDotAsync("out/HanselChains.dot");
         } catch (final IOException ex) {

@@ -1,6 +1,6 @@
 package io.github.ryan_glgr.hansel_grapher.functionrules;
 
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.Interview;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.Interview;
 
 public class Attribute {
 

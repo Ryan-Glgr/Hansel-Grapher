@@ -1,4 +1,4 @@
-package io.github.ryan_glgr.hansel_grapher.thehardstuff;
+package io.github.ryan_glgr.hansel_grapher.functionallogic;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -112,67 +112,5 @@ public class HanselChains{
         }
         return true;
     }
-    
-    // takes in our fully classified data, and just finds the low units in each chain.
-    public static Map<Integer, Set<Node>> findLowUnitsForEachClass(final ArrayList<ArrayList<Node>> hanselChainSet, final int numClasses) {
-        
-        final Map<Integer, Set<Node>> lowUnits = new HashMap<>();
-        for (int i = 0; i < numClasses; i++) {
-            lowUnits.put(i, new HashSet<>());
-        }
 
-        for(final ArrayList<Node> chain : hanselChainSet){
-            final Node[] lowestNodeInEachClassInsideThisChain = new Node[numClasses];
-            
-            // take the FIRST occurence of each class in the chain as the low unit for the
-            for (final Node node : chain) {
-                if (Node.IMPOSSIBLE_CLASSIFICATION.equals(node.classification)) {
-                    continue;
-                }
-                if (lowestNodeInEachClassInsideThisChain[node.classification] == null) {
-                    lowestNodeInEachClassInsideThisChain[node.classification] = node;
-                }
-            }
-            
-            // add the lowest node of each class to our set of low units.
-            for(final Node lowUnit : lowestNodeInEachClassInsideThisChain){
-                if(lowUnit != null){
-                    // get this particular low unit's class, and add it to that classes list of low units.
-                    lowUnits.get(lowUnit.classification).add(lowUnit);
-                }
-            }
-        }
-
-        return lowUnits;
-    }
-
-    public static Map<Integer, Set<Node>> removeUselessLowUnits(final Map<Integer, Set<Node>> lowUnits) {
-
-        final Map<Integer, Set<Node>> newLowUnits = new HashMap<>();
-        for (final Integer classification : lowUnits.keySet()) {
-            newLowUnits.put(classification, new HashSet<>());
-        }
-
-        final boolean dominatingInAnUpwardFashion = true; // meaning that "otherNode" is dominating from the top...                                                                                   pause
-
-        for (final Integer classification : lowUnits.keySet()) {
-            // add all the low units for this class
-            newLowUnits.get(classification).addAll(lowUnits.get(classification));
-
-            final HashSet<Node> nodesWhichAreNotNeeded = new HashSet<>();
-
-            // for each node, if it is totally dominated by any of the other nodes, we know that we can remove that other node which is dominating us.
-            for (final Node node : lowUnits.get(classification)) {
-                for (final Node otherNode : lowUnits.get(classification)) {
-                    if (node != otherNode) {
-                        if (node.isDominatedBy(otherNode, dominatingInAnUpwardFashion)) {
-                            nodesWhichAreNotNeeded.add(otherNode);
-                        }
-                    }
-                }
-            }
-            newLowUnits.get(classification).removeIf(nodesWhichAreNotNeeded::contains);
-        }
-        return newLowUnits;
-    }
 }

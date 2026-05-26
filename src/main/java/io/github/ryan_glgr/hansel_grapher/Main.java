@@ -1,6 +1,6 @@
 package io.github.ryan_glgr.hansel_grapher;
 
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.InterviewMode;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.screens.MainWindow;
 import io.github.ryan_glgr.hansel_grapher.visualizations.InterviewStatsVisualizer;
 

@@ -3,9 +3,9 @@ package io.github.ryan_glgr.hansel_grapher.stats;
 import java.util.Arrays;
 import java.util.List;
 
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.InterviewMode;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.MagicFunctionMode;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.MagicFunctionMode;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Node;
 
 // data class used to track how we did on a particular run of an interview.
 public class InterviewStats {

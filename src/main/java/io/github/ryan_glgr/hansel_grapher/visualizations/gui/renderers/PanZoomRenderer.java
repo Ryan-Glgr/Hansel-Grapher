@@ -16,7 +16,9 @@ import java.awt.event.*;
  * The computed projection is exposed via getPendingProjection() / consumePendingProjection().
  */
 public abstract class PanZoomRenderer
-        implements GLEventListener, MouseListener, MouseMotionListener, MouseWheelListener {
+        implements GLEventListener, MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
+
+    private static final float PAN_AMOUNT = 0.10f;
 
     // --- Pan / zoom state (all on the EDT) ---
     private float panX    = 0f;
@@ -193,7 +195,16 @@ public abstract class PanZoomRenderer
         rebuildProjection();
     }
 
-
+    @Override
+    public void keyPressed(final KeyEvent e) {
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_LEFT  -> panX -= PAN_AMOUNT * zoom;
+            case KeyEvent.VK_RIGHT -> panX += PAN_AMOUNT * zoom;
+            case KeyEvent.VK_UP    -> panY += PAN_AMOUNT * zoom;
+            case KeyEvent.VK_DOWN  -> panY -= PAN_AMOUNT * zoom;
+        }
+        rebuildProjection();
+    }
 
     @Override
     public void init(final GLAutoDrawable drawable) {
@@ -201,6 +212,9 @@ public abstract class PanZoomRenderer
             comp.addMouseListener(this);
             comp.addMouseMotionListener(this);
             comp.addMouseWheelListener(this);
+            comp.addKeyListener(this);
+            comp.setFocusable(true);
+            comp.requestFocusInWindow();
         } else {
             throw new RuntimeException("PanZoomRenderer requires an AWT-backed drawable.");
         }
@@ -210,12 +224,15 @@ public abstract class PanZoomRenderer
     // -----------------------------------------------------------------------
     // Unused mouse events — override in subclass if needed
     // -----------------------------------------------------------------------
-
     @Override public void mouseClicked(final MouseEvent e)  {}
     @Override public void mouseReleased(final MouseEvent e) {}
     @Override public void mouseEntered(final MouseEvent e)  {}
     @Override public void mouseExited(final MouseEvent e)   {}
     @Override public void mouseMoved(final MouseEvent e)    {}
+
+
+    @Override public void keyTyped(final KeyEvent e)    {}
+    @Override public void keyReleased(final KeyEvent e) {}
 
     // -----------------------------------------------------------------------
     // Shared math utility

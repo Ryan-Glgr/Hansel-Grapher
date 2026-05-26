@@ -1,4 +1,4 @@
-package io.github.ryan_glgr.hansel_grapher.thehardstuff;
+package io.github.ryan_glgr.hansel_grapher.functionallogic;
 
 import java.util.*;
 import java.util.stream.IntStream;

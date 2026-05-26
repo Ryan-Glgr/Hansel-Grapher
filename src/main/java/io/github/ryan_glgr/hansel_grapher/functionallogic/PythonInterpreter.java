@@ -1,8 +1,7 @@
-package io.github.ryan_glgr.hansel_grapher.thehardstuff;
+package io.github.ryan_glgr.hansel_grapher.functionallogic;
 
-import io.github.ryan_glgr.hansel_grapher.datamanipulation.DatasetNormalizer;
 import io.github.ryan_glgr.hansel_grapher.datamanipulation.NormalizedDataset;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.MLModel;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.MLModel;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -29,7 +28,6 @@ public class PythonInterpreter implements AutoCloseable {
                 "--classifier", model.pythonName,
                 "--dataset",    normalizedDatasetPath)
                 .redirectErrorStream(false)
-                .redirectError(ProcessBuilder.Redirect.DISCARD)  // ← drop stderr entirely
                 .start();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             this.process.destroy();           // SIGTERM first
@@ -47,8 +45,10 @@ public class PythonInterpreter implements AutoCloseable {
             try (final BufferedReader err = new BufferedReader(
                     new InputStreamReader(process.getErrorStream()))) {
                 String line;
-                while ((line = err.readLine()) != null)
-                    System.err.println("[python] " + line);
+                while ((line = err.readLine()) != null) {
+                    if (!line.startsWith("[oracle] batch("))
+                        System.err.println("[python] " + line);
+                }
             } catch (final IOException ignored) {}
         });
         stderrDrainer.setDaemon(true);

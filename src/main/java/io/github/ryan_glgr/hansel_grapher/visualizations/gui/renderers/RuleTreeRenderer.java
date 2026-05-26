@@ -3,7 +3,7 @@ package io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers;
 import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GL3;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.Interview;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.Interview;
 
 
 public class RuleTreeRenderer implements GLEventListener {

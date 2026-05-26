@@ -1,10 +1,11 @@
 package io.github.ryan_glgr.hansel_grapher.visualizations;
 
+import io.github.ryan_glgr.hansel_grapher.functionallogic.lowunits.LowUnit;
 import io.github.ryan_glgr.hansel_grapher.stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.stats.PermeationStats;
 import io.github.ryan_glgr.hansel_grapher.stats.PermeationStats.PermeationStatistic;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.Interview;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.Interview;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.InterviewMode;
 
 import org.knowm.xchart.*;
 import org.knowm.xchart.style.Styler;
@@ -99,12 +100,13 @@ public class InterviewStatsVisualizer {
                 outputDir.mkdirs();
             }
             // visualize our results
-            VisualizationDOT.makeHanselChainDOT(interview.hanselChains, interview.adjustedLowUnitsByClass);
+            VisualizationDOT.makeHanselChainDOT(interview.hanselChains, interview.lowUnitsByClass);
 
             // make the expansions picture
             final Integer[] kValues = interview.kVals;
-            VisualizationDOT.makeExpansionsDOT(interview.data, interview.adjustedLowUnitsByClass, kValues);
-            VisualizationDOT.makeRuleTreesDOT(interview.ruleTrees, interview.attributeNames);
+            VisualizationDOT.makeExpansionsDOT(interview.data, interview.lowUnitsByClass, kValues);
+            VisualizationDOT.makeRuleTreesDOT(interview.ruleTrees, interview.attributeNames, LowUnit.Type.INCLUSIVE);
+            VisualizationDOT.makeRuleTreesDOT(interview.ruleTrees, interview.attributeNames, LowUnit.Type.EXCLUSIVE);
 
             final InterviewMode interviewMode = interview.interviewStats.interviewMode;
             final String interviewStatsOutputString = interviewMode + " Interview Stats";

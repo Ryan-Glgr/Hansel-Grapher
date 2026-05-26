@@ -1,28 +1,40 @@
 package io.github.ryan_glgr.hansel_grapher.visualizations.gui;
 
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Node;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.lowunits.LowUnit;
 
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Objects;
 
 public class GUIHelper {
 
     private static final String LEFT_FLOOR  = "⌊";
     private static final String RIGHT_FLOOR = "⌋";
+    private static final String LEFT_CEILING = "⌈";
+    private static final String RIGHT_CEILING = "⌉";
     private static final Float NON_LOW_UNIT_COLOR_FADE = 0.55f;
     private static final int IMPOSSIBLE_CLASS_GREY = 140;
+    private static final float GOLDEN_RATIO = 0.618033988749895f;
+    private static final float REGULAR_SATURATION = 0.7f;
+    private static final float EXCLUSIVE_LOW_UNIT_SATURATION = 1.0f;
+    private static final float REGULAR_BRIGHTNESS = 0.95f;
 
     // Returns a Color object (with alpha baked in)
-    public static Color getColorForClass(final int classification, final boolean isLowUnit) {
+    public static Color getColorForClass(final int classification, final LowUnit.Type lowUnitType) {
+        final boolean isLowUnit = (Objects.nonNull(lowUnitType));
+
         if (classification == Node.IMPOSSIBLE_CLASSIFICATION) {
             final int alphaInt = Math.round((isLowUnit ? 1.0f : NON_LOW_UNIT_COLOR_FADE) * 255);
             return new Color(IMPOSSIBLE_CLASS_GREY, IMPOSSIBLE_CLASS_GREY, IMPOSSIBLE_CLASS_GREY, alphaInt);
         }
 
-        final float goldenRatio = 0.618033988749895f;
-        final float hue = (classification * goldenRatio) % 1.0f;
-        final int rgb = Color.HSBtoRGB(hue, 0.7f, 0.95f);
+        final boolean isExclusiveLowUnit = LowUnit.Type.EXCLUSIVE.equals(lowUnitType);
+        final float saturation = isExclusiveLowUnit ? EXCLUSIVE_LOW_UNIT_SATURATION : REGULAR_SATURATION;
+
+        final float hue = (classification * GOLDEN_RATIO) % 1.0f;
+        final int rgb = Color.HSBtoRGB(hue, saturation, REGULAR_BRIGHTNESS);
         final Color baseColor = new Color(rgb);
         final int alphaInt = Math.round((isLowUnit ? 1.0f : NON_LOW_UNIT_COLOR_FADE) * 255);
         return new Color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), alphaInt);
@@ -46,16 +58,18 @@ public class GUIHelper {
         return Arrays.toString(temp.values) + "\\nClassification: " + cls;
     }
 
-    public static String[] nodeLabelArray(final Node temp, final boolean isLow) {
+    public static String[] nodeLabelArray(final Node temp, final LowUnit.Type lowUnitType) {
         final String cls;
-            if (Node.IMPOSSIBLE_CLASSIFICATION.equals(temp.classification)) {
-                cls = "N/A";
-            } else {
-                cls = (isLow)
-                        ? String.format("%s%s%s", LEFT_FLOOR, temp.classification, RIGHT_FLOOR)
-                        : String.format(" %s ", temp.classification);
-            }
-            return new String[] { Arrays.toString(temp.values),"Classification: " + cls };
+        if (Node.IMPOSSIBLE_CLASSIFICATION.equals(temp.classification)) {
+            cls = "N/A";
+        } else {
+            cls = switch (lowUnitType) {
+                case INCLUSIVE -> String.format("%s%s%s", LEFT_FLOOR, temp.classification, RIGHT_FLOOR);
+                case EXCLUSIVE -> String.format("%s%s%s", LEFT_CEILING, temp.classification, RIGHT_CEILING);
+                case null -> String.format(" %s ", temp.classification);
+            };
+        }
+        return new String[] { Arrays.toString(temp.values),"Classification: " + cls };
     }
 
 

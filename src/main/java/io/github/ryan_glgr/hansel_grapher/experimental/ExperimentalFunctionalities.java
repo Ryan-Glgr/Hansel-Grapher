@@ -1,11 +1,13 @@
 package io.github.ryan_glgr.hansel_grapher.experimental;
 
+import io.github.ryan_glgr.hansel_grapher.functionallogic.lowunits.LowUnit;
 import io.github.ryan_glgr.hansel_grapher.stats.InterviewStats;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.HanselChains;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.Interview;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.InterviewMode;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview.MagicFunctionMode;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.HanselChains;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.Interview;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.MagicFunctionMode;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.lowunits.LowUnitsFactory;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Node;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,7 +29,7 @@ public class ExperimentalFunctionalities {
         final HashMap<Integer, Node> data = Node.makeNodes(kVals, numClasses);
         ArrayList<ArrayList<Node>> hanselChains;
         ArrayList<ArrayList<Node>> defaultChains = HanselChains.generateHanselChainSet(kVals, data);
-        final HashSet<Set<Node>> lowUnits = new HashSet<>();
+        final HashSet<Set<LowUnit>> lowUnits = new HashSet<>();
         final int[] sizes = defaultChains.stream().mapToInt(ArrayList::size).toArray();
         final int[] lowValueIndices = new int[sizes.length];
         final MagicFunctionMode magicFunctionMode = MagicFunctionMode.KNOWN_LOW_UNITS_MODE;
@@ -50,9 +52,8 @@ public class ExperimentalFunctionalities {
                             hanselChains.get(i).get(lowValueIndices[i] - 1).permeateClassification(1);
                         }
                     }
-                    final var lowUnitsByClass = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
-                    final var adjustedLowUnitsByClass = HanselChains.removeUselessLowUnits(lowUnitsByClass);
-                    lowUnits.add(adjustedLowUnitsByClass.get(1));
+                    final var lowUnitsByClass = LowUnitsFactory.findPrunedLowUnits(hanselChains);
+                    lowUnits.add(lowUnitsByClass.get(1));
                     // for(Node n : adjustedLowUnitsByClass.get(1)) {
                     //     System.out.print(Arrays.toString(n.values));
                     //     System.out.print(" ");
@@ -77,20 +78,20 @@ public class ExperimentalFunctionalities {
         final float[] questions = new float[modes.length];
         count = 0;
 
-        for(final Set<Node> nodes: lowUnits) {
+        for(final Set<LowUnit> nodes: lowUnits) {
             final Map<Integer, Set<Integer[]>> lowUnitsToMakeTheFunctionTrue = Map.of(1,
                     nodes.stream()
-                    .map(node -> node.values)
+                    .map(lowUnit -> lowUnit.getDatapoint().values)
                     .collect(Collectors.toSet()));
 
             final Map<Integer, Set<Integer[]>> lowUnitsToMakeTheFunctionTrueByClass = new HashMap<>();
-            for (final Node node : nodes) {
-                Set<Integer[]> lowUnitsForThisNodesClass = lowUnitsToMakeTheFunctionTrueByClass.get(node.classification);
+            for (final LowUnit lowUnit : nodes) {
+                Set<Integer[]> lowUnitsForThisNodesClass = lowUnitsToMakeTheFunctionTrueByClass.get(lowUnit.getDatapoint().classification);
                 if (Objects.isNull(lowUnitsForThisNodesClass)) {
-                    lowUnitsToMakeTheFunctionTrueByClass.put(node.classification, new HashSet<>());
-                    lowUnitsForThisNodesClass = lowUnitsToMakeTheFunctionTrueByClass.get(node.classification);
+                    lowUnitsToMakeTheFunctionTrueByClass.put(lowUnit.getDatapoint().classification, new HashSet<>());
+                    lowUnitsForThisNodesClass = lowUnitsToMakeTheFunctionTrueByClass.get(lowUnit.getDatapoint().classification);
                 }
-                lowUnitsForThisNodesClass.add(node.values);
+                lowUnitsForThisNodesClass.add(lowUnit.getDatapoint().values);
             }
 
             for(int i = 0; i < modes.length; i++) {

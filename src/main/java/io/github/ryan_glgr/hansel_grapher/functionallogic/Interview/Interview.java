@@ -1,6 +1,7 @@
-package io.github.ryan_glgr.hansel_grapher.thehardstuff.Interview;
+package io.github.ryan_glgr.hansel_grapher.functionallogic.Interview;
 
 import io.github.ryan_glgr.hansel_grapher.datamanipulation.NormalizedDataset;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.lowunits.LowUnit;
 import io.github.ryan_glgr.hansel_grapher.functionrules.Attribute;
 import io.github.ryan_glgr.hansel_grapher.functionrules.RuleCreation;
 import io.github.ryan_glgr.hansel_grapher.functionrules.RuleNode;
@@ -8,10 +9,11 @@ import io.github.ryan_glgr.hansel_grapher.helper.Util;
 import io.github.ryan_glgr.hansel_grapher.stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.stats.PermeationStats;
 import io.github.ryan_glgr.hansel_grapher.helper.BalanceRatio;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.HanselChains;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.Node;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.HanselChains;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.lowunits.LowUnitsFactory;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Node;
 import io.github.ryan_glgr.hansel_grapher.helper.NodeComparisons;
-import io.github.ryan_glgr.hansel_grapher.thehardstuff.PythonInterpreter;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.PythonInterpreter;
 import org.roaringbitmap.RoaringBitmap;
 
 import java.io.IOException;
@@ -34,8 +36,7 @@ public class Interview {
     public final HashMap<Integer, Node> data;
     public final HashMap<Integer, Node> allNodesToTheirIDsMap; // all the same nodes, but this way we can look up a node by it's ID as well.
     public final ArrayList<ArrayList<Node>> hanselChains;
-    public Map<Integer, Set<Node>> lowUnitsByClass;
-    public Map<Integer, Set<Node>> adjustedLowUnitsByClass;
+    public Map<Integer, Set<LowUnit>> lowUnitsByClass;
     public RuleNode[] ruleTrees;
 
     // to be used if we are running gui mode. this allows us to tell the GUI when updates have happened.
@@ -142,10 +143,11 @@ public class Interview {
         // this is where the magic happens
         this.interviewStats = conductInterview(interviewMode);
 
+        System.out.println("Interview Complete. Creating Rule Trees...");
         // once the interview is conducted, we are in the Monotone ordinal function recreation stage:
-        this.lowUnitsByClass = HanselChains.findLowUnitsForEachClass(hanselChains, numClasses);
-        this.adjustedLowUnitsByClass = HanselChains.removeUselessLowUnits(lowUnitsByClass);
-        this.ruleTrees = RuleCreation.createRuleTrees(adjustedLowUnitsByClass, this.kVals.length);
+        this.lowUnitsByClass = LowUnitsFactory.findPrunedLowUnits(hanselChains);
+
+        this.ruleTrees = RuleCreation.createRuleTrees(lowUnitsByClass, this.kVals.length);
         inputScanner.close();
     }
 
@@ -826,7 +828,7 @@ public class Interview {
         final StringBuilder sb = new StringBuilder();
 
         for (int classification = 0; classification < numClasses; classification++) {
-            final Set<Node> adjustedLowUnits = adjustedLowUnitsByClass.get(classification);
+            final Set<LowUnit> adjustedLowUnits = lowUnitsByClass.get(classification);
             if (adjustedLowUnits == null) continue;
             sb.append("NUMBER OF ADJUSTED LOW UNITS FOR CLASS ")
                     .append(classification)
@@ -836,7 +838,7 @@ public class Interview {
 //            sb.append("ADJUSTED LOW UNITS FOR CLASS ")
 //                .append(classification)
 //                .append(":\n")
-//                .append(Util.printListOfNodes(new ArrayList<>(adjustedLowUnits)))
+//                .append(Util.printListOfNodes(new ArrayList<>(adjustedLowUnits.stream.map.something)))
 //                .append('\n');
         }
 
@@ -846,14 +848,7 @@ public class Interview {
             .append(interviewStats.nodesAsked.size())
             .append('\n');
 
-        final int totalLowUnits = lowUnitsByClass.values().stream()
-            .mapToInt(Set::size)
-            .sum();
-        sb.append("TOTAL NUMBER OF LOW UNITS:\t")
-            .append(totalLowUnits)
-            .append('\n');
-
-        final int totalAdjustedLowUnits = adjustedLowUnitsByClass.values().stream()
+        final int totalAdjustedLowUnits = lowUnitsByClass.values().stream()
             .mapToInt(Set::size)
             .sum();
         sb.append("\nTOTAL NUMBER OF ADJUSTED LOW UNITS:\t")
@@ -870,13 +865,24 @@ public class Interview {
             }
         }
 
-        final int totalClauses = Arrays.stream(ruleTrees)
+        final int clausesInclusive = Arrays.stream(ruleTrees)
             .filter(Objects::nonNull)
-            .mapToInt(RuleNode::getNumberOfClauses)
+            .mapToInt(ruleNode -> RuleNode.getNumberOfClauses(ruleNode, true))
+            .sum();
+        final int clausesExclusive = Arrays.stream(ruleTrees)
+            .filter(Objects::nonNull)
+            .mapToInt(ruleNode -> RuleNode.getNumberOfClauses(ruleNode, false))
             .sum();
 
+
+        sb.append("\nTOTAL NUMBER OF INCLUSIVE CLAUSES NEEDED:\t")
+            .append(clausesInclusive)
+            .append('\n');
+        sb.append("\nTOTAL NUMBER OF EXCLUSIVE CLAUSES NEEDED:\t")
+            .append(clausesExclusive)
+            .append('\n');
         sb.append("\nTOTAL NUMBER OF CLAUSES NEEDED:\t")
-            .append(totalClauses)
+            .append(clausesExclusive + clausesInclusive)
             .append('\n');
 
         Arrays.stream(attributes)
