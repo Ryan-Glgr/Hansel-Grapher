@@ -25,4 +25,13 @@ public class Util {
                 .toList();
         return valuesStrings.toString();
     }
+
+    // Helper method to create a properly initialized counter array for use with incrementCounter
+    // Returns array filled with 0s except first element is -1, so first increment gives [0,0,0,...]
+    public static Integer[] counterInitializer(final Integer[] kValues) {
+        final Integer[] counter = new Integer[kValues.length];
+        Arrays.fill(counter, 0);
+        counter[0] = -1;
+        return counter;
+    }
 }

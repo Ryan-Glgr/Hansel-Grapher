@@ -120,4 +120,33 @@ public class ExperimentalFunctionalities {
             System.out.println(modes[i].toString() + ": " + questions[i]);
         }
     }
+
+    /*
+     * Structure of Impossible attribute combinations as follows. Pass a set of Maps. Each map represents a combination of k values which is impossible.
+     * We assume anything >= each attribute in a map is impossible. for example i may make a map with entries 0: 2, and 1: 0,
+     * this means that attribute (x0 >= 2 AND x1 >= 0) is an IMPOSSIBLE combination. And any node which satisfies x0 >=2
+     * AND x1 >= 0 is an IMPOSSIBLE combination.
+     */
+    public static void markImpossibleNodes(final Set<Map<Integer, Integer>> impossibleAttributeCombinations, final ArrayList<Node> nodes) {
+        if (Objects.isNull(impossibleAttributeCombinations))
+            return;
+
+        nodes.parallelStream()
+                .filter(node -> nodeSatisfiesImpossibleAttributeCombination(node, impossibleAttributeCombinations))
+                .forEach(node -> {
+                    node.classification = Node.IMPOSSIBLE_CLASSIFICATION;
+                    node.classificationConfirmed = true;
+                });
+    }
+
+    private static boolean nodeSatisfiesImpossibleAttributeCombination(final Node targetNode, final Set<Map<Integer, Integer>> impossibleAttributeCombinations) {
+        // if all the entries in a map are satisfied, that means we have satisfied some impossible combination of attributes.
+        return impossibleAttributeCombinations.stream().anyMatch(impossibleAttributeCombination -> impossibleAttributeCombination
+                .entrySet()
+                .stream()
+                // key of entry is the attribute index, value is the impossible combo. So if all match the predicate,
+                // this node is >= the combination we said is impossible.
+                .allMatch(entry ->
+                        targetNode.values[entry.getKey()] >= entry.getValue()));
+    }
 }

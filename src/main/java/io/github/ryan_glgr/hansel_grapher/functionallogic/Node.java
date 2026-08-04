@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.stream.IntStream;
 
 import io.github.ryan_glgr.hansel_grapher.helper.BalanceRatio;
+import io.github.ryan_glgr.hansel_grapher.helper.Util;
 import io.github.ryan_glgr.hansel_grapher.stats.PermeationStats;
 import org.roaringbitmap.RoaringBitmap;
 
@@ -94,22 +95,13 @@ public class Node {
         return true;
     }
 
-    // Helper method to create a properly initialized counter array for use with incrementCounter
-    // Returns array filled with 0s except first element is -1, so first increment gives [0,0,0,...]
-    public static Integer[] counterInitializer(final Integer[] kValues) {
-        final Integer[] counter = new Integer[kValues.length];
-        Arrays.fill(counter, 0);
-        counter[0] = -1;
-        return counter;
-    }
-
     // makes all our nodes and populates the map
     public static HashMap<Integer, Node> makeNodes(final Integer[] kVals, final int numClasses) {
 
         final int dimension = kVals.length;
         final HashMap<Integer, Node> nodes = new HashMap<Integer, Node>();
 
-        final Integer[] kValsToMakeNode = counterInitializer(kVals);
+        final Integer[] kValsToMakeNode = Util.counterInitializer(kVals);
 
         // iterate through all the digits, and make all the nodes. 
         int lastNodeID = 0;
@@ -123,7 +115,7 @@ public class Node {
         }
 
         // re initialize so we can copy paste
-        final Integer[] finalKValsToMakeNode = counterInitializer(kVals);
+        final Integer[] finalKValsToMakeNode = Util.counterInitializer(kVals);
         while (incrementCounter(finalKValsToMakeNode, kVals)) {
             final Node temp = nodes.get(hash(finalKValsToMakeNode));
             temp.findExpansions(nodes, dimension);
@@ -138,24 +130,6 @@ public class Node {
         });
 
         return nodes;
-    }
-
-    /*
-     * Structure of Impossible attribute combinations as follows. Pass a set of Maps. Each map represents a combination of k values which is impossible.
-     * We assume anything >= each attribute in a map is impossible. for example i may make a map with entries 0: 2, and 1: 0,
-     * this means that attribute (x0 >= 2 AND x1 >= 0) is an IMPOSSIBLE combination. And any node which satisfies x0 >=2
-     * AND x1 >= 0 is an IMPOSSIBLE combination.
-     */
-    public static void markImpossibleNodes(final Set<Map<Integer, Integer>> impossibleAttributeCombinations, final ArrayList<Node> nodes) {
-        if (Objects.isNull(impossibleAttributeCombinations))
-            return;
-
-        nodes.parallelStream()
-                .filter(node -> node.nodeSatisfiesImpossibleAttributeCombination(impossibleAttributeCombinations))
-                .forEach(node -> {
-                    node.classification = IMPOSSIBLE_CLASSIFICATION;
-                    node.classificationConfirmed = true;
-                });
     }
 
     // does a BFS from each node, updating rankings as we go. Ranking our umbrella size and the minimum classifications.
@@ -285,16 +259,6 @@ public class Node {
         });
     }
 
-    private boolean nodeSatisfiesImpossibleAttributeCombination(final Set<Map<Integer, Integer>> impossibleAttributeCombinations) {
-        // if all the entries in a map are satisfied, that means we have satisfied some impossible combination of attributes.
-        return impossibleAttributeCombinations.stream().anyMatch(impossibleAttributeCombination -> impossibleAttributeCombination
-                .entrySet()
-                .stream()
-                // key of entry is the attribute index, value is the impossible combo. So if all match the predicate,
-                // this node is >= the combination we said is impossible.
-                .allMatch(entry ->
-                        this.values[entry.getKey()] >= entry.getValue()));
-    }
 
     private PermeationStats expand(final int bound, final boolean countUpwards) {
         // BFS-based expansion to set ceiling of below nodes, and floor of above nodes.
@@ -366,6 +330,14 @@ public class Node {
 
     // each node gets this new classification. it sends the effects of the classification up and down. (not just within one HC, but to all expansions up and down.)
     public PermeationStats permeateClassification(final int newClassification) {
+
+        if (newClassification < this.classification && newClassification != IMPOSSIBLE_CLASSIFICATION) {
+            throw new IllegalStateException(String.format("MONOTONICITY VIOLATION. Value %s assigned is too low for min possible value of %s", newClassification, this.classification));
+        }
+        if (newClassification > this.maxPossibleValue && newClassification != IMPOSSIBLE_CLASSIFICATION) {
+            throw new IllegalStateException(String.format("MONOTONICITY VIOLATION. Value %s assigned is too high for max possible value of %s", newClassification, this.maxPossibleValue));
+        }
+
         // lock in our nodes value
         this.classification = newClassification;
         this.maxPossibleValue = this.classification;

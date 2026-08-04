@@ -8,6 +8,7 @@ import java.util.*;
 import io.github.ryan_glgr.hansel_grapher.functionallogic.lowunits.LowUnit;
 import io.github.ryan_glgr.hansel_grapher.functionrules.RuleNode;
 import io.github.ryan_glgr.hansel_grapher.functionallogic.Node;
+import io.github.ryan_glgr.hansel_grapher.helper.Util;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.GUIHelper;
 
 import java.util.concurrent.CompletableFuture;
@@ -53,7 +54,7 @@ public class VisualizationDOT {
                 .flatMap(Set<LowUnit>::stream)
                 .collect(Collectors.toMap(LowUnit::getDatapoint, Function.identity()));
 
-        final Integer[] kValsToMakeNode = Node.counterInitializer(kValues);
+        final Integer[] kValsToMakeNode = Util.counterInitializer(kValues);
         final HashMap<Node, Node> usedNodes = new HashMap<>();
         final FileWriter fw = new FileWriter(OUTPUT_DIRECTORY + File.separator + EXPANSIONS_FILE_NAME);
         fw.write("digraph G {\n\trankdir = BT;\n\tbgcolor = white;\n\t");

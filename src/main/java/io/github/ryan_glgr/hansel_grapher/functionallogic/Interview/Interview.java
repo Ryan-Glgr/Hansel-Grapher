@@ -1,6 +1,7 @@
 package io.github.ryan_glgr.hansel_grapher.functionallogic.Interview;
 
 import io.github.ryan_glgr.hansel_grapher.datamanipulation.NormalizedDataset;
+import io.github.ryan_glgr.hansel_grapher.experimental.ExperimentalFunctionalities;
 import io.github.ryan_glgr.hansel_grapher.functionallogic.lowunits.LowUnit;
 import io.github.ryan_glgr.hansel_grapher.functionrules.Attribute;
 import io.github.ryan_glgr.hansel_grapher.functionrules.RuleCreation;
@@ -134,7 +135,7 @@ public class Interview {
 
         this.lowUnitsForEachClassification = InterviewHelperFunctions.getKnownLowUnitsOfEachClassification(setOfLowUnitsByClassification, data);
         this.hanselChains = HanselChains.generateHanselChainSet(kVals, data);
-        Node.markImpossibleNodes(impossibleAttributeCombinations, new ArrayList<>(data.values()));
+        ExperimentalFunctionalities.markImpossibleNodes(impossibleAttributeCombinations, new ArrayList<>(data.values()));
     }
 
     public void beginInterview(final InterviewMode interviewMode) {
