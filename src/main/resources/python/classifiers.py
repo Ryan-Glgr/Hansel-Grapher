@@ -22,3 +22,4 @@ class Classifier(str, Enum):
     HIST_GRAD_BOOST             = "HistGradBoost"
     MLP                         = "MLP"
     LINEAR_DISCRIMINANT_ANALYSIS = "LinearDiscriminantAnalysis"
+    MONOTONE_NEURAL_NETWORK     = "MonotoneNeuralNetwork"

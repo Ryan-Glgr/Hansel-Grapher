@@ -10,7 +10,8 @@ public enum MLModel {
     ADA_BOOST                   ("AdaBoost"),
     HIST_GRAD_BOOST             ("HistGradBoost"),
     MLP                         ("MLP"),
-    LINEAR_DISCRIMINANT_ANALYSIS("LinearDiscriminantAnalysis");
+    LINEAR_DISCRIMINANT_ANALYSIS("LinearDiscriminantAnalysis"),
+    MONOTONE_NEURAL_NETWORK     ("MonotoneNeuralNetwork");
 
     public final String pythonName;
 }

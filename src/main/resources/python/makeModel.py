@@ -21,6 +21,8 @@ from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import classification_report
 
 from classifiers import Classifier
+from monotone_neural_network import MonotonicNNClassifier
+
 
 # ---------------------------------------------------------------------------
 # Classifier registry
@@ -50,7 +52,9 @@ def _build_sklearn_registry() -> dict:
 
 def _build_custom_registry() -> dict:
     # Placeholder — add custom or third-party model classes here.
-    return {}
+    return {
+        Classifier.MONOTONE_NEURAL_NETWORK: (MonotonicNNClassifier, {}),
+    }
 
 
 def _build_full_registry() -> dict:

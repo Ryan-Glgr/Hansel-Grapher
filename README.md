@@ -75,3 +75,7 @@ brew install graphviz
 - Running in debug gives you more logging, and more info in the pictures as well. To do this './run.sh debug'
 - To view logs, 'cat debug' after a run
 - You will need `graphviz` installed on your machine. This [link] (https://enterprise-architecture.org/university/graphviz-install/) may be useful, or you can ask AI to give you the CLI command to install.
+
+## MACHINE LEARNING INTERVIEWS:
+- You will need to find a dataset which behaves monotonically. As a pre processing step, if the class labels are not already 0, 1, ...N, you will need to ctrl f and replace. For example if it is healthy, possibly cancer, definitely cancer, you would replace "healthy" with 0.
+- If an attribute behaves BACKWARDS, meaning that the value increasing is a bad thing, you will need to invert the meaning and values. For example if a 0 is the best, 10 being the worst, you would need to replace the values with 10 - <attribute value> for that attribute. This is so that we are always having attributes with values higher, lead to an increasing score.
