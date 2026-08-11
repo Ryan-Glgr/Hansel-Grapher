@@ -97,3 +97,18 @@ When creating Hansel Chains, for each digit, we take all existing chains, copy e
 Then, you take the end of each chain, and move it to the one previous. See Isomorphic Adjustment Example.
 
 ![Isomorphic Adjustment Example](algorithmdiagrams/IsomorphicAdjustmentExample.drawio.png)
+
+### To implement:
+
+#### At Least Finding:
+- to find two low units which we can join in an "At Least", they should look like this:
+-- same class obviously.
+-- between the two, they should differ in two attributes, and each should have a 0 ideally in the attribute which the other has > 0.
+-- for example [2, 2, 0, 2] and [2, 2, 2, 0] can be joined into [2, 2, AtLeast1[2, 2].
+-- if we had all four possibilities, we can join into AtLeast3[2, 2, 2, 2]. 
+
+algorithm can be like this - take a low unit. Say it looks like [3, 2, 5, 6, 0, 1, 2]
+take our low unit, compare with the other low units of this class. Determine if any of them differ in exactly two attributes. We can call this the "similar low units checking"
+for each low unit, we build a list of all other low units which are "similar" meaning they differ in just two attributes (one attribute different is not possible by the properties of monotonicity).
+Then, with this list, we can take all the "similar units" and build the at least. 
+with monotonicity, we know the "similar list" cannot become larger than numAttributes - 1 low units bunched together. it also seems to only work when they are differing w/a zero in one attribute or the other (confirmation needed, this is just initial thoughts).

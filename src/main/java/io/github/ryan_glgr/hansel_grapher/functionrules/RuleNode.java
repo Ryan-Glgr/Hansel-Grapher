@@ -208,12 +208,13 @@ public class RuleNode {
 
         final RuleNode[] ruleset = isInclusive ? node.inclusiveRuleset : node.exclusiveRuleset;
 
+        final String classificationString = Node.IMPOSSIBLE_CLASSIFICATION == classification ? "IMPOSSIBLE" : Integer.toString(classification);
         // root line
         if (depth == 0) {
             final StringBuilder rootLine = new StringBuilder();
             if (classification >= 0) {
                 rootLine.append("CLASS: ")
-                        .append(classification)
+                        .append(classificationString)
                         .append(" ROOT");
             } else {
                 rootLine.append("ROOT");

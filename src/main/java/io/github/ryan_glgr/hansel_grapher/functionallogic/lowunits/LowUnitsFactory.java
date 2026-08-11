@@ -18,9 +18,6 @@ public class LowUnitsFactory {
             final Map<Integer, LowUnit> lowestNodeOfEachClassInThisChain = new HashMap<>();
 
             for (final Node node : chain) {
-                if (Node.IMPOSSIBLE_CLASSIFICATION.equals(node.classification)) {
-                    continue;
-                }
                 // taking only the first occurence of the classification in each chain. this is the definition of a low unit.
                 lowestNodeOfEachClassInThisChain.putIfAbsent(node.classification, new LowUnit(node, LowUnit.Type.INCLUSIVE, node.classification));
             }
@@ -117,12 +114,6 @@ public class LowUnitsFactory {
             if (Node.IMPOSSIBLE_CLASSIFICATION.equals(node.classification))
                 continue;
 
-            // edge cases
-            // - impossible classifications. (this node or others)
-            // -different classification for some of the upstairs neighbors (all greater, but more than 1 class above)
-            // -no upstairs neighbors (all nulls)
-            //
-
             boolean isExclusiveLowUnit = true;
             final Map<Integer, Integer> numberOfNeighborsOfEachClass = new HashMap<>();
             final Node[] directUpExpansions = node.upExpansions;
@@ -132,9 +123,7 @@ public class LowUnitsFactory {
                     continue;
 
                 final Integer neighborClass = upExpandedNeighbor.classification;
-                if (Node.IMPOSSIBLE_CLASSIFICATION.equals(neighborClass)) {
-                    continue;
-                }
+
                 // if the upstairs neighbor is this same class, we do not have the optimization of saying "anything
                 // HIGHER than this node is class X", since upstairs neighbor is higher, yet the same class.
                 if (neighborClass.equals(node.classification)) {
@@ -142,7 +131,7 @@ public class LowUnitsFactory {
                     break;
                 }
 
-                if (neighborClass < node.classification) {
+                if (neighborClass < node.classification && !Node.IMPOSSIBLE_CLASSIFICATION.equals(neighborClass)) {
                     throw new IllegalStateException(String.format("Monotonicity has been violated by node: " +
                             "[%s] being lower class than node: [%s]", upExpandedNeighbor, node));
                 }
@@ -162,7 +151,7 @@ public class LowUnitsFactory {
                         Map.Entry.comparingByKey());
 
                 // we only bother adding to the map if it would be able to classify more than 1 node. otherwise it is just additional complexity compared to an inclusive low unit.
-                if (lowestClassEntry.getValue() > 1) {
+                if (lowestClassEntry.getValue() != 0) {
                     exclusiveLowUnits.computeIfAbsent(lowestClassEntry.getKey(), k -> new HashSet<>())
                         .add(new LowUnit(node, LowUnit.Type.EXCLUSIVE, lowestClassEntry.getKey()));
                 }
@@ -173,8 +162,9 @@ public class LowUnitsFactory {
 
     public static Map<Integer, Set<LowUnit>> findPrunedLowUnits(@NonNull final ArrayList<ArrayList<Node>> hanselChainSet) {
         final Map<Integer, Set<LowUnit>> inclusiveLowUnits = findRegularLowUnits(hanselChainSet);
-        final Map<Integer, Set<LowUnit>> exclusiveLowUnits = findExclusiveLowUnits(
-                hanselChainSet.stream().flatMap(ArrayList::stream).collect(java.util.stream.Collectors.toSet()));
+//        final Map<Integer, Set<LowUnit>> exclusiveLowUnits = findExclusiveLowUnits(
+//                hanselChainSet.stream().flatMap(ArrayList::stream).collect(java.util.stream.Collectors.toSet()));
+        final Map<Integer, Set<LowUnit>> exclusiveLowUnits = new HashMap<>();
         final Map<Integer, Set<LowUnit>> prunedUnits = removeUselessLowUnits(inclusiveLowUnits, exclusiveLowUnits);
 
         int numInclusive = 0;

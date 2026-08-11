@@ -170,7 +170,9 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
                 if (node == null) continue;
 
                 final LowUnit.Type lowUnitType = isLowUnit(node);
-                final int classificationToColorWith = (node.classification + classificationColorShuffleCounter) % interview.numClasses;
+                final int classificationToColorWith = node.classification == Node.IMPOSSIBLE_CLASSIFICATION
+                        ? Node.IMPOSSIBLE_CLASSIFICATION
+                        : (node.classification + classificationColorShuffleCounter) % interview.numClasses;
                 final Color color = GUIHelper.getColorForClass(classificationToColorWith, lowUnitType);
                 final float rC = color.getRed() / 255f;
                 final float gC = color.getGreen() / 255f;

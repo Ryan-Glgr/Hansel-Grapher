@@ -18,13 +18,15 @@ public class InterviewCreationTestCases {
     private static final float DATASET_RESOLUTION = 0.4f;
 
     public static Interview createBasicInterviewWithSubfunctions(final InterviewMode interviewMode) {
-        final Integer[] kValues = new Integer[] {5, 10, 7, 6};
+        final Integer[] kValues = new Integer[] {5, 5, 7, 6};
         final Float[] weights = new Float[] {.15f, 0.05f, 1.0f, 0.25f};
 
         // x0 >= 1, and x2 >= 1 is IMPOSSIBLE is what we are saying
         final Set<Map<Integer, Integer>> impossibleCombinations = Set.of(Map.of(
             0, 4,
-            2, 2));
+            1, 3,
+            2, 6,
+            3, 5));
         return createBasicInterviewWithSubfunctions(interviewMode, kValues, weights, impossibleCombinations);
     }
 
