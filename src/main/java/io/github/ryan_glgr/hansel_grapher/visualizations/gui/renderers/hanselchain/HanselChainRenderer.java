@@ -29,11 +29,12 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
     private static final float VERTICAL_SPACING = NODE_HEIGHT / 6f;
     private static final float MARGIN = SIDE_SPACING + VERTICAL_SPACING;
     private static final int FONT_SIZE = 14;
-    private static final float TEXT_PADDING_INSIDE_NODE = 1.5f;
+    private static final float TEXT_PADDING_INSIDE_NODE = 1.5f;// add near the other layout constants
+    private static final float ROW_STEP = NODE_HEIGHT + VERTICAL_SPACING;
+    private static final float COL_STEP = NODE_WIDTH + SIDE_SPACING;
+
 
     private static final int POSITION_COMPONENTS = 2;   // x, y
-    private static final int X_POSITION_IN_ARRAY = 0;
-    private static final int Y_POSITION_IN_ARRAY = 1;
     private static final int COLOR_COMPONENTS = 4;      // r, g, b, a
     private static final int VERTICES_PER_NODE = 6;
 
@@ -63,10 +64,14 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
     private Map<Node, LowUnit> lowUnitNodes;
 
     // Per-node layout: maps Node -> [centerX, centerY]
-    private final HashMap<Node, float[]> nodePositions = new HashMap<>();
-    private final HashMap<Node, String[]> nodeLabels = new HashMap<>();
+    private Node[][] nodeGrid;        // [chainIndex][rowIndex], null = empty cell
+    private String[][][] labelGrid;   // [chainIndex][rowIndex] -> label lines, null = empty
+    private float[] columnX;          // columnX[c] = center X of chain c
+    private float baseRowY;           // world Y of row 0 (bottom row), global to all chains
+    private int maxRows;              // tallest chain, used to size the padded grid
 
-    public HanselChainRenderer(final Interview interview) {
+    public HanselChainRenderer(final Interview interview, final int classificationColorShuffleCounter) {
+        super(classificationColorShuffleCounter);
         this.interview = interview;
     }
 
@@ -80,29 +85,39 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
     // --- Layout ---
 
     private void computeLayout() {
-        nodePositions.clear();
+        maxRows = chains.stream().mapToInt(List::size).max().orElse(0);
+        final int numChains = chains.size();
+
+        nodeGrid  = new Node[numChains][maxRows];
+        labelGrid = new String[numChains][maxRows][];
+        columnX   = new float[numChains];
+
+        final float totalHeightMax = maxRows * NODE_HEIGHT + (maxRows - 1) * VERTICAL_SPACING;
+        baseRowY = -(totalHeightMax / 2.0f) + NODE_HEIGHT / 2.0f;
 
         float minX = Float.MAX_VALUE, maxX = -Float.MAX_VALUE;
         float minY = Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
 
-        float chainX = 0.0f;
-        for (final ArrayList<Node> chain : chains) {
-            final int chainHeight = chain.size();
-            final float totalHeight = chainHeight * NODE_HEIGHT + (chainHeight - 1) * VERTICAL_SPACING;
-            float nodeY = -(totalHeight / 2.0f) + NODE_HEIGHT / 2.0f;
+        for (int c = 0; c < numChains; c++) {
+            final ArrayList<Node> chain = chains.get(c);
+            columnX[c] = c * COL_STEP;
 
-            for (final Node node : chain) {
-                nodePositions.put(node, new float[]{ chainX, nodeY });
-                nodeLabels.put(node, GUIHelper.nodeLabelArray(node, isLowUnit(node)));
+            final int startRow = (maxRows - chain.size()) / 2;  // centers within the padded grid
+            for (int i = 0; i < chain.size(); i++) {
+                final int row = startRow + i;
+                final Node node = chain.get(i);
 
-                minX = Math.min(minX, chainX - NODE_WIDTH  / 2f);
-                maxX = Math.max(maxX, chainX + NODE_WIDTH  / 2f);
-                minY = Math.min(minY, nodeY  - NODE_HEIGHT / 2f);
-                maxY = Math.max(maxY, nodeY  + NODE_HEIGHT / 2f);
+                nodeGrid[c][row]  = node;
+                labelGrid[c][row] = GUIHelper.nodeLabelArray(node, isLowUnit(node));
 
-                nodeY += NODE_HEIGHT + VERTICAL_SPACING;
+                final float cx = columnX[c];
+                final float cy = baseRowY + row * ROW_STEP;
+
+                minX = Math.min(minX, cx - NODE_WIDTH  / 2f);
+                maxX = Math.max(maxX, cx + NODE_WIDTH  / 2f);
+                minY = Math.min(minY, cy - NODE_HEIGHT / 2f);
+                maxY = Math.max(maxY, cy + NODE_HEIGHT / 2f);
             }
-            chainX += NODE_WIDTH + SIDE_SPACING;
         }
 
         worldBounds = new float[]{ minX - MARGIN, maxX + MARGIN, minY - MARGIN, maxY + MARGIN };
@@ -119,13 +134,15 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
     private FloatBuffer buildPositionBuffer() {
         final FloatBuffer buffer = Buffers.newDirectFloatBuffer(totalNodes * VERTICES_PER_NODE * POSITION_COMPONENTS);
 
-        for (final ArrayList<Node> chain : chains) {
-            for (final Node node : chain) {
-                final float[] pos = nodePositions.get(node);
-                final float cx = pos[X_POSITION_IN_ARRAY];
-                final float cy = pos[Y_POSITION_IN_ARRAY];
-                final float l = cx - NODE_WIDTH  / 2f;
-                final float r = cx + NODE_WIDTH  / 2f;
+        for (int c = 0; c < nodeGrid.length; c++) {
+            final float cx = columnX[c];
+            final float l = cx - NODE_WIDTH / 2f;
+            final float r = cx + NODE_WIDTH / 2f;
+
+            for (int row = 0; row < maxRows; row++) {
+                if (nodeGrid[c][row] == null) continue;
+
+                final float cy = baseRowY + row * ROW_STEP;
                 final float b = cy - NODE_HEIGHT / 2f;
                 final float t = cy + NODE_HEIGHT / 2f;
 
@@ -143,26 +160,27 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
         buffer.flip();
         return buffer;
     }
-
     // [r, g, b, a] per node — rebuilt whenever classifications change.
     private FloatBuffer buildColorBuffer() {
-
         final FloatBuffer buffer = Buffers.newDirectFloatBuffer(totalNodes * VERTICES_PER_NODE * COLOR_COMPONENTS);
 
-        for (final ArrayList<Node> chain : chains) {
-            for (final Node node : chain) {
+        for (final Node[] nodes : nodeGrid) {
+            for (int row = 0; row < maxRows; row++) {
+                final Node node = nodes[row];
+                if (node == null) continue;
 
                 final LowUnit.Type lowUnitType = isLowUnit(node);
-                final Color c = GUIHelper.getColorForClass(node.classification, lowUnitType);
-                final float r = c.getRed()   / 255f;
-                final float g = c.getGreen() / 255f;
-                final float b = c.getBlue()  / 255f;
-                final float a = c.getAlpha() / 255f;
+                final int classificationToColorWith = (node.classification + classificationColorShuffleCounter) % interview.numClasses;
+                final Color color = GUIHelper.getColorForClass(classificationToColorWith, lowUnitType);
+                final float rC = color.getRed() / 255f;
+                final float gC = color.getGreen() / 255f;
+                final float bC = color.getBlue() / 255f;
+                final float aC = color.getAlpha() / 255f;
                 for (int i = 0; i < VERTICES_PER_NODE; i++) {
-                    buffer.put(r);
-                    buffer.put(g);
-                    buffer.put(b);
-                    buffer.put(a);
+                    buffer.put(rC);
+                    buffer.put(gC);
+                    buffer.put(bC);
+                    buffer.put(aC);
                 }
             }
         }
@@ -325,47 +343,61 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
         final float nodeWidthPx  = NODE_WIDTH  * scaleX;
         final float nodeHeightPx = NODE_HEIGHT * scaleY;
 
-        final String[] sampleNodeLabel = nodeLabels.values().stream().findFirst()
-                .orElseThrow(() -> new IllegalStateException("No node labels exist"));
+        // find any non-null label to measure against (same role as old "sampleNodeLabel")
+        String[] sampleLabel = null;
+        outer:
+        for (final String[][] col : labelGrid) {
+            for (final String[] cell : col) {
+                if (cell != null) { sampleLabel = cell; break outer; }
+            }
+        }
+        if (sampleLabel == null) throw new IllegalStateException("No node labels exist");
 
-        final double lineHeight = textRenderer.getBounds("Ag").getHeight();
-        final double totalHeight = lineHeight * sampleNodeLabel.length;
-
-        final double longestLine = Arrays.stream(sampleNodeLabel)
+        final double lineHeight  = textRenderer.getBounds("Ag").getHeight();
+        final double totalHeight = lineHeight * sampleLabel.length;
+        final double longestLine = Arrays.stream(sampleLabel)
                 .mapToDouble(line -> textRenderer.getBounds(line).getWidth())
-                .max()
-                .orElseThrow(() -> new IllegalStateException("No node labels exist"));
+                .max().orElseThrow();
 
         if (longestLine > nodeWidthPx - TEXT_PADDING_INSIDE_NODE) return;
-        if (totalHeight > nodeHeightPx - TEXT_PADDING_INSIDE_NODE) return;
+        if (totalHeight  > nodeHeightPx - TEXT_PADDING_INSIDE_NODE) return;
+
+        // --- arithmetic culling: invert screen bounds -> grid index ranges ---
+        final int colMin = clamp((int) Math.floor((getLiveLeft()   - NODE_WIDTH / 2f) / COL_STEP), 0, columnX.length - 1);
+        final int colMax = clamp((int) Math.ceil ((getLiveRight()  + NODE_WIDTH / 2f) / COL_STEP), 0, columnX.length - 1);
+        final int rowMin = clamp((int) Math.floor((getLiveBottom() - NODE_HEIGHT / 2f - baseRowY) / ROW_STEP), 0, maxRows - 1);
+        final int rowMax = clamp((int) Math.ceil ((getLiveTop()    + NODE_HEIGHT / 2f - baseRowY) / ROW_STEP), 0, maxRows - 1);
 
         textRenderer.beginRendering(surfaceWidth, surfaceHeight);
         textRenderer.setColor(0f, 0f, 0f, 1f);
 
-        nodeLabels.forEach((key, lines) -> {
+        for (int c = colMin; c <= colMax; c++) {
+            final float worldX = columnX[c];
+            final float screenX = (worldX - getLiveLeft()) / viewW * surfaceWidth;
 
-            // skip a node if it's not in screen
-            final float[] pos = nodePositions.get(key);
-            final float screenX = (pos[0] - getLiveLeft()) / viewW * surfaceWidth;
-            final float screenY = (pos[1] - getLiveBottom()) / viewH * surfaceHeight;
+            for (int r = rowMin; r <= rowMax; r++) {
+                final String[] lines = labelGrid[c][r];
+                if (lines == null) continue;
 
-            // skip nodes outside the screen entirely
-            if (screenX < -nodeWidthPx || screenX > surfaceWidth + nodeWidthPx) return;
-            if (screenY < -nodeHeightPx || screenY > surfaceHeight + nodeHeightPx) return;
+                final float worldY = baseRowY + r * ROW_STEP;
+                final float screenY = (worldY - getLiveBottom()) / viewH * surfaceHeight;
 
-
-            final float startY = (float) (screenY + totalHeight / 2 - lineHeight);
-            for (int i = 0; i < lines.length; i++) {
-                final double lineW = textRenderer.getBounds(lines[i]).getWidth();
-                final int drawX = (int) (screenX - lineW / 2);
-                final int drawY = (int) (startY - i * lineHeight);
-                textRenderer.draw(lines[i], drawX, drawY);
+                final float startY = (float) (screenY + totalHeight / 2 - lineHeight);
+                for (int i = 0; i < lines.length; i++) {
+                    final double lineW = textRenderer.getBounds(lines[i]).getWidth();
+                    final int drawX = (int) (screenX - lineW / 2);
+                    final int drawY = (int) (startY - i * lineHeight);
+                    textRenderer.draw(lines[i], drawX, drawY);
+                }
             }
-        });
+        }
 
         textRenderer.endRendering();
     }
 
+    private static int clamp(final int v, final int lo, final int hi) {
+        return Math.max(lo, Math.min(hi, v));
+    }
     @Override
     public void dispose(final GLAutoDrawable drawable) {
         final GL3 gl = drawable.getGL().getGL3();

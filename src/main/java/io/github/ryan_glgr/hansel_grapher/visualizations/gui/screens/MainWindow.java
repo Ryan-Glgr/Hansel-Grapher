@@ -16,6 +16,7 @@ import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.BlankRend
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.ExpansionRenderer;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.hanselchain.HanselChainRenderer;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.RuleTreeRenderer;
+import lombok.Getter;
 
 import javax.swing.*;
 import java.awt.*;
@@ -25,13 +26,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 public class MainWindow {
+    @Getter
     private final JPanel mainPanel;
     private final JPanel buttonPanel;
     private final JButton newInterviewButton;
-    private HanselChainRenderer hanselChainRenderer;
-    private ExpansionRenderer expansionRenderer;
-    private RuleTreeRenderer ruleTreeRenderer;
-    private BlankRenderer blankRenderer;
+    private final JButton changeColorsButton;
 
     private static final String HANSEL_CHAIN_VIEW = "HANSEL_CHAIN_VIEW";
     private static final String EXPANSION_VIEW = "EXPANSION_VIEW";
@@ -52,6 +51,7 @@ public class MainWindow {
     private final JButton exportInterviewStatisticsGraphsButton;
 
     private Interview interview;
+    private int classificationColorShuffleCounter; // used to change the colors in the views. for example breast cancer, we shouldn't show "healthy" with RED.
 
 
     public MainWindow() {
@@ -97,7 +97,8 @@ public class MainWindow {
         exportInterviewStatisticsGraphsButton.addActionListener(e ->
                 SwingUtilities.invokeLater(this::exportInterviewStatistics));
 
-
+        changeColorsButton = new JButton("Shuffle Classification Colors");
+        changeColorsButton.addActionListener(e -> classificationColorShuffleCounter++);
 
         buttonPanel = new JPanel();
         buttonPanel.add(newInterviewButton);
@@ -106,6 +107,7 @@ public class MainWindow {
         buttonPanel.add(ruleTreesButton);
         buttonPanel.add(exportVisualizationsButton);
         buttonPanel.add(exportInterviewStatisticsGraphsButton);
+        buttonPanel.add(changeColorsButton);
 
         mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
@@ -114,16 +116,13 @@ public class MainWindow {
 
     }
 
-    public JPanel getMainPanel() {
-        return mainPanel;
-    }
-
     private void handleNewInterview() {
 //        final CreateFunctionWindow functionWindow = new CreateFunctionWindow();
 //        final CompletableFuture<Interview> interviewFuture = functionWindow.createFunctionAndReturnInterviewObject("Create Interview");
 
 //        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createBasicInterviewWithSubfunctions(InterviewMode.BEST_MINIMUM_CONFIRMED));
-        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createBasicInterviewInPython(MLModel.MONOTONE_NEURAL_NETWORK));
+        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createBreastCancerInterviewInPython(MLModel.MONOTONE_NEURAL_NETWORK));
+//        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createHeartFailureInterview(InterviewMode.BEST_MINIMUM_CONFIRMED));
         interviewFuture.thenAccept(createdInterview -> {
 
             if (createdInterview == null) {
@@ -186,9 +185,9 @@ public class MainWindow {
         currentView = viewToApply;
 
         final GLEventListener next = switch (currentView) {
-            case HANSEL_CHAIN_VIEW -> new HanselChainRenderer(interview);
-            case EXPANSION_VIEW -> new ExpansionRenderer(interview);
-            case RULE_TREE_VIEW -> new RuleTreeRenderer(interview);
+            case HANSEL_CHAIN_VIEW -> new HanselChainRenderer(interview, classificationColorShuffleCounter);
+            case EXPANSION_VIEW -> new ExpansionRenderer(interview, classificationColorShuffleCounter);
+            case RULE_TREE_VIEW -> new RuleTreeRenderer(interview, classificationColorShuffleCounter);
             default -> new BlankRenderer();
         };
 

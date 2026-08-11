@@ -45,6 +45,7 @@ class _MonotonicNet(nn.Module):
     ):
         super().__init__()
 
+        # the ones mask means that all attributes have positive monotonicity.
         mask = MonotonicityMask(
             np.ones(num_attributes, dtype=np.int8)
         )
@@ -126,7 +127,6 @@ class MonotonicNNClassifier(BaseEstimator, ClassifierMixin):
     def _resolve_device(self) -> str:
         if self.device == "auto":
             return "cuda" if torch.cuda.is_available() else "cpu"
-
         return self.device
 
     def _ordered_thresholds(self) -> torch.Tensor:

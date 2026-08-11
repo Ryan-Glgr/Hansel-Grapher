@@ -15,6 +15,7 @@ import java.util.stream.IntStream;
 public class InterviewCreationTestCases {
 
     private static final String DATASETS_DIR = String.join(File.separator, "src", "main", "resources", "data", "datasets");
+    private static final float DATASET_RESOLUTION = 0.4f;
 
     public static Interview createBasicInterviewWithSubfunctions(final InterviewMode interviewMode) {
         final Integer[] kValues = new Integer[] {5, 10, 7, 6};
@@ -87,14 +88,14 @@ public class InterviewCreationTestCases {
         return interview;
     }
 
-    public static Interview createBasicInterviewInPython(final MLModel mlModel) {
+    public static Interview createBreastCancerInterviewInPython(final MLModel mlModel) {
 
         final String breastCancerDataset = String.join(File.separator, DATASETS_DIR, "breast-cancer-wisconsin-diagnostic.csv");
         final NormalizedDataset normalizedDataset;
         try {
             normalizedDataset = DatasetNormalizer.loadOrCreateNormalizedDataset(breastCancerDataset,
                     DatasetNormalizer.NormalizationMode.UNIQUE_INTEGERS_SOME_RESOLUTION,
-                    0.4f);
+                    DATASET_RESOLUTION);
 
         } catch (final IOException ioException) {
             throw new RuntimeException(ioException);

@@ -8,7 +8,7 @@ import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.Interview;
 public class ExpansionRenderer implements GLEventListener {
 
     private Interview interview;
-    public ExpansionRenderer(final Interview interview) {
+    public ExpansionRenderer(final Interview interview, final int classificationColorShuffleCounter) {
         this.interview = interview;
     }
 

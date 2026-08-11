@@ -18,8 +18,8 @@ public class Main {
                 final JFrame frame = new JFrame("Hansel Grapher");
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 frame.setContentPane(mainScreen.getMainPanel());
-                frame.setMinimumSize(new Dimension(960, 640));
-                frame.setPreferredSize(new Dimension(960, 640));
+                frame.setMinimumSize(new Dimension(1280, 800));
+                frame.setPreferredSize(new Dimension(1280, 800));
                 frame.pack();
                 frame.setLocationRelativeTo(null);
                 frame.setVisible(true);

@@ -43,6 +43,12 @@ public abstract class PanZoomRenderer
     // Subclass contract
     // -----------------------------------------------------------------------
 
+    // used if we want to shuffle the colors of the classifications
+    protected int classificationColorShuffleCounter = 0;
+    public PanZoomRenderer(final int classificationColorShuffleCounter){
+        this.classificationColorShuffleCounter = classificationColorShuffleCounter;
+    }
+
     /**
      * Return the natural bounding box of your content in world coordinates,
      * with a margin already applied if desired.
