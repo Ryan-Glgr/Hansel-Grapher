@@ -98,7 +98,10 @@ public class MainWindow {
                 SwingUtilities.invokeLater(this::exportInterviewStatistics));
 
         changeColorsButton = new JButton("Shuffle Classification Colors");
-        changeColorsButton.addActionListener(e -> classificationColorShuffleCounter++);
+        changeColorsButton.addActionListener(e -> {
+            classificationColorShuffleCounter++;
+            handleVisualizationChange(currentView);
+        });
 
         buttonPanel = new JPanel();
         buttonPanel.add(newInterviewButton);
