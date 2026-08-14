@@ -52,8 +52,8 @@ dependencies {
             runtimeOnly("org.jogamp.jogl:jogl-all:2.4.0:natives-windows-amd64")
         }
         os.contains("mac") -> {
-            runtimeOnly("org.jogamp.gluegen:gluegen-rt:2.4.0:natives-macosx-universal")
-            runtimeOnly("org.jogamp.jogl:jogl-all:2.4.0:natives-macosx-universal")
+            runtimeOnly("org.jogamp.gluegen:gluegen-rt:2.6.0:natives-macosx-universal")
+            runtimeOnly("org.jogamp.jogl:jogl-all:2.6.0:natives-macosx-universal")
         }
     }
 }
