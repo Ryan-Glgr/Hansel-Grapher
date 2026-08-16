@@ -210,7 +210,7 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
                 if (isExclusiveLowUnit) {
                     // no need to consider whether a node is itself an EXCLUSIVE LOW UNIT of IMPOSSIBLE classification,
                     // since that is not possible. there is no higher class it could be.
-                    final int exclusiveNodeTargetClass = (numClasses == (nodeClassWithColorShuffle + nodeClassWithColorShuffle + 1))
+                    final int exclusiveNodeTargetClass = node.classification + 1 == numClasses
                             ? Node.IMPOSSIBLE_CLASSIFICATION
                             : (node.classification + classificationColorShuffleCounter + 1) % numClasses;
                     populateColorBuffer(exclusiveNodeTargetClass, true, buffer);
