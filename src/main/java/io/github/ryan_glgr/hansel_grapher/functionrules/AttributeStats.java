@@ -1,4 +1,4 @@
-package io.github.ryan_glgr.hansel_grapher.stats;
+package io.github.ryan_glgr.hansel_grapher.functionrules;
 
 import java.util.HashMap;
 
@@ -12,8 +12,6 @@ public class AttributeStats {
         this.attributeIndex = attributeIndex;
         this.countsOfEachKValueForThisAttribute = countsOfEachKValueForThisAttribute;
         this.numberOfDistinctKValues = countsOfEachKValueForThisAttribute.size();
-        int max = 0;
-        for (final int c : countsOfEachKValueForThisAttribute.values()) if (c > max) max = c;
-        this.maxGroupSize = max;
+        this.maxGroupSize = countsOfEachKValueForThisAttribute.values().stream().max(Integer::compareTo).get();
     }
 }

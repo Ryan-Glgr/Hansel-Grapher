@@ -1,27 +1,14 @@
 package io.github.ryan_glgr.hansel_grapher.functionrules;
 
 import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.Interview;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 
+@AllArgsConstructor(access = AccessLevel.PUBLIC)
 public class Attribute {
-
-    public static Float NO_WEIGHT = -1.0f;
-
     public Integer highestValuePossibleForThisAttribute;
     public Integer index;
     public Float weight; // needs to be populated for sample linear function interviews. else it can be just null, doesn't really matter
     public Interview subFunction;
     public String name;
-
-    public Attribute (final Integer highestValuePossibleForThisAttribute,
-                      final Integer index,
-                      final Float weight,
-                      final Interview subFunction,
-                      final String attributeName) {
-        this.highestValuePossibleForThisAttribute = highestValuePossibleForThisAttribute;
-        this.index = index;
-        this.weight = weight;
-        this.subFunction = subFunction;
-        this.name = attributeName;
-    }
-
 }

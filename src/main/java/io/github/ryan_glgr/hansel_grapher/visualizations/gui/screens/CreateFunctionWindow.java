@@ -726,8 +726,7 @@ public class CreateFunctionWindow {
                 final Component[] components = weightsPanel.getComponents();
 
                 for (int i = 0; i < components.length; i++) {
-                    if (components[i] instanceof JPanel) {
-                        final JPanel weightPanel = (JPanel) components[i];
+                    if (components[i] instanceof final JPanel weightPanel) {
                         final JTextField weightField = (JTextField) weightPanel.getComponent(1);
                         try {
                             attributeWeights[i] = Float.parseFloat(weightField.getText().trim());

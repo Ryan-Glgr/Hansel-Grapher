@@ -4,7 +4,6 @@ import java.util.*;
 import java.util.stream.IntStream;
 
 import io.github.ryan_glgr.hansel_grapher.functionallogic.lowunits.LowUnit;
-import io.github.ryan_glgr.hansel_grapher.stats.AttributeStats;
 import io.github.ryan_glgr.hansel_grapher.functionallogic.Node;
 
 public class RuleNode {
@@ -20,7 +19,13 @@ public class RuleNode {
      * Returns the root RuleNode (attributeIndex and attributeValue will be null at root).
      * If nodes is null or empty, returns null.
      */
-    public static RuleNode createRuleNodes(final ArrayList<LowUnit> nodes, final int numAttributes) {
+
+    private final static Comparator<AttributeStats> greedyLeastBranchesComparison = Comparator
+            .comparingInt((AttributeStats a) -> a.numberOfDistinctKValues)
+            .thenComparingInt(a -> -a.maxGroupSize)
+            .thenComparingInt(a -> a.attributeIndex);
+
+    static RuleNode createRuleNodes(final ArrayList<LowUnit> nodes, final int numAttributes) {
         if (nodes == null || nodes.isEmpty()) 
             return null;
 
@@ -36,7 +41,8 @@ public class RuleNode {
 
         // attributeIndex and attributeValue are null for the root (no attribute was used to get here)
         final RuleNode root = new RuleNode(null, null, inclusiveLowUnitNodes, exclusiveLowUnitNodes, new HashSet<>(), numAttributes, 0);
-        removeDeadbeatParents(root);
+        separateKidsFromParents(root, true);
+        separateKidsFromParents(root, false);
         return root;
     }
 
@@ -69,11 +75,6 @@ public class RuleNode {
             for(final RuleNode kid : exclusiveRuleset){
                 kid.parent = this;
             }
-    }
-
-    private static void removeDeadbeatParents(final RuleNode root) {
-        separateKidsFromParents(root, true);
-        separateKidsFromParents(root, false);
     }
 
     private static RuleNode[] separateKidsFromParents(final RuleNode node, final boolean isInclusive) {
@@ -115,10 +116,7 @@ public class RuleNode {
             return new RuleNode[]{node};
         }
     }
-    private final static Comparator<AttributeStats> greedyLeastBranchesComparison = Comparator
-        .comparingInt((AttributeStats a) -> a.numberOfDistinctKValues)
-        .thenComparingInt(a -> -a.maxGroupSize)
-        .thenComparingInt(a -> a.attributeIndex);
+
 
     private RuleNode[] findChildrenGreedyTechnique(final ArrayList<Node> childrenNodes, final int dimension, final int depth, final boolean isInclusive) {
         if (childrenNodes == null || childrenNodes.isEmpty()) {
