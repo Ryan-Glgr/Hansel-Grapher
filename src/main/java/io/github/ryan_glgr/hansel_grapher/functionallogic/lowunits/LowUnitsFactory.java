@@ -162,17 +162,18 @@ public class LowUnitsFactory {
 
     public static Map<Integer, Set<LowUnit>> findPrunedLowUnits(@NonNull final ArrayList<ArrayList<Node>> hanselChainSet) {
         final Map<Integer, Set<LowUnit>> inclusiveLowUnits = findRegularLowUnits(hanselChainSet);
-//        final Map<Integer, Set<LowUnit>> exclusiveLowUnits = findExclusiveLowUnits(
-//                hanselChainSet.stream().flatMap(ArrayList::stream).collect(java.util.stream.Collectors.toSet()));
-        final Map<Integer, Set<LowUnit>> exclusiveLowUnits = new HashMap<>();
+        final Map<Integer, Set<LowUnit>> exclusiveLowUnits = findExclusiveLowUnits(
+                hanselChainSet.stream().flatMap(ArrayList::stream).collect(Collectors.toSet()));
         final Map<Integer, Set<LowUnit>> prunedUnits = removeUselessLowUnits(inclusiveLowUnits, exclusiveLowUnits);
 
         int numInclusive = 0;
         int numExclusive = 0;
         for (final Set<LowUnit> lowUnits : prunedUnits.values()) {
             for (final LowUnit lowUnit : lowUnits) {
-                if (LowUnit.Type.INCLUSIVE.equals(lowUnit.getLowUnitType())) numInclusive++;
-                else numExclusive++;
+                if (LowUnit.Type.INCLUSIVE.equals(lowUnit.getLowUnitType()))
+                    numInclusive++;
+                else
+                    numExclusive++;
             }
         }
         System.out.printf("Found: [%s] total low units. [%s] were inclusive, [%s] were exclusive.",

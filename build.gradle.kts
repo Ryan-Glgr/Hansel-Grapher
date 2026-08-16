@@ -20,7 +20,6 @@ repositories {
 }
 
 dependencies {
-
     // used to make visualizations of the interview stats
     implementation("org.knowm.xchart:xchart:3.8.8")
     implementation("de.erichseifert.vectorgraphics2d:VectorGraphics2D:0.13")
@@ -59,5 +58,6 @@ dependencies {
 }
 
 application {
+    applicationDefaultJvmArgs = listOf("-XX:+UseParallelGC")
     mainClass.set("io.github.ryan_glgr.hansel_grapher.Main")
 }

@@ -32,7 +32,7 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
     private static final float TEXT_PADDING_INSIDE_NODE = 1.5f;// add near the other layout constants
     private static final float ROW_STEP = NODE_HEIGHT + VERTICAL_SPACING;
     private static final float COL_STEP = NODE_WIDTH + SIDE_SPACING;
-
+    private static final float BORDER_THICKNESS_FRACTION = 0.15f; // inset of the fill quad within the border quad
 
     private static final int POSITION_COMPONENTS = 2;   // x, y
     private static final int COLOR_COMPONENTS = 4;      // r, g, b, a
@@ -55,24 +55,41 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
     private volatile boolean colorsDirty;
     private TextRenderer textRenderer;
 
-    private final Interview interview;
+    private final int numClasses;
 
     // Assigned once on the GL thread in init() and never mutated afterwards.
     // All inter-thread communication goes through colorsDirty.
-    private ArrayList<ArrayList<Node>> chains;
-    private int totalNodes;
-    private Map<Node, LowUnit> lowUnitNodes;
+    private final ArrayList<ArrayList<Node>> chains;
+    private final int totalNodes;
+    private final Map<Node, LowUnit> lowUnitNodes;
+    private final int numExclusiveLowUnits;
+    private final int longestChainHeight;              // tallest chain, used to size the padded grid
+
 
     // Per-node layout: maps Node -> [centerX, centerY]
     private Node[][] nodeGrid;        // [chainIndex][rowIndex], null = empty cell
     private String[][][] labelGrid;   // [chainIndex][rowIndex] -> label lines, null = empty
     private float[] columnX;          // columnX[c] = center X of chain c
     private float baseRowY;           // world Y of row 0 (bottom row), global to all chains
-    private int maxRows;              // tallest chain, used to size the padded grid
 
     public HanselChainRenderer(final Interview interview, final int classificationColorShuffleCounter) {
         super(classificationColorShuffleCounter);
-        this.interview = interview;
+        this.numClasses = interview.numClasses;
+
+        chains = GUIHelper.sortChainsForVisualization(interview.hanselChains);
+        totalNodes = chains.stream().mapToInt(List::size).sum();
+
+        // reverse map all the low unit nodes to their "low unit"
+        lowUnitNodes = interview.lowUnitsByClass.values()
+                .stream()
+                .flatMap(Set::stream)
+                .collect(Collectors.toMap(LowUnit::getDatapoint, Function.identity()));
+
+        numExclusiveLowUnits = (int) lowUnitNodes.values().stream()
+                .filter(lowUnit -> LowUnit.Type.EXCLUSIVE.equals(lowUnit.getLowUnitType()))
+                .count();
+
+        longestChainHeight = chains.stream().mapToInt(List::size).max().orElseThrow();
     }
 
     // Called from the compute thread whenever node classifications change.
@@ -85,14 +102,13 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
     // --- Layout ---
 
     private void computeLayout() {
-        maxRows = chains.stream().mapToInt(List::size).max().orElse(0);
         final int numChains = chains.size();
 
-        nodeGrid  = new Node[numChains][maxRows];
-        labelGrid = new String[numChains][maxRows][];
+        nodeGrid  = new Node[numChains][longestChainHeight];
+        labelGrid = new String[numChains][longestChainHeight][];
         columnX   = new float[numChains];
 
-        final float totalHeightMax = maxRows * NODE_HEIGHT + (maxRows - 1) * VERTICAL_SPACING;
+        final float totalHeightMax = longestChainHeight * NODE_HEIGHT + (longestChainHeight - 1) * VERTICAL_SPACING;
         baseRowY = -(totalHeightMax / 2.0f) + NODE_HEIGHT / 2.0f;
 
         float minX = Float.MAX_VALUE, maxX = -Float.MAX_VALUE;
@@ -102,7 +118,7 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
             final ArrayList<Node> chain = chains.get(c);
             columnX[c] = c * COL_STEP;
 
-            final int startRow = (maxRows - chain.size()) / 2;  // centers within the padded grid
+            final int startRow = (longestChainHeight - chain.size()) / 2;  // centers within the padded grid
             for (int i = 0; i < chain.size(); i++) {
                 final int row = startRow + i;
                 final Node node = chain.get(i);
@@ -130,59 +146,31 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
 
     // --- Buffer builders ---
 
-    // [x, y] per node — built once, never rebuilt.
     private FloatBuffer buildPositionBuffer() {
-        final FloatBuffer buffer = Buffers.newDirectFloatBuffer(totalNodes * VERTICES_PER_NODE * POSITION_COMPONENTS);
+        final int extraSizeForExclusiveLowUnits = numExclusiveLowUnits * VERTICES_PER_NODE * POSITION_COMPONENTS;
+        final int regularSize = totalNodes * VERTICES_PER_NODE * POSITION_COMPONENTS;
+        final FloatBuffer buffer = Buffers.newDirectFloatBuffer(regularSize + extraSizeForExclusiveLowUnits);
+
+        final float insetY = NODE_HEIGHT * BORDER_THICKNESS_FRACTION;
 
         for (int c = 0; c < nodeGrid.length; c++) {
             final float cx = columnX[c];
             final float l = cx - NODE_WIDTH / 2f;
             final float r = cx + NODE_WIDTH / 2f;
 
-            for (int row = 0; row < maxRows; row++) {
-                if (nodeGrid[c][row] == null) continue;
+            for (int row = 0; row < longestChainHeight; row++) {
+                final Node node = nodeGrid[c][row];
+                if (node == null) continue;
 
                 final float cy = baseRowY + row * ROW_STEP;
                 final float b = cy - NODE_HEIGHT / 2f;
                 final float t = cy + NODE_HEIGHT / 2f;
 
-                // Triangle 1
-                buffer.put(l); buffer.put(b);
-                buffer.put(r); buffer.put(b);
-                buffer.put(r); buffer.put(t);
-                // Triangle 2
-                buffer.put(l); buffer.put(b);
-                buffer.put(r); buffer.put(t);
-                buffer.put(l); buffer.put(t);
-            }
-        }
-
-        buffer.flip();
-        return buffer;
-    }
-    // [r, g, b, a] per node — rebuilt whenever classifications change.
-    private FloatBuffer buildColorBuffer() {
-        final FloatBuffer buffer = Buffers.newDirectFloatBuffer(totalNodes * VERTICES_PER_NODE * COLOR_COMPONENTS);
-
-        for (final Node[] nodes : nodeGrid) {
-            for (int row = 0; row < maxRows; row++) {
-                final Node node = nodes[row];
-                if (node == null) continue;
-
-                final LowUnit.Type lowUnitType = isLowUnit(node);
-                final int classificationToColorWith = node.classification == Node.IMPOSSIBLE_CLASSIFICATION
-                        ? Node.IMPOSSIBLE_CLASSIFICATION
-                        : (node.classification + classificationColorShuffleCounter) % interview.numClasses;
-                final Color color = GUIHelper.getColorForClass(classificationToColorWith, lowUnitType);
-                final float rC = color.getRed() / 255f;
-                final float gC = color.getGreen() / 255f;
-                final float bC = color.getBlue() / 255f;
-                final float aC = color.getAlpha() / 255f;
-                for (int i = 0; i < VERTICES_PER_NODE; i++) {
-                    buffer.put(rC);
-                    buffer.put(gC);
-                    buffer.put(bC);
-                    buffer.put(aC);
+                if (LowUnit.Type.EXCLUSIVE.equals(isLowUnit(node))) {
+                    emitQuad(buffer, l, b, r, t);                                   // border: full node size
+                    emitQuad(buffer, l, b + insetY, r, t - insetY); // fill: inset
+                } else {
+                    emitQuad(buffer, l, b, r, t);
                 }
             }
         }
@@ -191,35 +179,74 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
         return buffer;
     }
 
+    private static void emitQuad(final FloatBuffer buffer, final float l, final float b, final float r, final float t) {
+        buffer.put(l); buffer.put(b);
+        buffer.put(r); buffer.put(b);
+        buffer.put(r); buffer.put(t);
+        buffer.put(l); buffer.put(b);
+        buffer.put(r); buffer.put(t);
+        buffer.put(l); buffer.put(t);
+    }
+
+    // [r, g, b, a] per node — rebuilt whenever classifications change.
+    private FloatBuffer buildColorBuffer() {
+
+        final int extraBufferSizeForExclusiveLowUnits = numExclusiveLowUnits * VERTICES_PER_NODE * COLOR_COMPONENTS;
+        final int regularBufferSize = totalNodes * VERTICES_PER_NODE * COLOR_COMPONENTS;
+        final FloatBuffer buffer = Buffers.newDirectFloatBuffer(regularBufferSize + extraBufferSizeForExclusiveLowUnits);
+
+        for (final Node[] chain : nodeGrid) {
+            for (final Node node : chain) {
+                if (node == null)
+                    continue;
+
+                final LowUnit.Type lowUnitType = isLowUnit(node);
+                final int nodeClassWithColorShuffle = node.classification.equals(Node.IMPOSSIBLE_CLASSIFICATION)
+                        ? Node.IMPOSSIBLE_CLASSIFICATION
+                        : (node.classification + classificationColorShuffleCounter) % numClasses;
+
+                // exclusive low units get colors drawn twice, once for their border which will be next class, and once for their own class.
+                final boolean isExclusiveLowUnit = LowUnit.Type.EXCLUSIVE.equals(lowUnitType);
+                if (isExclusiveLowUnit) {
+                    // no need to consider whether a node is itself an EXCLUSIVE LOW UNIT of IMPOSSIBLE classification,
+                    // since that is not possible. there is no higher class it could be.
+                    final int exclusiveNodeTargetClass = (numClasses == (nodeClassWithColorShuffle + nodeClassWithColorShuffle + 1))
+                            ? Node.IMPOSSIBLE_CLASSIFICATION
+                            : (node.classification + classificationColorShuffleCounter + 1) % numClasses;
+                    populateColorBuffer(exclusiveNodeTargetClass, true, buffer);
+                }
+                // now draw the colors for the node itself. If it is exclusive, we do not want to color it AGAIN with low unit brightness, since it looks strange.
+                final boolean colorAsALowUnit = Objects.nonNull(lowUnitType) && !isExclusiveLowUnit;
+                populateColorBuffer(nodeClassWithColorShuffle, colorAsALowUnit, buffer);
+            }
+        }
+
+        buffer.flip();
+        return buffer;
+    }
+
+    private void populateColorBuffer(final int classification, final boolean isLowUnit, final FloatBuffer buffer) {
+        final Color color = GUIHelper.getColorForClass(classification, isLowUnit);
+        final float rC = color.getRed() / 255f;
+        final float gC = color.getGreen() / 255f;
+        final float bC = color.getBlue() / 255f;
+        final float aC = color.getAlpha() / 255f;
+        for (int i = 0; i < VERTICES_PER_NODE; i++) {
+            buffer.put(rC);
+            buffer.put(gC);
+            buffer.put(bC);
+            buffer.put(aC);
+        }
+    }
+
     // --- GL event listener ---
 
     @Override
     public void init(final GLAutoDrawable drawable) {
-        final GL3 gl = drawable.getGL().getGL3();
-        if (gl == null)
-            throw new RuntimeException("GL3 context not available — check GLProfile at canvas creation.");
-
-        // ------------------------------------------------------------
-        // 1. Basic GL state
-        // ------------------------------------------------------------
-        gl.glClearColor(CLEAR_COLOR[0], CLEAR_COLOR[1], CLEAR_COLOR[2], CLEAR_COLOR[3]);
-        gl.glEnable(GL3.GL_BLEND);
-        gl.glEnable(GL3.GL_PROGRAM_POINT_SIZE);
-        gl.glBlendFunc(GL3.GL_SRC_ALPHA, GL3.GL_ONE_MINUS_SRC_ALPHA);
-
-        // ------------------------------------------------------------
-        // 2. Snapshot chains, compute static layout
-        // ------------------------------------------------------------
-        chains = GUIHelper.sortChainsForVisualization(interview.hanselChains);
-        totalNodes = chains.stream().mapToInt(List::size).sum();
-        final Map<Integer, Set<LowUnit>> lowUnitsByClass = interview.lowUnitsByClass;
-        // reverse map all the low unit nodes to their "low unit"
-        lowUnitNodes = lowUnitsByClass.values()
-                .stream()
-                .flatMap(Set::stream)
-                .collect(Collectors.toMap(LowUnit::getDatapoint, Function.identity()));
+        final GL3 gl = getGl3(drawable);
 
         computeLayout();
+
 
         // ------------------------------------------------------------
         // 3. Shader program
@@ -243,7 +270,7 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
         // ------------------------------------------------------------
         final int[] vaos = new int[1];
         gl.glGenVertexArrays(1, vaos, 0);
-        vaoId = vaos[0];
+        this.vaoId = vaos[0];
         if (vaoId == 0)
             throw new RuntimeException("VAO creation failed");
 
@@ -289,13 +316,28 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
         gl.glBindVertexArray(0);
         gl.glBindBuffer(GL3.GL_ARRAY_BUFFER, 0);
 
-        textRenderer = new TextRenderer(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, FONT_SIZE));
+        this.textRenderer = new TextRenderer(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, FONT_SIZE));
 
         // ------------------------------------------------------------
         // 7. Upload initial projection so first display() is correct
         // ------------------------------------------------------------
         reshape(drawable, 0, 0, drawable.getSurfaceWidth(), drawable.getSurfaceHeight());
         super.init(drawable);   // registers mouse listeners
+    }
+
+    private static GL3 getGl3(final GLAutoDrawable drawable) {
+        final GL3 gl = drawable.getGL().getGL3();
+        if (gl == null)
+            throw new RuntimeException("GL3 context not available — check GLProfile at canvas creation.");
+
+        // ------------------------------------------------------------
+        // 1. Basic GL state
+        // ------------------------------------------------------------
+        gl.glClearColor(CLEAR_COLOR[0], CLEAR_COLOR[1], CLEAR_COLOR[2], CLEAR_COLOR[3]);
+        gl.glEnable(GL3.GL_BLEND);
+        gl.glEnable(GL3.GL_PROGRAM_POINT_SIZE);
+        gl.glBlendFunc(GL3.GL_SRC_ALPHA, GL3.GL_ONE_MINUS_SRC_ALPHA);
+        return gl;
     }
 
     // Overwrites the color VBO in-place. Node count is unchanging so SubData is safe.
@@ -330,30 +372,28 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
         }
 
         gl.glBindVertexArray(vaoId);
-        gl.glDrawArrays(GL3.GL_TRIANGLES, 0, totalNodes * VERTICES_PER_NODE);
+        gl.glDrawArrays(GL3.GL_TRIANGLES, 0, (totalNodes + numExclusiveLowUnits) * VERTICES_PER_NODE);
         gl.glBindVertexArray(0);
         gl.glUseProgram(0);
         drawLabels();
     }
 
     private void drawLabels() {
-        final float viewW = getLiveRight() - getLiveLeft();
-        final float viewH = getLiveTop()   - getLiveBottom();
-        final float scaleX = surfaceWidth  / viewW;
-        final float scaleY = surfaceHeight / viewH;
+        final float viewWidth = getLiveRight() - getLiveLeft();
+        final float viewHeight = getLiveTop()   - getLiveBottom();
+        final float scaleX = surfaceWidth  / viewWidth;
+        final float scaleY = surfaceHeight / viewHeight;
 
         final float nodeWidthPx  = NODE_WIDTH  * scaleX;
         final float nodeHeightPx = NODE_HEIGHT * scaleY;
 
         // find any non-null label to measure against (same role as old "sampleNodeLabel")
-        String[] sampleLabel = null;
-        outer:
-        for (final String[][] col : labelGrid) {
-            for (final String[] cell : col) {
-                if (cell != null) { sampleLabel = cell; break outer; }
-            }
-        }
-        if (sampleLabel == null) throw new IllegalStateException("No node labels exist");
+        final String[] sampleLabel = Arrays.stream(labelGrid)
+                .flatMap(Arrays::stream)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No node labels exist"));
+
 
         final double lineHeight  = textRenderer.getBounds("Ag").getHeight();
         final double totalHeight = lineHeight * sampleLabel.length;
@@ -367,22 +407,22 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
         // --- arithmetic culling: invert screen bounds -> grid index ranges ---
         final int colMin = clamp((int) Math.floor((getLiveLeft()   - NODE_WIDTH / 2f) / COL_STEP), 0, columnX.length - 1);
         final int colMax = clamp((int) Math.ceil ((getLiveRight()  + NODE_WIDTH / 2f) / COL_STEP), 0, columnX.length - 1);
-        final int rowMin = clamp((int) Math.floor((getLiveBottom() - NODE_HEIGHT / 2f - baseRowY) / ROW_STEP), 0, maxRows - 1);
-        final int rowMax = clamp((int) Math.ceil ((getLiveTop()    + NODE_HEIGHT / 2f - baseRowY) / ROW_STEP), 0, maxRows - 1);
+        final int rowMin = clamp((int) Math.floor((getLiveBottom() - NODE_HEIGHT / 2f - baseRowY) / ROW_STEP), 0, longestChainHeight - 1);
+        final int rowMax = clamp((int) Math.ceil ((getLiveTop()    + NODE_HEIGHT / 2f - baseRowY) / ROW_STEP), 0, longestChainHeight - 1);
 
         textRenderer.beginRendering(surfaceWidth, surfaceHeight);
         textRenderer.setColor(0f, 0f, 0f, 1f);
 
         for (int c = colMin; c <= colMax; c++) {
             final float worldX = columnX[c];
-            final float screenX = (worldX - getLiveLeft()) / viewW * surfaceWidth;
+            final float screenX = (worldX - getLiveLeft()) / viewWidth * surfaceWidth;
 
             for (int r = rowMin; r <= rowMax; r++) {
                 final String[] lines = labelGrid[c][r];
                 if (lines == null) continue;
 
                 final float worldY = baseRowY + r * ROW_STEP;
-                final float screenY = (worldY - getLiveBottom()) / viewH * surfaceHeight;
+                final float screenY = (worldY - getLiveBottom()) / viewHeight * surfaceHeight;
 
                 final float startY = (float) (screenY + totalHeight / 2 - lineHeight);
                 for (int i = 0; i < lines.length; i++) {

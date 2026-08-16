@@ -39,7 +39,7 @@ public class VisualizationDOT {
         final String attr = "label = \"" + escapeQuote(label) + "\"" +
                 ", shape = " + NODE_SHAPE +
                 ", style = filled" +
-                ", fillcolor = \"" + GUIHelper.colorToHex(GUIHelper.getColorForClass(temp.classification, lowUnitType)) + "\"";
+                ", fillcolor = \"" + GUIHelper.colorToHex(GUIHelper.getColorForClass(temp.classification, Objects.isNull(lowUnitType))) + "\"";
 
         fw.write(temp.hashCode() + " [" + attr + "];\n\t");
     }
@@ -158,7 +158,7 @@ public class VisualizationDOT {
 
             fw.write("subgraph cluster_" + classification + " {\n\tstyle=invis;\n\t");
 
-            final String color = GUIHelper.colorToHex(GUIHelper.getColorForClass(classification, lowUnitType));
+            final String color = GUIHelper.colorToHex(GUIHelper.getColorForClass(classification, Objects.nonNull(lowUnitType)));
             traverseRuleTree(fw, ruleTrees[classification], color, attributeNames, classification, isInclusive);
 
             fw.write("}\n\t");

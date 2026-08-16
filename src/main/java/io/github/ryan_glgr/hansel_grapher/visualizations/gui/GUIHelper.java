@@ -14,29 +14,28 @@ public class GUIHelper {
     private static final String RIGHT_FLOOR = "⌋";
     private static final String LEFT_CEILING = "⌈";
     private static final String RIGHT_CEILING = "⌉";
-    private static final Float NON_LOW_UNIT_COLOR_FADE = 0.55f;
+    private static final float NON_LOW_UNIT_alpha = 0.65f;
+    private static final float LOW_UNIT_ALPHA = 0.85f;
     private static final int IMPOSSIBLE_CLASS_GREY = 140;
     private static final float GOLDEN_RATIO = 0.618033988749895f;
-    private static final float REGULAR_SATURATION = 0.7f;
-    private static final float EXCLUSIVE_LOW_UNIT_SATURATION = 1.0f;
+    private static final float REGULAR_SATURATION = 0.6f;
     private static final float REGULAR_BRIGHTNESS = 0.95f;
 
     // Returns a Color object (with alpha baked in)
-    public static Color getColorForClass(final int classification, final LowUnit.Type lowUnitType) {
-        final boolean isLowUnit = (Objects.nonNull(lowUnitType));
+    public static Color getColorForClass(final int classification, final boolean isLowUnit) {
 
         if (classification == Node.IMPOSSIBLE_CLASSIFICATION) {
-            final int alphaInt = Math.round((isLowUnit ? 1.0f : NON_LOW_UNIT_COLOR_FADE) * 255);
+            final int alphaInt = Math.round((isLowUnit ? LOW_UNIT_ALPHA : NON_LOW_UNIT_alpha) * 255);
             return new Color(IMPOSSIBLE_CLASS_GREY, IMPOSSIBLE_CLASS_GREY, IMPOSSIBLE_CLASS_GREY, alphaInt);
         }
 
-        final boolean isExclusiveLowUnit = LowUnit.Type.EXCLUSIVE.equals(lowUnitType);
-        final float saturation = isExclusiveLowUnit ? EXCLUSIVE_LOW_UNIT_SATURATION : REGULAR_SATURATION;
-
+        final float saturation = isLowUnit
+                ? 1.0f
+                : REGULAR_SATURATION;
         final float hue = (classification * GOLDEN_RATIO) % 1.0f;
         final int rgb = Color.HSBtoRGB(hue, saturation, REGULAR_BRIGHTNESS);
         final Color baseColor = new Color(rgb);
-        final int alphaInt = Math.round((isLowUnit ? 1.0f : NON_LOW_UNIT_COLOR_FADE) * 255);
+        final int alphaInt = Math.round((isLowUnit ? LOW_UNIT_ALPHA : NON_LOW_UNIT_alpha) * 255);
         return new Color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), alphaInt);
     }
 
