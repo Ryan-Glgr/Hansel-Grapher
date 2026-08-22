@@ -12,6 +12,7 @@ import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.InterviewMod
 import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.MLModel;
 import io.github.ryan_glgr.hansel_grapher.visualizations.InterviewStatsVisualizer;
 import io.github.ryan_glgr.hansel_grapher.visualizations.VisualizationDOT;
+import io.github.ryan_glgr.hansel_grapher.visualizations.VisualizationPDF;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.BlankRenderer;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.ExpansionRenderer;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.hanselchain.HanselChainRenderer;
@@ -123,17 +124,13 @@ public class MainWindow {
 //        final CreateFunctionWindow functionWindow = new CreateFunctionWindow();
 //        final CompletableFuture<Interview> interviewFuture = functionWindow.createFunctionAndReturnInterviewObject("Create Interview");
 
-//        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createBasicInterviewWithSubfunctions(InterviewMode.BEST_MINIMUM_CONFIRMED));
+//        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createBasicInterview(InterviewMode.BEST_MINIMUM_CONFIRMED));
 //        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createBreastCancerInterviewInPython(MLModel.MONOTONE_NEURAL_NETWORK));
-//        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createHeartFailureInterview(InterviewMode.BEST_MINIMUM_CONFIRMED));
-        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createBasicInterviewWithSubfunctions(InterviewMode.BEST_MINIMUM_CONFIRMED));
+        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createHeartFailureInterview(InterviewMode.BEST_MINIMUM_CONFIRMED));
         interviewFuture.thenAccept(createdInterview -> {
-
-            if (createdInterview == null) {
-                return;
-            }
             SwingUtilities.invokeLater(() -> {
-                interview = createdInterview;
+                this.interview = createdInterview;
+                handleVisualizationChange(HANSEL_CHAIN_VIEW);
                 JOptionPane.showMessageDialog(mainPanel,
                         "Interview ran successfully.",
                         "Success",
@@ -155,9 +152,8 @@ public class MainWindow {
             VisualizationDOT.makeExpansionsDOT(interview.data,
                     interview.lowUnitsByClass,
                     interview.interviewStats.kValues);
-            VisualizationDOT.makeHanselChainDOT(interview.hanselChains, interview.lowUnitsByClass);
             VisualizationDOT.compileDotAsync("out/Expansions.dot");
-            VisualizationDOT.compileDotAsync("out/HanselChains.dot");
+            VisualizationPDF.makeHanselChainPDF(interview.hanselChains, interview.lowUnitsByClass, interview.numClasses, classificationColorShuffleCounter);
         } catch (final IOException ex) {
             System.out.println("Making expansion file failed!");
             ex.printStackTrace();

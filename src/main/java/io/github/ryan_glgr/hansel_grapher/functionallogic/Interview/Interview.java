@@ -845,6 +845,8 @@ public class Interview {
 
         sb.append(interviewStats.interviewMode).append(" MODE\n");
         sb.append("TOTAL NUMBER OF NODES: ").append(interviewStats.numberOfNodes).append("\n");
+        sb.append("\nTOTAL NUMBER OF CHAINS:\t")
+                .append(hanselChains.size());
         sb.append("NUMBER OF QUESTIONS ASKED: ")
             .append(interviewStats.nodesAsked.size())
             .append('\n');

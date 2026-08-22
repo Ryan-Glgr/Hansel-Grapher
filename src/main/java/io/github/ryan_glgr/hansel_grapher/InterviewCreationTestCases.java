@@ -17,6 +17,20 @@ public class InterviewCreationTestCases {
     private static final String DATASETS_DIR = String.join(File.separator, "src", "main", "resources", "data", "datasets");
     private static final float DATASET_RESOLUTION = 0.4f;
 
+    public static Interview createBasicInterview(final InterviewMode interviewMode) {
+        final Integer[] kValues = new Integer[] {8, 5, 7, 6};
+        final Float[] weights = new Float[] {.15f, 0.05f, 1.0f, 0.25f};
+
+        // x0 >= 1, and x2 >= 1 is IMPOSSIBLE is what we are saying
+        final Set<Map<Integer, Integer>> impossibleCombinations = Set.of(Map.of(
+                0, 4,
+                1, 3,
+                2, 6,
+                3, 5));
+        return createBasicInterviewWithSubfunctions(interviewMode, kValues, weights, impossibleCombinations, false);
+
+    }
+
     public static Interview createBasicInterviewWithSubfunctions(final InterviewMode interviewMode) {
         final Integer[] kValues = new Integer[] {5, 5, 7, 6};
         final Float[] weights = new Float[] {.15f, 0.05f, 1.0f, 0.25f};
@@ -27,13 +41,14 @@ public class InterviewCreationTestCases {
             1, 3,
             2, 6,
             3, 5));
-        return createBasicInterviewWithSubfunctions(interviewMode, kValues, weights, impossibleCombinations);
+        return createBasicInterviewWithSubfunctions(interviewMode, kValues, weights, impossibleCombinations, true);
     }
 
     public static Interview createBasicInterviewWithSubfunctions(final InterviewMode interviewMode,
                                                                  final Integer[] kValues,
                                                                  final Float[] weights,
-                                                                 final Set<Map<Integer, Integer>> impossibleNodeCombinations) {
+                                                                 final Set<Map<Integer, Integer>> impossibleNodeCombinations,
+                                                                 final boolean useChildFunctions) {
         
         final int maxSum = IntStream.range(0, kValues.length)
             .map(i -> (int) ((kValues[i] - 1) * weights[i]))
@@ -43,7 +58,9 @@ public class InterviewCreationTestCases {
         final String[] attributeNames = Util.createDefaultAttributeNames(kValues.length);
         final String[] classificationNames = Util.createDefaultClassificationNames(numClasses);
 
-        final Interview[] availableSubfunctions = new Interview[]{
+        final Interview[] availableSubfunctions = !useChildFunctions
+                ? null :
+                new Interview[]{
             InterviewHelperFunctions.createSubFunction(
                 new Integer[] {3, 5, 4, 3},
                 new Float[] {.5f, 1.65f, 1.25f, 1.0f},
@@ -69,7 +86,9 @@ public class InterviewCreationTestCases {
 
         final Interview[] childFunctions = new Interview[kValues.length];
         for (int i = 0; i < kValues.length; i++) {
-            childFunctions[i] = i < availableSubfunctions.length ? availableSubfunctions[i] : null;
+            if (availableSubfunctions != null) {
+                childFunctions[i] = i < availableSubfunctions.length ? availableSubfunctions[i] : null;
+            }
         }
 
         final Interview interview = new Interview(kValues,

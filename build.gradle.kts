@@ -1,6 +1,8 @@
 plugins {
     java
     application
+//    id("com.palantir.java-format") version "2.50.0"
+
 }
 
 group = "io.github.ryan_glgr.hansel_grapher"
@@ -23,6 +25,9 @@ dependencies {
     // used to make visualizations of the interview stats
     implementation("org.knowm.xchart:xchart:3.8.8")
     implementation("de.erichseifert.vectorgraphics2d:VectorGraphics2D:0.13")
+
+    // used to save chains and pdfs.
+    implementation("org.apache.pdfbox:pdfbox:3.0.6")
 
     // used for the bitset operations during interview
     implementation("org.roaringbitmap:RoaringBitmap:1.3.0")

@@ -3,8 +3,6 @@ package io.github.ryan_glgr.hansel_grapher.functionallogic;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 public class HanselChains{
     
     // function to create our chains
@@ -40,7 +38,8 @@ public class HanselChains{
         }
 
         // final validation
-        hanselChainSet.forEach(chain -> assertTrue(checkValidChain(chain)));
+        assert hanselChainSet.stream()
+                .allMatch(HanselChains::checkValidChain);
 
         return hanselChainSet;
     }

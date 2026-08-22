@@ -112,7 +112,7 @@ public class RuleNode {
                     ? null
                     : newChildrenList.toArray(new RuleNode[0]);
             if (isInclusive) node.inclusiveRuleset = newRuleset;
-            else             node.exclusiveRuleset = newRuleset;
+            else node.exclusiveRuleset = newRuleset;
             return new RuleNode[]{node};
         }
     }

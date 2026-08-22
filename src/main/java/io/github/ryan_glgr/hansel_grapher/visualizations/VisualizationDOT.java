@@ -1,5 +1,6 @@
 package io.github.ryan_glgr.hansel_grapher.visualizations;
 
+import java.awt.*;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -10,22 +11,31 @@ import io.github.ryan_glgr.hansel_grapher.functionrules.RuleNode;
 import io.github.ryan_glgr.hansel_grapher.functionallogic.Node;
 import io.github.ryan_glgr.hansel_grapher.helper.Util;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.GUIHelper;
+import io.github.ryan_glgr.hansel_grapher.visualizations.layout.HanselChainLayout;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static io.github.ryan_glgr.hansel_grapher.visualizations.layout.HanselChainLayout.NODE_HEIGHT;
+import static io.github.ryan_glgr.hansel_grapher.visualizations.layout.HanselChainLayout.NODE_WIDTH;
+
 public class VisualizationDOT {
-    
+
     // --- Constants ---
     private static final String NODE_SHAPE = "rectangle";
     private static final String OUTPUT_DIRECTORY = "out";
     private static final String EXPANSIONS_FILE_NAME = "Expansions.dot";
     private static final String HANSEL_CHAINS_FILE_NAME = "HanselChains.dot";
     private static final String RULE_TREES_FILE_NAME = "RuleTrees.dot";
-    private static final String COMPILE_SCRIPT_PATH = "visualizationscripts" + File.separator + "compile_dot.sh";
+    private static final String COMPILE_SCRIPT_PATH = "visualizationscripts" + File.separator + "compile_pdf.sh";
     private static final String PHONY_FILE_NAME = "phony.txt";
+    private static final int POINTS_PER_INCH = 72;
+    private static final float FONT_HEIGHT_FRACTION = 0.16f; // fraction of node height per line of text
 
+
+    // world-units -> inches. Graphviz interprets pos/width/height in inches by default.
+    private static final float DOT_SCALE = 0.3f;
 
     // --- Escaping helper ---
     private static String escapeQuote(final String s) {
@@ -44,7 +54,30 @@ public class VisualizationDOT {
         fw.write(temp.hashCode() + " [" + attr + "];\n\t");
     }
 
-    // --- makeExpansionsDOT ---
+    private static void writeNodeAtPosition(final FileWriter fw, final Node temp, final LowUnit.Type lowUnitType,
+                                            final float worldX, final float worldY) throws IOException {
+        final String[] labelParts = GUIHelper.nodeLabelArray(temp, lowUnitType);
+        final String label = String.join("\\n", labelParts);
+
+        final float posX = worldX * DOT_SCALE;
+        final float posY = worldY * DOT_SCALE;
+        final float nodeHeightInches = HanselChainLayout.NODE_HEIGHT * DOT_SCALE;
+        final int fontSize = Math.max(6, Math.round(nodeHeightInches * POINTS_PER_INCH * FONT_HEIGHT_FRACTION));
+
+        final String attr = "label = \"" + escapeQuote(label) + "\"" +
+                ", shape = " + NODE_SHAPE +
+                ", style = filled" +
+                ", pos = \"" + posX + "," + posY + "!\"" +
+                ", width = " + (HanselChainLayout.NODE_WIDTH * DOT_SCALE) +
+                ", height = " + nodeHeightInches +
+                ", fixedsize = true" +
+                ", fontsize = " + fontSize +
+                ", fillcolor = \"" + GUIHelper.colorToHex(GUIHelper.getColorForClass(temp.classification, Objects.isNull(lowUnitType))) + "\"";
+
+        fw.write(temp.hashCode() + " [" + attr + "];\n\t");
+    }
+
+    // --- makeExpansionsDOT --- (unchanged — no known layout for this graph, dot still lays it out)
     public static void makeExpansionsDOT(final HashMap<Integer, Node> allNodes,
                                          final Map<Integer, Set<LowUnit>> lowUnitsByClass,
                                          final Integer[] kValues) throws IOException {
@@ -83,39 +116,35 @@ public class VisualizationDOT {
         fw.close();
     }
 
-    // --- makeHanselChainDOT ---
-    public static void makeHanselChainDOT(ArrayList<ArrayList<Node>> chains, final Map<Integer, Set<LowUnit>> lowUnitsByClass) throws IOException {
-        chains = GUIHelper.sortChainsForVisualization(chains);
+    // --- makeHanselChainDOT --- now driven by HanselChainLayout: exact positions, no rank tricks needed.
+    public static void makeHanselChainDOT(final ArrayList<ArrayList<Node>> chains,
+                                          final Map<Integer, Set<LowUnit>> lowUnitsByClass) throws IOException {
 
-        final Map<Node, LowUnit> reverseMap = lowUnitsByClass.values()
-                .stream()
-                .flatMap(Set::stream)
-                .collect(Collectors.toMap(LowUnit::getDatapoint, Function.identity()));
+        final HanselChainLayout layout = new HanselChainLayout(chains, lowUnitsByClass);
+        final Node[][] nodeGrid = layout.getNodeGrid();
 
         final FileWriter fw = new FileWriter(OUTPUT_DIRECTORY + File.separator + HANSEL_CHAINS_FILE_NAME);
-        fw.write("digraph G {\n\trankdir = BT;\n\tbgcolor = white;\n\t");
+        fw.write("digraph G {\n\tbgcolor = white;\n\tsplines = line;\n\t");
 
-        final ArrayList<Node> middleNodes = new ArrayList<>();
+        for (int c = 0; c < nodeGrid.length; c++) {
+            final float worldX = layout.getX(c);
 
-        for (final ArrayList<Node> chain : chains) {
-            middleNodes.add(chain.get(chain.size() / 2));
+            for (int row = 0; row < nodeGrid[c].length; row++) {
+                final Node node = nodeGrid[c][row];
+                if (node == null) continue;
 
-            for (final Node temp : chain) {
-                final LowUnit lowUnit = reverseMap.get(temp);
-                writeNode(fw, temp, Objects.isNull(lowUnit) ? null : lowUnit.getLowUnitType());
+                writeNodeAtPosition(fw, node, layout.getLowUnitType(node), worldX, layout.getY(row));
             }
 
-            for (int c = 0; c < chain.size() - 1; c++) {
-                final Node temp = chain.get(c);
-                final Node ex = chain.get(c + 1);
-                fw.write(temp.hashCode() + " -> " + ex.hashCode() +
+            for (int row = 0; row < nodeGrid[c].length - 1; row++) {
+                final Node from = nodeGrid[c][row];
+                final Node to   = nodeGrid[c][row + 1];
+                if (from == null || to == null) continue;
+
+                fw.write(from.hashCode() + " -> " + to.hashCode() +
                         " [dir = both, color = black, arrowhead = vee, penwidth = 2];\n\t");
             }
         }
-
-        fw.write("{ rank = same; ");
-        for (final Node mid : middleNodes) fw.write(mid.hashCode() + " ");
-        fw.write("};\n");
 
         fw.write("}");
         fw.close();
@@ -145,6 +174,7 @@ public class VisualizationDOT {
             fw.write(id + " -> " + childId + ";\n\t");
         }
     }
+
     public static void makeRuleTreesDOT(final RuleNode[] ruleTrees,
                                         final String[] attributeNames,
                                         final LowUnit.Type lowUnitType) throws IOException {
@@ -168,22 +198,20 @@ public class VisualizationDOT {
         fw.close();
     }
 
-
+    // engine: "dot" (default, auto-layout) or "neato" (fixed positions via pos="x,y!")
     public static void compileDotAsync(final String dotPath) {
         CompletableFuture.runAsync(() -> {
             try {
-
-                // ensure output directory exists
                 final File outputDir = new File(OUTPUT_DIRECTORY + File.separator + PHONY_FILE_NAME).getParentFile();
                 if (outputDir != null && !outputDir.exists()) {
                     outputDir.mkdirs();
                 }
-                final ProcessBuilder pb = new ProcessBuilder("." + File.separator + COMPILE_SCRIPT_PATH, dotPath);
+                final ProcessBuilder pb = new ProcessBuilder("." + File.separator + COMPILE_SCRIPT_PATH, dotPath, "dot");
                 pb.directory(new File("."));
                 final Process process = pb.start();
                 process.onExit().thenAccept(p -> {
                     if (p.exitValue() != 0) {
-                        System.err.println("compile_dot.sh exited with code " + p.exitValue() + " for " + dotPath);
+                        System.err.println("compiling exited with code " + p.exitValue() + " for " + dotPath);
                     }
                 });
             } catch (final IOException ex) {
@@ -192,5 +220,4 @@ public class VisualizationDOT {
             }
         });
     }
-
 }
