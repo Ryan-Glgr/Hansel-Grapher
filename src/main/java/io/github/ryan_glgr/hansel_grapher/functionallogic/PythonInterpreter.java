@@ -126,6 +126,10 @@ public class PythonInterpreter implements AutoCloseable {
 
     public static PythonInterpreter getNormalizedDatasetAndBeginPredictionServer(final MLModel model, final NormalizedDataset dataset) {
 
+        if (model == null) {
+            return null;
+        }
+
         try {
             return new PythonInterpreter(model, dataset.serializeToJsonFile());
         } catch (final IOException ioException) {

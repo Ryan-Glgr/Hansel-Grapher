@@ -260,7 +260,7 @@ public class Node {
     }
 
 
-    private PermeationStats expand(final int bound, final boolean countUpwards) {
+    public PermeationStats expand(final int bound, final boolean countUpwards) {
         // BFS-based expansion to set ceiling of below nodes, and floor of above nodes.
         final Queue<Node> queue = new LinkedList<>();
         final Set<Node> visited = new HashSet<>();

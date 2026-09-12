@@ -7,9 +7,7 @@ import io.github.ryan_glgr.hansel_grapher.helper.Util;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.IntStream;
 
 public class InterviewCreationTestCases {
@@ -127,6 +125,23 @@ public class InterviewCreationTestCases {
         interview.beginInterview(InterviewMode.BEST_MINIMUM_CONFIRMED);
         System.out.println("INTERVIEW COMPLETE!");
         System.out.println(interview);
+        return interview;
+    }
+
+    public static Interview createAndRunNormalizedDataset(final String datasetName) {
+
+        final String breastCancerDataset = String.join(File.separator, DATASETS_DIR, datasetName);
+        final NormalizedDataset normalizedDataset;
+        try {
+            normalizedDataset = DatasetNormalizer.loadOrCreateNormalizedDataset(breastCancerDataset,
+                    DatasetNormalizer.NormalizationMode.UNIQUE_INTEGERS_SOME_RESOLUTION,
+                    DATASET_RESOLUTION);
+
+        } catch (final IOException ioException) {
+            throw new RuntimeException(ioException);
+        }
+        final Interview interview = new Interview(normalizedDataset);
+        interview.beginInterview(InterviewMode.USING_NORMALIZED_DATASET);
         return interview;
     }
 

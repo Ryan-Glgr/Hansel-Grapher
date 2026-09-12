@@ -132,8 +132,8 @@ public class LowUnitsFactory {
                 }
 
                 if (neighborClass < node.classification && !Node.IMPOSSIBLE_CLASSIFICATION.equals(neighborClass)) {
-                    throw new IllegalStateException(String.format("Monotonicity has been violated by node: " +
-                            "[%s] being lower class than node: [%s]", upExpandedNeighbor, node));
+                    System.out.printf("Monotonicity has been violated by node: " +
+                            "[%s] being lower class than node: [%s]", upExpandedNeighbor, node);
                 }
 
                 // upstairs neighbor is higher class. we may be able to use 'node' to say "anything > 'node' (exclusively) is

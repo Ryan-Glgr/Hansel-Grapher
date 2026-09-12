@@ -1,5 +1,6 @@
 package io.github.ryan_glgr.hansel_grapher.experimental;
 
+import io.github.ryan_glgr.hansel_grapher.datamanipulation.NormalizedDataset;
 import io.github.ryan_glgr.hansel_grapher.functionallogic.lowunits.LowUnit;
 import io.github.ryan_glgr.hansel_grapher.stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.functionallogic.HanselChains;
@@ -8,6 +9,8 @@ import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.InterviewMod
 import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.MagicFunctionMode;
 import io.github.ryan_glgr.hansel_grapher.functionallogic.lowunits.LowUnitsFactory;
 import io.github.ryan_glgr.hansel_grapher.functionallogic.Node;
+import io.github.ryan_glgr.hansel_grapher.stats.PermeationStats;
+import org.roaringbitmap.RoaringBitmap;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -148,5 +151,69 @@ public class ExperimentalFunctionalities {
                 // this node is >= the combination we said is impossible.
                 .allMatch(entry ->
                         targetNode.values[entry.getKey()] >= entry.getValue()));
+    }
+
+    public static PermeationStats permeateClassificationAllowingMonotonicityViolations(final Node node, final int newClassification) {
+
+        final PermeationStats permeationStats;
+        if (newClassification < node.classification && newClassification != Node.IMPOSSIBLE_CLASSIFICATION) {
+            System.out.printf("MONOTONICITY VIOLATION. Value %s assigned is too low for min possible value of %s for Node: %s%n",
+                    newClassification, node.classification, Arrays.toString(node.values));
+            permeationStats = new PermeationStats(0, 0, 0, new RoaringBitmap(), new RoaringBitmap());
+        }
+        else if (newClassification > node.maxPossibleValue && newClassification != Node.IMPOSSIBLE_CLASSIFICATION) {
+            System.out.printf("MONOTONICITY VIOLATION. Value %s assigned is too high for max possible value of %s for Node: %s%n",
+                    newClassification, node.maxPossibleValue, Arrays.toString(node.values));
+            permeationStats = new PermeationStats(0, 0, 0, new RoaringBitmap(), new RoaringBitmap());
+        } else {
+            // Set the floor of everyone above to AT LEAST this value
+            final PermeationStats aboveStats = node.expand(node.classification, true);
+
+            // Set the ceiling of everyone below to AT MOST this value
+            final PermeationStats belowStats = node.expand(node.classification, false);
+
+            // get our final stats
+            permeationStats = new PermeationStats(aboveStats, belowStats);
+            // this node itself was confirmed because we asked about it directly.
+        }
+
+        // lock in our nodes value
+        node.classification = newClassification;
+        node.maxPossibleValue = node.classification;
+
+        node.classificationConfirmed = true;
+        permeationStats.nodesConfirmed.add(node.nodeID);
+
+        // return our stats from this permeation.
+        return permeationStats;
+    }
+
+    // create an interview, color in where the datasets points lie.
+    public static Interview createAndRunInterviewVisualizingUnitsViaNormalizedDataset(final NormalizedDataset normalizedDataset) {
+        final Interview interview = new Interview(normalizedDataset);
+
+        // needed so that we can populate the colors into the various nodes.
+        final HashMap<Integer, Node> pointsInInterview = interview.data;
+
+        // mark all the nodes impossible to begin with.
+        pointsInInterview.values()
+                .forEach(node -> node.classification = Node.IMPOSSIBLE_CLASSIFICATION);
+
+        final List<Integer[]> allDataInDataset = normalizedDataset.getAllDatapoints();
+        for (final Integer[] dataPoint: allDataInDataset) {
+
+            // datapoint has classification as the last column. Thus we hash the first N - 1 columns to find this node.
+            final Integer[] dataPointKValues = Arrays.copyOfRange(dataPoint, 0, dataPoint.length - 1);
+            final Integer nodeHashValue = Node.hash(dataPointKValues);
+
+            final Node nodeInInterview = pointsInInterview.get(nodeHashValue);
+            if (Objects.nonNull(nodeInInterview)) {
+                // needed because classification is last.
+                nodeInInterview.classification = dataPoint[dataPoint.length - 1];
+            } else {
+                throw new IllegalStateException("Node from dataset is not represented in the Interview's possible values");
+            }
+        }
+        return interview;
     }
 }

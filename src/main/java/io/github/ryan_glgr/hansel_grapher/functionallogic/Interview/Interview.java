@@ -48,7 +48,8 @@ public class Interview {
     public final Attribute[] attributes;
     public final String[] attributeNames;
     public final Integer[] kVals;
-    public final Map<Integer, Set<Node>> lowUnitsForEachClassification; // used for the magic function mode when we know what the low units are already, and we are trying to run the interview.
+    public final Map<Integer, Set<Node>> knownLowUnitsOfEachClassBeforeInterview; // used for the magic function mode when we know what the low units are already, and we are trying to run the interview.
+    public final NormalizedDataset normalizedDataset;
 
     private final PythonInterpreter pythonInterpreter;
 
@@ -90,6 +91,25 @@ public class Interview {
                 normalizedDataset);
     }
 
+    // constructor used to just populate the dataset into the HC's, no actual  interviewing happens.
+    public Interview(final NormalizedDataset normalizedDataset) {
+        this(
+            normalizedDataset.getKValues(),
+            null,
+            normalizedDataset.getNumClasses(),
+            normalizedDataset.getAttributeNames(),
+            Util.createDefaultClassificationNames(normalizedDataset.getNumClasses()),
+            null,
+            null,
+            null,
+            MagicFunctionMode.MACHINE_LEARNING,
+            null,
+            normalizedDataset);
+
+        this.lowUnitsByClass = Map.of();
+        this.ruleTrees = new RuleNode[this.numClasses];
+    }
+
 
     public Interview(final Integer[] kVals,
                      final Float[] weights,                                 // pass in the weights of each attribute. needed IFF you are doing MagicFunctionMode.KVAL_TIMES_WEIGHTS_MODE
@@ -102,6 +122,9 @@ public class Interview {
                      final MagicFunctionMode magicFunctionMode,
                      final MLModel mlModel,
                      final NormalizedDataset dataset) {          // the mode which actually determines how we know a nodes classification
+
+        this.normalizedDataset = dataset;
+
         this.classificationNames = Objects.isNull(classificationNames)
                 ? Util.createDefaultClassificationNames(numClasses) : classificationNames;
 	    this.attributeNames = Objects.isNull(attributeNames)
@@ -109,7 +132,6 @@ public class Interview {
 
         this.magicFunctionMode = magicFunctionMode;
         if (MagicFunctionMode.MACHINE_LEARNING.equals(magicFunctionMode)) {
-            assert (!Objects.isNull(mlModel) && !Objects.isNull(dataset));
            this.pythonInterpreter = PythonInterpreter.getNormalizedDatasetAndBeginPredictionServer(mlModel, dataset);
         }
         else this.pythonInterpreter = null;
@@ -133,7 +155,7 @@ public class Interview {
             allNodesToTheirIDsMap.put(node.nodeID, node);
         }
 
-        this.lowUnitsForEachClassification = InterviewHelperFunctions.getKnownLowUnitsOfEachClassification(setOfLowUnitsByClassification, data);
+        this.knownLowUnitsOfEachClassBeforeInterview = InterviewHelperFunctions.getKnownLowUnitsOfEachClassification(setOfLowUnitsByClassification, data);
         this.hanselChains = HanselChains.generateHanselChainSet(kVals, data);
         ExperimentalFunctionalities.markImpossibleNodes(impossibleAttributeCombinations, new ArrayList<>(data.values()));
     }
@@ -296,6 +318,11 @@ public class Interview {
                 balanceRatio = DEFAULT_BALANCE_RATIO;
                 yield bestMinConfirmedInterview(allNodes);
             }
+
+            case USING_NORMALIZED_DATASET -> {
+                balanceRatio = DEFAULT_BALANCE_RATIO;
+                yield usingNormalizedDatasetInterview(allNodes);
+            }
         };
 
         if (pythonInterpreter != null) {
@@ -315,9 +342,9 @@ public class Interview {
     }
 
     private int askQuestion(final Node n) {
-        return switch (magicFunctionMode) {
+        return switch (this.magicFunctionMode) {
             case KVAL_TIMES_WEIGHTS_MODE -> QuestionHelper.linearFunctionQuestion(n, attributes, numClasses);
-            case KNOWN_LOW_UNITS_MODE -> QuestionHelper.knownLowUnitsQuestion(n, lowUnitsForEachClassification);
+            case KNOWN_LOW_UNITS_MODE -> QuestionHelper.knownLowUnitsQuestion(n, knownLowUnitsOfEachClassBeforeInterview);
             case EXPERT_MODE -> QuestionHelper.questionExpert(n, inputScanner);
             case MACHINE_LEARNING -> QuestionHelper.queryPython(n, pythonInterpreter);
         };
@@ -823,6 +850,59 @@ public class Interview {
 
         return new InterviewStats(nodesAsked, permeationStatsForEachNodeAsked);
     }
+
+    private InterviewStats usingNormalizedDatasetInterview(final ArrayList<Node> allNodes) {
+
+        ArrayList<Node> nodesToAsk = new ArrayList<>(allNodes);
+
+        // mapping the Integer[] to it's hash value if it were a node. importantly, the last column is the classification
+        final List<Integer[]> allDataInDataset = this.normalizedDataset.getAllDatapoints();
+        final HashMap<Integer, Integer[]> dataInDataset = new HashMap<>();
+        for (final Integer[] normalizedDatapoint : allDataInDataset) {
+            // datapoint has classification as the last column. Thus we hash the first N - 1 columns to find this node.
+            final Integer[] dataPointKValues = Arrays.copyOfRange(normalizedDatapoint, 0, normalizedDatapoint.length - 1);
+            final Integer nodeHashValue = Node.hash(dataPointKValues);
+
+            dataInDataset.put(nodeHashValue, normalizedDatapoint);
+        }
+
+        final List<Node> nodesAsked = new ArrayList<>();
+        final List<PermeationStats> permeationStatsForEachNodeAsked = new ArrayList<>();
+
+        // find the first node in the dataset, get it's value based on the dataset, set it in the HC's, permeate, filter the confirmed ones, repeat.
+        while (!nodesToAsk.isEmpty()) {
+            // doesn't really matter the order we ask the questions in. we are not looking to minimize questions either
+            // find the first node which is represented in the dataset.
+            final Optional<Node> nodeToAsk = nodesToAsk.stream()
+                    .filter(node -> dataInDataset.containsKey(Node.hash(node.values)))
+                    .findFirst();
+
+            if (nodeToAsk.isEmpty()) break;
+
+            // get the datapoint for this node.
+            final Node n = nodeToAsk.get();
+            final Integer classification = dataInDataset.get(Node.hash(n.values))[n.values.length - 1];
+
+            permeationStatsForEachNodeAsked.add(ExperimentalFunctionalities.permeateClassificationAllowingMonotonicityViolations(n, classification));
+            nodesAsked.add(n);
+
+            nodesToAsk = nodesToAsk.stream().filter(
+                    node -> !node.classificationConfirmed)
+                    .collect(Collectors.toCollection(ArrayList::new));
+        }
+
+        // now one more pass through is needed in case the dataset did not fully classify all nodes.
+        // in this case, we are going to just use whatever is the current classification (highest expanded value for this node).
+        for (final Node node: allNodes) {
+            if (!node.classificationConfirmed) {
+                node.maxPossibleValue = node.classification;
+                node.classificationConfirmed = true;
+            }
+        }
+
+        return new InterviewStats(nodesAsked, permeationStatsForEachNodeAsked);
+    }
+
 
     @Override
     public String toString() {

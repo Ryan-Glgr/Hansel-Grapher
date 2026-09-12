@@ -38,4 +38,8 @@ public enum InterviewMode {
     BEST_BALANCE_RATIO_UNITY,
     BEST_BALANCE_RATIO_SHANNON_ENTROPY,
     BEST_BALANCE_RATIO_QUADRATIC,
+
+    USING_NORMALIZED_DATASET,                   // takes the normalized dataset, queries whichever nodes, and then permeates the classifications of each node as it goes.
+
+
 }

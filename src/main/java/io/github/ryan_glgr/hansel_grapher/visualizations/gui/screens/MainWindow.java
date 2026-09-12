@@ -127,6 +127,8 @@ public class MainWindow {
 //        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createBasicInterview(InterviewMode.BEST_MINIMUM_CONFIRMED));
 //        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createBreastCancerInterviewInPython(MLModel.MONOTONE_NEURAL_NETWORK));
         final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createHeartFailureInterview(InterviewMode.BEST_MINIMUM_CONFIRMED));
+//        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createAndRunNormalizedDataset("breast-cancer-wisconsin-diagnostic.csv"));
+
         interviewFuture.thenAccept(createdInterview -> {
             SwingUtilities.invokeLater(() -> {
                 this.interview = createdInterview;
