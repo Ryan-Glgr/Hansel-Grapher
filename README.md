@@ -79,3 +79,13 @@ brew install graphviz
 ## MACHINE LEARNING INTERVIEWS:
 - You will need to find a dataset which behaves monotonically. As a pre processing step, if the class labels are not already 0, 1, ...N, you will need to ctrl f and replace. For example if it is healthy, possibly cancer, definitely cancer, you would replace "healthy" with 0.
 - If an attribute behaves BACKWARDS, meaning that the value increasing is a bad thing, you will need to invert the meaning and values. For example if a 0 is the best, 10 being the worst, you would need to replace the values with 10 - <attribute value> for that attribute. This is so that we are always having attributes with values higher, lead to an increasing score.
+
+
+
+
+## TODO:
+- allow SME to directly edit low units in viz.
+- allow viz to load before or during interview (refactor to make use of interactive viz)
+- add specification of "impossible attribute combinations to interactive interview setup"
+- directly put all the nodes of a normalizedDataset into the visualization (permeating as possible?) to determine if there are monotonicity violations.
+- Conduct case studies on WBC, obesity, and against lincoln data.

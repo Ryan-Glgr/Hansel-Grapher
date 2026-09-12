@@ -860,10 +860,9 @@ public class Interview {
 
         if (ruleTrees != null && ruleTrees.length > 0) {
             sb.append('\n');
-            for (int classification = 0; classification < ruleTrees.length; classification++) {
-                final RuleNode tree = ruleTrees[classification];
+            for (final RuleNode tree : ruleTrees) {
                 if (tree != null) {
-                    sb.append(tree.toString(false, classification));
+                    sb.append(tree.toJson());
                 }
             }
         }

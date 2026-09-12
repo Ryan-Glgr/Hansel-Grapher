@@ -17,7 +17,7 @@ public class RuleCreation {
 
         return IntStream.range(0, lowUnitSet.size())
                 .mapToObj(classification ->
-                    RuleNode.createRuleNodes(new ArrayList<>(lowUnitSet.getOrDefault(classification, Set.of())), numAttributes))
+                    RuleNode.createRuleNodes(lowUnitSet.getOrDefault(classification, Set.of()), numAttributes))
                 .toArray(RuleNode[]::new);
     }
 }

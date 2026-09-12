@@ -172,7 +172,7 @@ public class LowUnitsFactory {
             for (final LowUnit lowUnit : lowUnits) {
                 if (LowUnit.Type.INCLUSIVE.equals(lowUnit.getLowUnitType()))
                     numInclusive++;
-                else
+                else if (LowUnit.Type.EXCLUSIVE.equals(lowUnit.getLowUnitType()))
                     numExclusive++;
             }
         }

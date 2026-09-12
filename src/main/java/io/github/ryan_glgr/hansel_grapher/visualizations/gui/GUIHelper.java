@@ -65,7 +65,7 @@ public class GUIHelper {
             cls = switch (lowUnitType) {
                 case INCLUSIVE -> String.format("%s%s%s", LEFT_FLOOR, temp.classification, RIGHT_FLOOR);
                 case EXCLUSIVE -> String.format("%s%s%s", LEFT_CEILING, temp.classification, RIGHT_CEILING);
-                case null -> String.format(" %s ", temp.classification);
+                case null, default -> String.format(" %s ", temp.classification);
             };
         }
         return new String[] { Arrays.toString(temp.values),"Classification: " + cls };
