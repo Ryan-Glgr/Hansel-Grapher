@@ -85,3 +85,4 @@ brew install graphviz
 - allow viz to load before or during interview (refactor to make use of interactive viz)
 - add specification of "impossible attribute combinations to interactive interview setup"
 - Conduct case studies on WBC, obesity, and against lincoln data.
+- allow LLM to explore datasets (create the prompt) and have it suggest which attributes are dependent on one another to be grouped
