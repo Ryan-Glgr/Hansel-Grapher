@@ -29,6 +29,11 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
     private static final float TEXT_PADDING_INSIDE_NODE = 1.5f;
     private static final float BORDER_THICKNESS_FRACTION = 0.15f; // inset of the fill quad within the border quad
 
+    // Text scales with zoom so it always occupies the same fraction of the node.
+    // Labels are only drawn once the text would fit at its native size (scale >= MIN_TEXT_SCALE).
+    private static final float MIN_TEXT_SCALE = 1.0f;
+    private static final float TEXT_FILL_FRACTION = 0.9f;
+
     private static final int POSITION_COMPONENTS = 2;   // x, y
     private static final int COLOR_COMPONENTS = 4;      // r, g, b, a
     private static final int VERTICES_PER_NODE = 6;
@@ -272,14 +277,25 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No node labels exist"));
 
-        final double lineHeight  = textRenderer.getBounds("Ag").getHeight();
-        final double totalHeight = lineHeight * sampleLabel.length;
-        final double longestLine = Arrays.stream(sampleLabel)
+        // Text metrics at the font's native size (scale = 1).
+        final double nativeLineHeight  = textRenderer.getBounds("Ag").getHeight();
+        final double nativeTotalHeight = nativeLineHeight * sampleLabel.length;
+        final double nativeLongestLine = Arrays.stream(sampleLabel)
                 .mapToDouble(line -> textRenderer.getBounds(line).getWidth())
                 .max().orElseThrow();
 
-        if (longestLine > nodeWidthPx - TEXT_PADDING_INSIDE_NODE) return;
-        if (totalHeight  > nodeHeightPx - TEXT_PADDING_INSIDE_NODE) return;
+        // The largest scale at which the label still fits inside the node. This is proportional to zoom,
+        // so the text grows and shrinks together with the boxes.
+        final float fitScale = (float) Math.min(
+                (nodeWidthPx  - TEXT_PADDING_INSIDE_NODE) / nativeLongestLine,
+                (nodeHeightPx - TEXT_PADDING_INSIDE_NODE) / nativeTotalHeight);
+
+        // Too small to be worth drawing: hide the text entirely.
+        if (fitScale < MIN_TEXT_SCALE) return;
+
+        final float textScale = fitScale * TEXT_FILL_FRACTION;
+        final double lineHeight  = nativeLineHeight  * textScale;
+        final double totalHeight = nativeTotalHeight * textScale;
 
         final int colMin = clamp((int) Math.floor((getLiveLeft()   - NODE_WIDTH / 2f) / COL_STEP), 0, columnX.length - 1);
         final int colMax = clamp((int) Math.ceil ((getLiveRight()  + NODE_WIDTH / 2f) / COL_STEP), 0, columnX.length - 1);
@@ -302,10 +318,11 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
 
                 final float startY = (float) (screenY + totalHeight / 2 - lineHeight);
                 for (int i = 0; i < lines.length; i++) {
-                    final double lineW = textRenderer.getBounds(lines[i]).getWidth();
-                    final int drawX = (int) (screenX - lineW / 2);
-                    final int drawY = (int) (startY - i * lineHeight);
-                    textRenderer.draw(lines[i], drawX, drawY);
+                    final double lineW = textRenderer.getBounds(lines[i]).getWidth() * textScale;
+                    final float drawX = (float) (screenX - lineW / 2);
+                    final float drawY = (float) (startY - i * lineHeight);
+                    // draw3D lets us pass a scale factor, so glyphs grow with the zoom level.
+                    textRenderer.draw3D(lines[i], drawX, drawY, 0f, textScale);
                 }
             }
         }

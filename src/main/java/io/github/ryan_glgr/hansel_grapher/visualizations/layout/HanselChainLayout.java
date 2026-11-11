@@ -19,8 +19,8 @@ import java.util.stream.Collectors;
 public class HanselChainLayout {
 
     // --- Layout constants, shared by every consumer of this layout ---
-    public static final float NODE_WIDTH = 4.0f;
-    public static final float NODE_HEIGHT = 2.0f;
+    public static final float NODE_WIDTH = 8.0f;
+    public static final float NODE_HEIGHT = 16.0f;
     public static final float SIDE_SPACING = NODE_WIDTH / 10f;
     public static final float VERTICAL_SPACING = NODE_HEIGHT / 6f;
     public static final float MARGIN = SIDE_SPACING + VERTICAL_SPACING;

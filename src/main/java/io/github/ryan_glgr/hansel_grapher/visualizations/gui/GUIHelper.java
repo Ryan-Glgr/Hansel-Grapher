@@ -5,8 +5,6 @@ import io.github.ryan_glgr.hansel_grapher.functionallogic.lowunits.LowUnit;
 
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Objects;
 
 public class GUIHelper {
 
@@ -20,6 +18,9 @@ public class GUIHelper {
     private static final float GOLDEN_RATIO = 0.618033988749895f;
     private static final float REGULAR_SATURATION = 0.6f;
     private static final float REGULAR_BRIGHTNESS = 0.95f;
+
+    private static final String INDENT = "  ";
+    private static final String CLASSIFICATION_KEY = "class";
 
     // Returns a Color object (with alpha baked in)
     public static Color getColorForClass(final int classification, final boolean isLowUnit) {
@@ -44,20 +45,93 @@ public class GUIHelper {
         return String.format("#%02x%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha());
     }
 
-    public static String nodeLabel(final Node temp, final boolean isLow) {
+    // ---------------------------------------------------------------------
+    // Attribute names
+    // ---------------------------------------------------------------------
 
-        final String cls;
-        if (Node.IMPOSSIBLE_CLASSIFICATION.equals(temp.classification)) {
-            cls = "N/A";
-        } else {
-            cls = (isLow)
-                ? String.format("%s%s%s", LEFT_FLOOR, temp.classification, RIGHT_FLOOR)
-                : String.format(" %s ", temp.classification);
+    // Default attribute names: x0 ... x(n-1)
+    private static String[] defaultAttributeNames(final int count) {
+        final String[] names = new String[count];
+        for (int i = 0; i < count; i++) {
+            names[i] = "x" + i;
         }
-        return Arrays.toString(temp.values) + "\\nClassification: " + cls;
+        return names;
     }
 
+    // Throws if the node/names can't be rendered together.
+    private static void validate(final Node node, final String[] attributeNames) {
+        if (node == null) {
+            throw new IllegalArgumentException("Node must not be null.");
+        }
+        if (node.values == null) {
+            throw new IllegalArgumentException("Node has no values to print.");
+        }
+        if (attributeNames == null) {
+            throw new IllegalArgumentException("Attribute names must not be null.");
+        }
+        if (attributeNames.length != node.values.length) {
+            throw new IllegalArgumentException(String.format(
+                    "Expected %d attribute names (one per node value) but got %d.",
+                    node.values.length, attributeNames.length));
+        }
+        for (int i = 0; i < attributeNames.length; i++) {
+            if (attributeNames[i] == null) {
+                throw new IllegalArgumentException("Attribute name at index " + i + " is null.");
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Labels
+    // ---------------------------------------------------------------------
+
+    // Same signature as before; now prints JSON-style using default names x0..xn.
+    // Lines are joined with a literal backslash-n for Graphviz.
+    public static String nodeLabel(final Node temp, final boolean isLow) {
+        if (temp == null || temp.values == null) {
+            throw new IllegalArgumentException("Node and its values must not be null.");
+        }
+        return nodeLabel(temp, isLow, defaultAttributeNames(temp.values.length));
+    }
+
+    // New overload: custom attribute names. Throws IllegalArgumentException for unsupported input
+    // (null node/values/names, or names count not matching the number of values).
+    public static String nodeLabel(final Node temp, final boolean isLow, final String[] attributeNames) {
+        validate(temp, attributeNames);
+        final LowUnit.Type type = isLow ? LowUnit.Type.INCLUSIVE : null;
+        final String[] lines = nodeLabelArray(temp, type, attributeNames);
+
+        final StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < lines.length; i++) {
+            if (i > 0) {
+                sb.append("\\n");
+            }
+            // quotes must be escaped inside a Graphviz label="..." string
+            sb.append(lines[i].replace("\"", "\\\""));
+        }
+        return sb.toString();
+    }
+
+    // Same signature as before; now returns JSON-style lines using default names x0..xn.
     public static String[] nodeLabelArray(final Node temp, final LowUnit.Type lowUnitType) {
+        if (temp == null || temp.values == null) {
+            throw new IllegalArgumentException("Node and its values must not be null.");
+        }
+        return nodeLabelArray(temp, lowUnitType, defaultAttributeNames(temp.values.length));
+    }
+
+    // New overload: custom attribute names. Returns one array element per line of pretty-printed JSON:
+    //
+    //   {
+    //     "x0": 1,
+    //     "x1": 2,
+    //     "classification": "⌊3⌋"
+    //   }
+    //
+    // Throws IllegalArgumentException for unsupported input (see validate).
+    public static String[] nodeLabelArray(final Node temp, final LowUnit.Type lowUnitType, final String[] attributeNames) {
+        validate(temp, attributeNames);
+
         final String cls;
         if (Node.IMPOSSIBLE_CLASSIFICATION.equals(temp.classification)) {
             cls = "N/A";
@@ -65,12 +139,22 @@ public class GUIHelper {
             cls = switch (lowUnitType) {
                 case INCLUSIVE -> String.format("%s%s%s", LEFT_FLOOR, temp.classification, RIGHT_FLOOR);
                 case EXCLUSIVE -> String.format("%s%s%s", LEFT_CEILING, temp.classification, RIGHT_CEILING);
-                case null, default -> String.format(" %s ", temp.classification);
+                case null, default -> String.format("%s", temp.classification);
             };
         }
-        return new String[] { Arrays.toString(temp.values),"Classification: " + cls };
+
+        final int n = attributeNames.length;
+        final String[] lines = new String[n + 1]; // "{" + n attributes + classification + "}"
+        for (int i = 0; i < n; i++) {
+            lines[i] = INDENT + jsonString(attributeNames[i]) + ": " + temp.values[i] + ",";
+        }
+        lines[n] = INDENT + jsonString(CLASSIFICATION_KEY) + ": " + jsonString(cls);
+        return lines;
     }
 
+    private static String jsonString(final String s) {
+        return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+    }
 
     public static ArrayList<ArrayList<Node>> sortChainsForVisualization(final ArrayList<ArrayList<Node>> chainSet){
 
