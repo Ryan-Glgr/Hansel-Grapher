@@ -20,8 +20,14 @@ done
 
 echo "=== run.sh starting (debug=${DEBUG}) ==="
 
-if [ "$DEBUG" -eq 1 ]; then
-  ./gradlew run --args="${APP_ARGS[*]}"
-else
-  ./gradlew run --quiet --args="${APP_ARGS[*]}"
+GRADLE_ARGS=(run)
+if [ "$DEBUG" -eq 0 ]; then
+  GRADLE_ARGS+=(--quiet)
 fi
+
+# Only pass --args when there is something to pass
+if [ "${#APP_ARGS[@]}" -gt 0 ]; then
+  GRADLE_ARGS+=(--args="${APP_ARGS[*]}")
+fi
+
+./gradlew "${GRADLE_ARGS[@]}"

@@ -908,21 +908,6 @@ public class Interview {
     public String toString() {
         final StringBuilder sb = new StringBuilder();
 
-        for (int classification = 0; classification < numClasses; classification++) {
-            final Set<LowUnit> adjustedLowUnits = lowUnitsByClass.get(classification);
-            if (adjustedLowUnits == null) continue;
-            sb.append("NUMBER OF ADJUSTED LOW UNITS FOR CLASS ")
-                    .append(classification)
-                    .append(":\t")
-                    .append(adjustedLowUnits.size())
-                    .append('\n');
-//            sb.append("ADJUSTED LOW UNITS FOR CLASS ")
-//                .append(classification)
-//                .append(":\n")
-//                .append(Util.printListOfNodes(new ArrayList<>(adjustedLowUnits.stream.map.something)))
-//                .append('\n');
-        }
-
         sb.append(interviewStats.interviewMode).append(" MODE\n");
         sb.append("TOTAL NUMBER OF NODES: ").append(interviewStats.numberOfNodes).append("\n");
         sb.append("\nTOTAL NUMBER OF CHAINS:\t\n")
@@ -930,6 +915,7 @@ public class Interview {
         sb.append("NUMBER OF QUESTIONS ASKED: ")
             .append(interviewStats.nodesAsked.size())
             .append('\n');
+
 
         final int totalAdjustedLowUnits = lowUnitsByClass.values().stream()
             .mapToInt(Set::size)
@@ -946,6 +932,8 @@ public class Interview {
                 }
             }
         }
+
+
 
         final int clausesInclusive = Arrays.stream(ruleTrees)
             .filter(Objects::nonNull)
@@ -967,6 +955,8 @@ public class Interview {
             .append(clausesExclusive + clausesInclusive)
             .append('\n');
 
+
+/*
         Arrays.stream(attributes)
                 .filter(attribute -> attribute.subFunction != null)
                 .forEach(attribute -> {
@@ -974,7 +964,7 @@ public class Interview {
                     sb.append("SUB-FUNCTION FOR ").append(attribute.name).append(":\n");
                     sb.append(attribute.subFunction);
                 });
-
+*/
         return sb.toString();
     }
 

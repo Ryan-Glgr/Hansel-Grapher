@@ -25,10 +25,9 @@ public class Main {
                 frame.setVisible(true);
             });
         } else {
-            InterviewStatsVisualizer.visualizeStatistics(InterviewCreationTestCases.createBasicInterviewWithSubfunctions(InterviewMode.TRADITIONAL_BINARY_SEARCH));
-//            for (final InterviewMode mode: InterviewMode.values()) {
-//                InterviewCreationTestCases.createHeartFailureInterview(mode);
-//            }
+            for (final InterviewMode mode: InterviewMode.values()) {
+                InterviewCreationTestCases.createHeartFailureInterview(mode);
+            }
         }
     }
 }
