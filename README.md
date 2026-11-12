@@ -81,8 +81,11 @@ brew install graphviz
 - If an attribute behaves BACKWARDS, meaning that the value increasing is a bad thing, you will need to invert the meaning and values. For example if a 0 is the best, 10 being the worst, you would need to replace the values with 10 - <attribute value> for that attribute. This is so that we are always having attributes with values higher, lead to an increasing score.
 
 ## TODO:
-- allow SME to directly edit low units in viz.
+- allow SME to directly edit low units in viz. - needs click detection, then a menu.
+    This menu should allow the user to permeate a new classification.
+
 - allow viz to load before or during interview (refactor to make use of interactive viz)
 - add specification of "impossible attribute combinations to interactive interview setup"
-- Conduct case studies on WBC, obesity, and against lincoln data.
+- conduct obesity study and write up. - changes needed to go from resolution to max k values.
+- make viz less stupid looking. update fonts to be centered, fix colors on exclusive units, ensure attribute/class names can be passed in. Make Exclusive low units a full border? Fix spacing of color/font edges.
 - allow LLM to explore datasets (create the prompt) and have it suggest which attributes are dependent on one another to be grouped

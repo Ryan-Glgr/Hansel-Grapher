@@ -1,6 +1,7 @@
 package io.github.ryan_glgr.hansel_grapher;
 
 import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.InterviewMode;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.MLModel;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.screens.MainWindow;
 import io.github.ryan_glgr.hansel_grapher.visualizations.InterviewStatsVisualizer;
 
@@ -25,9 +26,12 @@ public class Main {
                 frame.setVisible(true);
             });
         } else {
-            for (final InterviewMode mode: InterviewMode.values()) {
-                InterviewCreationTestCases.createHeartFailureInterview(mode);
-            }
+//            for (final InterviewMode mode: InterviewMode.values()) {
+//                InterviewCreationTestCases.createHeartFailureInterview(mode);
+//            }
+
+            InterviewCreationTestCases.createBreastCancerInterviewInPython(MLModel.MONOTONE_NEURAL_NETWORK);
+
         }
     }
 }

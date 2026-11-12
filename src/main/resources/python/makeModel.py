@@ -124,10 +124,20 @@ def train_and_evaluate(clf, X: np.ndarray, y: np.ndarray) -> None:
     report     = classification_report(y_test, y_pred, zero_division=1)
     cv_scores  = cross_val_score(clf, X, y, cv=10)
 
+    # ------------------------------------------------------------------
+    # Existing overall metrics
+    # ------------------------------------------------------------------
     print(f"[makeModel] Classifier : {clf.__class__.__name__}", file=sys.stderr)
     print(f"[makeModel] Test score : {test_score:.4f}",         file=sys.stderr)
     print(f"[makeModel] CV mean    : {cv_scores.mean():.4f}  std: {cv_scores.std():.4f}", file=sys.stderr)
     print(report, file=sys.stderr)
+
+    # ------------------------------------------------------------------
+    # New: per‑fold CV accuracy (simple 10‑fold cross‑validation)
+    # ------------------------------------------------------------------
+    for fold, score in enumerate(cv_scores, start=1):
+        # cv_scores is an array of accuracies for each test fold
+        print(f"[makeModel] CV fold {fold} accuracy: {score:.4f}", file=sys.stderr)
 
 
 # ---------------------------------------------------------------------------
