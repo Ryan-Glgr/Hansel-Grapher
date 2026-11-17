@@ -167,10 +167,10 @@ public class ExperimentalFunctionalities {
             permeationStats = new PermeationStats(0, 0, 0, new RoaringBitmap(), new RoaringBitmap());
         } else {
             // Set the floor of everyone above to AT LEAST this value
-            final PermeationStats aboveStats = node.expand(node.classification, true);
+            final PermeationStats aboveStats = node.expand(newClassification, true);
 
             // Set the ceiling of everyone below to AT MOST this value
-            final PermeationStats belowStats = node.expand(node.classification, false);
+            final PermeationStats belowStats = node.expand(newClassification, false);
 
             // get our final stats
             permeationStats = new PermeationStats(aboveStats, belowStats);

@@ -166,6 +166,7 @@ public class Interview {
         // this is where the magic happens
         this.interviewStats = conductInterview(interviewMode);
 
+
         System.out.println("Interview Complete. Creating Rule Trees...");
         // once the interview is conducted, we are in the Monotone ordinal function recreation stage:
         this.lowUnitsByClass = LowUnitsFactory.findPrunedLowUnits(hanselChains);
@@ -881,7 +882,8 @@ public class Interview {
 
             // get the datapoint for this node.
             final Node n = nodeToAsk.get();
-            final Integer classification = dataInDataset.get(Node.hash(n.values))[n.values.length - 1];
+            // NOT length - 1 because n.values is already one shorter than the datapoint in the map. Since the point in the map has class at position N
+            final Integer classification = dataInDataset.get(Node.hash(n.values))[n.values.length];
 
             permeationStatsForEachNodeAsked.add(ExperimentalFunctionalities.permeateClassificationAllowingMonotonicityViolations(n, classification));
             nodesAsked.add(n);
@@ -900,9 +902,26 @@ public class Interview {
             }
         }
 
+        for (final Map.Entry<Integer, Integer[]> datapointToNodeHash : dataInDataset.entrySet()) {
+            final Integer nodeHash = datapointToNodeHash.getKey();
+            final Integer[] datapoint = datapointToNodeHash.getValue();
+            final Integer expectedClassification = datapoint[datapoint.length - 1];
+
+            final Node nodeForThisDatapoint = data.get(nodeHash);
+            if (!nodeForThisDatapoint.classification.equals(expectedClassification)) {
+                System.out.println("\n\n========================================");
+                System.out.println("CLASSIFICATION MISMATCH DETECTED!");
+                System.out.println("========================================");
+                System.out.println("Node values: " + Arrays.toString(nodeForThisDatapoint.values));
+                System.out.println("Actual classification: " + nodeForThisDatapoint.classification);
+                System.out.println("Expected classification: " + expectedClassification);
+                System.out.println("Normalized datapoint: " + Arrays.toString(datapoint));
+                System.out.println("========================================\n\n");
+                nodeForThisDatapoint.classification = Node.IMPOSSIBLE_CLASSIFICATION;
+            }
+        }
         return new InterviewStats(nodesAsked, permeationStatsForEachNodeAsked);
     }
-
 
     @Override
     public String toString() {

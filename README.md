@@ -86,6 +86,6 @@ brew install graphviz
 
 - allow viz to load before or during interview (refactor to make use of interactive viz)
 - add specification of "impossible attribute combinations to interactive interview setup"
-- conduct obesity study and write up. - changes needed to go from resolution to max k values.
 - make viz less stupid looking. update fonts to be centered, fix colors on exclusive units, ensure attribute/class names can be passed in. Make Exclusive low units a full border? Fix spacing of color/font edges.
 - allow LLM to explore datasets (create the prompt) and have it suggest which attributes are dependent on one another to be grouped
+- Update WBC with findings of monotonicity violations? 

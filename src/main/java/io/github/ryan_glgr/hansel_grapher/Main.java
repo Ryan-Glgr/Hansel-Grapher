@@ -1,5 +1,6 @@
 package io.github.ryan_glgr.hansel_grapher;
 
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.Interview;
 import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.InterviewMode;
 import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.MLModel;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.screens.MainWindow;
@@ -30,8 +31,12 @@ public class Main {
 //                InterviewCreationTestCases.createHeartFailureInterview(mode);
 //            }
 
-            InterviewCreationTestCases.createBreastCancerInterviewInPython(MLModel.MONOTONE_NEURAL_NETWORK);
 
+
+//            InterviewCreationTestCases.createBreastCancerInterviewInPython(MLModel.MONOTONE_NEURAL_NETWORK);
+//            InterviewCreationTestCases.createHeartFailureInterviewInPython(MLModel.MONOTONE_NEURAL_NETWORK);
+            final Interview interview = InterviewCreationTestCases.createAndRunNormalizedDataset("breast-cancer-wisconsin-diagnostic.csv");
+            System.out.println(interview);
         }
     }
 }

@@ -297,7 +297,7 @@ public class InterviewCreationTestCases {
                 new Integer[]{2,0,0,0,0,0,0,1,1,0,0,0}  // (x1≥2)x8x9
     ));
 
-    public static Interview createHeartFailureInterview(final InterviewMode interviewMode) {
+    public static Interview createHeartFailureInterviewFromMOEKAUnits(final InterviewMode interviewMode) {
 
         // k values based on actual rules (paper table has discrepancies)
         // Paper claims 27,648 nodes: 3×2×4×2×2×2×1×2×2×2×2×3 = 27,648 ✓
@@ -333,4 +333,27 @@ public class InterviewCreationTestCases {
         System.out.println(interview);
         return interview;
     }
+
+    public static Interview createHeartFailureInterviewInPython(final MLModel mlModel) {
+        final String heartFailureDataset = String.join(File.separator, DATASETS_DIR, "heart_failure_clinical_records_dataset.csv");
+        final NormalizedDataset normalizedDataset;
+        try {
+            normalizedDataset = DatasetNormalizer.loadOrCreateNormalizedDataset(heartFailureDataset,
+                    DatasetNormalizer.NormalizationMode.UNIQUE_INTEGERS_SOME_RESOLUTION,
+                    DATASET_RESOLUTION);
+
+        } catch (final IOException ioException) {
+            throw new RuntimeException(ioException);
+        }
+        final Interview interview = new Interview(normalizedDataset, mlModel);
+        System.out.println("Beginning interview. k values: " + Arrays.toString(interview.kVals));
+        System.out.println("Number of nodes: " + interview.data.size());
+        interview.beginInterview(InterviewMode.BEST_MINIMUM_CONFIRMED);
+        System.out.println("INTERVIEW COMPLETE!");
+        System.out.println(interview);
+        return interview;
+    }
+
+
+
 }
