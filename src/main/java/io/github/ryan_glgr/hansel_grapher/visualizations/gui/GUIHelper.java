@@ -12,11 +12,11 @@ public class GUIHelper {
     private static final String RIGHT_FLOOR = "⌋";
     private static final String LEFT_CEILING = "⌈";
     private static final String RIGHT_CEILING = "⌉";
-    private static final float NON_LOW_UNIT_alpha = 0.65f;
-    private static final float LOW_UNIT_ALPHA = 0.85f;
+    private static final float ALPHA = 1.0f;
     private static final int IMPOSSIBLE_CLASS_GREY = 140;
     private static final float GOLDEN_RATIO = 0.618033988749895f;
     private static final float REGULAR_SATURATION = 0.6f;
+    private static final float LOW_UNIT_SATURATION = 1.0f;
     private static final float REGULAR_BRIGHTNESS = 0.95f;
 
     private static final String INDENT = "  ";
@@ -26,17 +26,17 @@ public class GUIHelper {
     public static Color getColorForClass(final int classification, final boolean isLowUnit) {
 
         if (classification == Node.IMPOSSIBLE_CLASSIFICATION) {
-            final int alphaInt = Math.round((isLowUnit ? LOW_UNIT_ALPHA : NON_LOW_UNIT_alpha) * 255);
+            final int alphaInt = Math.round(ALPHA * 255);
             return new Color(IMPOSSIBLE_CLASS_GREY, IMPOSSIBLE_CLASS_GREY, IMPOSSIBLE_CLASS_GREY, alphaInt);
         }
 
         final float saturation = isLowUnit
-                ? 1.0f
+                ? LOW_UNIT_SATURATION
                 : REGULAR_SATURATION;
         final float hue = (classification * GOLDEN_RATIO) % 1.0f;
         final int rgb = Color.HSBtoRGB(hue, saturation, REGULAR_BRIGHTNESS);
         final Color baseColor = new Color(rgb);
-        final int alphaInt = Math.round((isLowUnit ? LOW_UNIT_ALPHA : NON_LOW_UNIT_alpha) * 255);
+        final int alphaInt = Math.round(ALPHA * 255);
         return new Color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), alphaInt);
     }
 

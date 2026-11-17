@@ -125,10 +125,10 @@ public class MainWindow {
 //        final CompletableFuture<Interview> interviewFuture = functionWindow.createFunctionAndReturnInterviewObject("Create Interview");
 
 //        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createBasicInterview(InterviewMode.BEST_MINIMUM_CONFIRMED));
-//        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createBreastCancerInterviewInPython(MLModel.MONOTONE_NEURAL_NETWORK));
-//        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createHeartFailureInterview(InterviewMode.BEST_MINIMUM_CONFIRMED));
+        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createBreastCancerInterviewInPython(MLModel.MONOTONE_NEURAL_NETWORK));
+//        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createHeartFailureInterviewFromMOEKAUnits(InterviewMode.BEST_MINIMUM_CONFIRMED));
 //        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createAndRunNormalizedDataset("breast-cancer-wisconsin-diagnostic.csv"));
-        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createAndRunNormalizedDataset("breast-cancer-wisconsin-diagnostic.csv"));
+//        final CompletableFuture<Interview> interviewFuture = CompletableFuture.completedFuture(InterviewCreationTestCases.createAndRunNormalizedDataset("breast-cancer-wisconsin-diagnostic.csv"));
 
 
 

@@ -13,6 +13,7 @@ import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.PanZoomRe
 import io.github.ryan_glgr.hansel_grapher.visualizations.layout.HanselChainLayout;
 
 import java.awt.*;
+import java.awt.geom.Rectangle2D;
 import java.io.InputStream;
 import java.nio.FloatBuffer;
 import java.nio.charset.StandardCharsets;
@@ -28,6 +29,9 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
     private static final int FONT_SIZE = 14;
     private static final float TEXT_PADDING_INSIDE_NODE = 1.5f;
     private static final float BORDER_THICKNESS_FRACTION = 0.15f; // inset of the fill quad within the border quad
+    private static final float VERTICAL_INSET_FOR_EXCLUSIVE_UNIT_COLOR = NODE_HEIGHT * BORDER_THICKNESS_FRACTION;
+    private static final float HORIZONTAL_INSET_FOR_EXCLUSIVE_UNIT_COLOR = NODE_WIDTH * BORDER_THICKNESS_FRACTION;
+
 
     // Text scales with zoom so it always occupies the same fraction of the node.
     // Labels are only drawn once the text would fit at its native size (scale >= MIN_TEXT_SCALE).
@@ -82,7 +86,6 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
         final int regularSize = layout.getTotalNodes() * VERTICES_PER_NODE * POSITION_COMPONENTS;
         final FloatBuffer buffer = Buffers.newDirectFloatBuffer(regularSize + extraSizeForExclusiveLowUnits);
 
-        final float insetY = NODE_HEIGHT * BORDER_THICKNESS_FRACTION;
 
         for (int c = 0; c < nodeGrid.length; c++) {
             final float cx = layout.getX(c);
@@ -99,7 +102,7 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
 
                 if (LowUnit.Type.EXCLUSIVE.equals(layout.getLowUnitType(node))) {
                     emitQuad(buffer, l, b, r, t);                       // border: full node size
-                    emitQuad(buffer, l, b + insetY, r, t - insetY);     // fill: inset
+                    emitQuad(buffer, l + HORIZONTAL_INSET_FOR_EXCLUSIVE_UNIT_COLOR, b + VERTICAL_INSET_FOR_EXCLUSIVE_UNIT_COLOR, r - HORIZONTAL_INSET_FOR_EXCLUSIVE_UNIT_COLOR, t - VERTICAL_INSET_FOR_EXCLUSIVE_UNIT_COLOR);     // fill: inset
                 } else {
                     emitQuad(buffer, l, b, r, t);
                 }
@@ -318,10 +321,25 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
 
                 final float startY = (float) (screenY + totalHeight / 2 - lineHeight);
                 for (int i = 0; i < lines.length; i++) {
-                    final double lineW = textRenderer.getBounds(lines[i]).getWidth() * textScale;
-                    final float drawX = (float) (screenX - lineW / 2);
+                    // 1.  Get the unscaled bounds for the whole line
+                    final Rectangle2D bounds = textRenderer.getBounds(lines[i]);
+
+                    // 2.  Compute the real distance from the baseline to the right‑most pixel
+                    final double baselineToRight = bounds.getX() + bounds.getWidth();   // still unscaled
+
+                    // 3.  Scale everything
+                    final double scaledLineW      = bounds.getWidth() * textScale;      // how wide the string looks
+                    final double scaledRightEdge  = baselineToRight * textScale;        // distance to right edge
+
+                    // 4.  The “offset” you want to add to the X position
+                    //     (negative when the right edge is to the *right* of the centre)
+                    final double offset = (scaledLineW - scaledRightEdge) / 2.0;
+
+                    // 5.  Final X: centre‑based *plus* the offset
+                    final float drawX = (float) (screenX - scaledLineW / 2.0 + offset);
                     final float drawY = (float) (startY - i * lineHeight);
-                    // draw3D lets us pass a scale factor, so glyphs grow with the zoom level.
+
+                    // 6.  Render
                     textRenderer.draw3D(lines[i], drawX, drawY, 0f, textScale);
                 }
             }
