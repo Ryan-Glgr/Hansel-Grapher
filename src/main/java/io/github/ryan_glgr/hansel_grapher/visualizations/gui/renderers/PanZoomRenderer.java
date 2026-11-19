@@ -18,7 +18,12 @@ import java.awt.event.*;
 public abstract class PanZoomRenderer
         implements GLEventListener, MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
 
-    private static final float PAN_AMOUNT = 0.10f;
+    // --- Arrow-key pan acceleration ---
+    private static final float BASE_STEP_FRACTION = 0.01f;  // fraction of visible width per key event at start
+    private static final float MAX_SPEED_MULT     = 100f;    // top speed relative to the starting speed
+    private static final float RAMP_SECONDS       = 1.0f;   // time of continuous holding to reach top speed
+    private static final long  HOLD_GAP_NANOS    = 50_000_000L; // gap longer than this = a new press, not a hold. This is 50ms
+    private static final float ONE_SECOND_IN_NANOS = 1_000_000_000f;
 
     // --- Pan / zoom state (all on the EDT) ---
     private float panX    = 0f;
@@ -133,6 +138,10 @@ public abstract class PanZoomRenderer
         final float hw = (maxX - minX) / 2f / zoom;
         final float hh = (maxY - minY) / 2f / zoom;
 
+        // Clamp pan so the view never leaves the world bounds
+        panX = clampPan(panX, cx, hw, b[0], b[1]);
+        panY = clampPan(panY, cy, hh, b[2], b[3]);
+
         // Apply pan (in world units)
         final float left   = cx - hw + panX;
         final float right  = cx + hw + panX;
@@ -146,6 +155,23 @@ public abstract class PanZoomRenderer
         liveTop = top;
 
         pendingProjection = orthographicMatrix(left, right, bottom, top, -1f, 1f);
+    }
+
+    /**
+     * Returns a pan value that keeps the visible range inside [worldMin, worldMax].
+     * If the view is larger than the world on this axis, it is centered instead.
+     */
+    private static float clampPan(final float pan,
+                                  final float center,
+                                  final float halfView,
+                                  final float worldMin,
+                                  final float worldMax) {
+        if (halfView * 2f >= worldMax - worldMin) {
+            return (worldMin + worldMax) / 2f - center;
+        }
+        final float newCenter = Math.max(worldMin + halfView,
+                Math.min(worldMax - halfView, center + pan));
+        return newCenter - center;
     }
 
     // -----------------------------------------------------------------------
@@ -201,13 +227,39 @@ public abstract class PanZoomRenderer
         rebuildProjection();
     }
 
+
+
+    private long holdStartNanos = 0;
+    private long lastKeyNanos   = 0;
+
     @Override
     public void keyPressed(final KeyEvent e) {
-        switch (e.getKeyCode()) {
-            case KeyEvent.VK_LEFT  -> panX -= PAN_AMOUNT * zoom;
-            case KeyEvent.VK_RIGHT -> panX += PAN_AMOUNT * zoom;
-            case KeyEvent.VK_UP    -> panY += PAN_AMOUNT * zoom;
-            case KeyEvent.VK_DOWN  -> panY -= PAN_AMOUNT * zoom;
+        final int code = e.getKeyCode();
+        if (code != KeyEvent.VK_LEFT && code != KeyEvent.VK_RIGHT
+                && code != KeyEvent.VK_UP && code != KeyEvent.VK_DOWN) {
+            return;
+        }
+
+        // Auto-repeat fires keyPressed repeatedly. Treat events close together as one continuous hold.
+        final long now = System.nanoTime();
+        if (now - lastKeyNanos > HOLD_GAP_NANOS) {
+            holdStartNanos = now;
+        }
+        lastKeyNanos = now;
+
+        // Ease-in ramp: slow start, accelerating toward max speed
+        final float t = Math.min(1f, (now - holdStartNanos) / ONE_SECOND_IN_NANOS / RAMP_SECONDS);
+        final float speed = 1f + (MAX_SPEED_MULT - 1f) * t * t;
+
+        // Step is relative to what's currently visible, so it feels the same at any zoom level
+        final float visibleW = getLiveRight() - getLiveLeft();
+        final float visibleH = getLiveTop() - getLiveBottom();
+
+        switch (code) {
+            case KeyEvent.VK_LEFT  -> panX -= visibleW * BASE_STEP_FRACTION * speed;
+            case KeyEvent.VK_RIGHT -> panX += visibleW * BASE_STEP_FRACTION * speed;
+            case KeyEvent.VK_UP    -> panY += visibleH * BASE_STEP_FRACTION * speed;
+            case KeyEvent.VK_DOWN  -> panY -= visibleH * BASE_STEP_FRACTION * speed;
         }
         rebuildProjection();
     }
