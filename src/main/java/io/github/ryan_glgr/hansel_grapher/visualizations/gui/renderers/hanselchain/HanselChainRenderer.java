@@ -28,10 +28,6 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
 
     private static final int FONT_SIZE = 18;
     private static final float TEXT_PADDING_INSIDE_NODE = 1.5f;
-    private static final float BORDER_THICKNESS_FRACTION = 0.15f; // inset of the fill quad within the border quad
-    private static final float VERTICAL_INSET_FOR_EXCLUSIVE_UNIT_COLOR = NODE_HEIGHT * BORDER_THICKNESS_FRACTION;
-    private static final float HORIZONTAL_INSET_FOR_EXCLUSIVE_UNIT_COLOR = NODE_WIDTH * BORDER_THICKNESS_FRACTION;
-
 
     // Text scales with zoom so it always occupies the same fraction of the node.
     // Labels are only drawn once the text would fit at its native size (scale >= MIN_TEXT_SCALE).
@@ -40,7 +36,8 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
 
     private static final int POSITION_COMPONENTS = 2;   // x, y
     private static final int COLOR_COMPONENTS = 4;      // r, g, b, a
-    private static final int VERTICES_PER_NODE = 6;
+    private static final int VERTICES_PER_QUAD = 6;
+    private static final int VERTICES_PER_TRIANGLE = 3;
 
     private static final int VBO_POSITIONS = 0;         // vboIds[0] -> positions, never updated
     private static final int VBO_COLORS    = 1;         // vboIds[1] -> colors, updated on dirty
@@ -82,10 +79,10 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
 
     private FloatBuffer buildPositionBuffer() {
         final Node[][] nodeGrid = layout.getNodeGrid();
-        final int extraSizeForExclusiveLowUnits = layout.getNumExclusiveLowUnits() * VERTICES_PER_NODE * POSITION_COMPONENTS;
-        final int regularSize = layout.getTotalNodes() * VERTICES_PER_NODE * POSITION_COMPONENTS;
+        final int regularSize = layout.getTotalNodes() * VERTICES_PER_QUAD * POSITION_COMPONENTS;
+        final int extraSizeForExclusiveLowUnits =
+                layout.getNumExclusiveLowUnits() * VERTICES_PER_TRIANGLE * POSITION_COMPONENTS;
         final FloatBuffer buffer = Buffers.newDirectFloatBuffer(regularSize + extraSizeForExclusiveLowUnits);
-
 
         for (int c = 0; c < nodeGrid.length; c++) {
             final float cx = layout.getX(c);
@@ -102,7 +99,13 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
 
                 if (LowUnit.Type.EXCLUSIVE.equals(layout.getLowUnitType(node))) {
                     emitQuad(buffer, l, b, r, t);                       // border: full node size
-                    emitQuad(buffer, l + HORIZONTAL_INSET_FOR_EXCLUSIVE_UNIT_COLOR, b + VERTICAL_INSET_FOR_EXCLUSIVE_UNIT_COLOR, r - HORIZONTAL_INSET_FOR_EXCLUSIVE_UNIT_COLOR, t - VERTICAL_INSET_FOR_EXCLUSIVE_UNIT_COLOR);     // fill: inset
+                    emitTriangle(
+                            buffer,
+                            l, t,
+                            r, t,
+                            // get the middle x, then go halfway down the rectangle.
+                            (l + r) / 2f, t - (0.5f) * NODE_HEIGHT
+                    );
                 } else {
                     emitQuad(buffer, l, b, r, t);
                 }
@@ -122,11 +125,22 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
         buffer.put(l); buffer.put(t);
     }
 
+    private static void emitTriangle(
+            final FloatBuffer buffer,
+            final float x1, final float y1,
+            final float x2, final float y2,
+            final float x3, final float y3) {
+
+        buffer.put(x1); buffer.put(y1);
+        buffer.put(x2); buffer.put(y2);
+        buffer.put(x3); buffer.put(y3);
+    }
+
     // [r, g, b, a] per node — rebuilt whenever classifications change.
     private FloatBuffer buildColorBuffer() {
         final Node[][] nodeGrid = layout.getNodeGrid();
-        final int extraBufferSizeForExclusiveLowUnits = layout.getNumExclusiveLowUnits() * VERTICES_PER_NODE * COLOR_COMPONENTS;
-        final int regularBufferSize = layout.getTotalNodes() * VERTICES_PER_NODE * COLOR_COMPONENTS;
+        final int extraBufferSizeForExclusiveLowUnits =
+                layout.getNumExclusiveLowUnits() * VERTICES_PER_TRIANGLE * COLOR_COMPONENTS;        final int regularBufferSize = layout.getTotalNodes() * VERTICES_PER_QUAD * COLOR_COMPONENTS;
         final FloatBuffer buffer = Buffers.newDirectFloatBuffer(regularBufferSize + extraBufferSizeForExclusiveLowUnits);
 
         for (final Node[] chain : nodeGrid) {
@@ -140,14 +154,19 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
                         : (node.classification + classificationColorShuffleCounter) % numClasses;
 
                 final boolean isExclusiveLowUnit = LowUnit.Type.EXCLUSIVE.equals(lowUnitType);
+                final boolean colorAsALowUnit = Objects.nonNull(lowUnitType) && !isExclusiveLowUnit;
+                // color the regular rectangle
+                populateColorBuffer(nodeClassWithColorShuffle, colorAsALowUnit, VERTICES_PER_QUAD, buffer);
+
+                // add the triangle to the top for an exclusive low unit
                 if (isExclusiveLowUnit) {
                     final int exclusiveNodeTargetClass = node.classification + 1 == numClasses
                             ? Node.IMPOSSIBLE_CLASSIFICATION
                             : (node.classification + classificationColorShuffleCounter + 1) % numClasses;
-                    populateColorBuffer(exclusiveNodeTargetClass, true, buffer);
+                    // for an exclusive low unit, we color only the portion which is for the NEXT class with the "low unit color changes"
+                    populateColorBuffer(exclusiveNodeTargetClass, true,
+                            VERTICES_PER_TRIANGLE, buffer);
                 }
-                final boolean colorAsALowUnit = Objects.nonNull(lowUnitType) && !isExclusiveLowUnit;
-                populateColorBuffer(nodeClassWithColorShuffle, colorAsALowUnit, buffer);
             }
         }
 
@@ -155,13 +174,17 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
         return buffer;
     }
 
-    private void populateColorBuffer(final int classification, final boolean isLowUnit, final FloatBuffer buffer) {
+    private void populateColorBuffer(
+            final int classification,
+            final boolean isLowUnit,
+            final int vertexCount,
+            final FloatBuffer buffer) {
         final Color color = GUIHelper.getColorForClass(classification, isLowUnit);
         final float rC = color.getRed() / 255f;
         final float gC = color.getGreen() / 255f;
         final float bC = color.getBlue() / 255f;
         final float aC = color.getAlpha() / 255f;
-        for (int i = 0; i < VERTICES_PER_NODE; i++) {
+        for (int i = 0; i < vertexCount; i++) {
             buffer.put(rC);
             buffer.put(gC);
             buffer.put(bC);
@@ -255,7 +278,9 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
         }
 
         gl.glBindVertexArray(vaoId);
-        gl.glDrawArrays(GL3.GL_TRIANGLES, 0, (layout.getTotalNodes() + layout.getNumExclusiveLowUnits()) * VERTICES_PER_NODE);
+        final int numberOfVertices = layout.getTotalNodes() * VERTICES_PER_QUAD
+                + layout.getNumExclusiveLowUnits() * VERTICES_PER_TRIANGLE;
+        gl.glDrawArrays(GL3.GL_TRIANGLES, 0, numberOfVertices);
         gl.glBindVertexArray(0);
         gl.glUseProgram(0);
         drawLabels();
