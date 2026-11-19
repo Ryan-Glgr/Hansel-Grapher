@@ -6,6 +6,7 @@ import com.jogamp.opengl.GLProfile;
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.util.Animator;
 import io.github.ryan_glgr.hansel_grapher.InterviewCreationTestCases;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.Node;
 import io.github.ryan_glgr.hansel_grapher.stats.InterviewStats;
 import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.Interview;
 import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.InterviewMode;
@@ -33,9 +34,9 @@ public class MainWindow {
     private final JButton newInterviewButton;
     private final JButton changeColorsButton;
 
-    private static final String HANSEL_CHAIN_VIEW = "HANSEL_CHAIN_VIEW";
-    private static final String EXPANSION_VIEW = "EXPANSION_VIEW";
-    private static final String RULE_TREE_VIEW = "RULE_TREE_VIEW";
+    public static final String HANSEL_CHAIN_VIEW = "HANSEL_CHAIN_VIEW";
+    public static final String EXPANSION_VIEW = "EXPANSION_VIEW";
+    public static final String RULE_TREE_VIEW = "RULE_TREE_VIEW";
     private static final String NO_INTERVIEW_YET = "NO_INTERVIEW_YET";
 
     // change the field:
@@ -43,6 +44,7 @@ public class MainWindow {
 
     private GLEventListener currentListener;
     private String currentView;
+    public Node selectedNode;
 
     private final JButton hanselChainsButton;
     private final JButton expansionsButton;
@@ -80,15 +82,15 @@ public class MainWindow {
 
         hanselChainsButton = new JButton("View Hansel Chains.");
         hanselChainsButton.addActionListener(e ->
-                SwingUtilities.invokeLater(() -> handleVisualizationChange(HANSEL_CHAIN_VIEW)));
+                SwingUtilities.invokeLater(() -> handleVisualizationChange(HANSEL_CHAIN_VIEW, selectedNode)));
 
         expansionsButton = new JButton("View Node Expansions.");
         expansionsButton.addActionListener(e ->
-                SwingUtilities.invokeLater(() -> handleVisualizationChange(EXPANSION_VIEW)));
+                SwingUtilities.invokeLater(() -> handleVisualizationChange(EXPANSION_VIEW, selectedNode)));
 
         ruleTreesButton = new JButton("View Rule Trees.");
         ruleTreesButton.addActionListener(e ->
-                SwingUtilities.invokeLater(() -> handleVisualizationChange(RULE_TREE_VIEW)));
+                SwingUtilities.invokeLater(() -> handleVisualizationChange(RULE_TREE_VIEW, selectedNode)));
 
         exportVisualizationsButton = new JButton("Save Visualizations");
         exportVisualizationsButton.addActionListener(e ->
@@ -101,7 +103,7 @@ public class MainWindow {
         changeColorsButton = new JButton("Shuffle Classification Colors");
         changeColorsButton.addActionListener(e -> {
             classificationColorShuffleCounter++;
-            handleVisualizationChange(currentView);
+            handleVisualizationChange(currentView, this.selectedNode);
         });
 
         buttonPanel = new JPanel();
@@ -135,7 +137,7 @@ public class MainWindow {
         interviewFuture.thenAccept(createdInterview -> {
             SwingUtilities.invokeLater(() -> {
                 this.interview = createdInterview;
-                handleVisualizationChange(HANSEL_CHAIN_VIEW);
+                handleVisualizationChange(HANSEL_CHAIN_VIEW, null);
                 JOptionPane.showMessageDialog(mainPanel,
                         "Interview ran successfully.",
                         "Success",
@@ -184,7 +186,8 @@ public class MainWindow {
         }
     }
 
-    private void handleVisualizationChange(final String viewToApply) {
+    public void handleVisualizationChange(final String viewToApply, final Node nodeSelected) {
+        this.selectedNode = nodeSelected;
         if (Objects.isNull(interview)) {
             JOptionPane.showMessageDialog(mainPanel,
                     "Please conduct an interview first.",
@@ -195,8 +198,8 @@ public class MainWindow {
         currentView = viewToApply;
 
         final GLEventListener next = switch (currentView) {
-            case HANSEL_CHAIN_VIEW -> new HanselChainRenderer(interview, classificationColorShuffleCounter);
-            case EXPANSION_VIEW -> new ExpansionRenderer(interview, classificationColorShuffleCounter);
+            case HANSEL_CHAIN_VIEW -> new HanselChainRenderer(interview, classificationColorShuffleCounter, this);
+            case EXPANSION_VIEW -> new ExpansionRenderer(interview, nodeSelected, classificationColorShuffleCounter,this);
             case RULE_TREE_VIEW -> new RuleTreeRenderer(interview, classificationColorShuffleCounter);
             default -> new BlankRenderer();
         };

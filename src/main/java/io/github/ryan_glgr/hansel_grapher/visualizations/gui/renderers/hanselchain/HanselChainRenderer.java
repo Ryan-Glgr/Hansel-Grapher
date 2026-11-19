@@ -11,6 +11,8 @@ import io.github.ryan_glgr.hansel_grapher.functionallogic.lowunits.LowUnit;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.GLHelper;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.GUIHelper;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.PanZoomRenderer;
+import io.github.ryan_glgr.hansel_grapher.visualizations.gui.screens.MainWindow;
+import io.github.ryan_glgr.hansel_grapher.visualizations.gui.screens.NodeExplorer;
 import io.github.ryan_glgr.hansel_grapher.visualizations.layout.HanselChainLayout;
 
 import java.awt.*;
@@ -20,6 +22,8 @@ import java.nio.FloatBuffer;
 import java.util.*;
 
 import static io.github.ryan_glgr.hansel_grapher.visualizations.gui.GLHelper.SHADER_LOG_BUFFER_SIZE;
+import static io.github.ryan_glgr.hansel_grapher.visualizations.gui.screens.MainWindow.EXPANSION_VIEW;
+import static io.github.ryan_glgr.hansel_grapher.visualizations.gui.screens.MainWindow.HANSEL_CHAIN_VIEW;
 import static io.github.ryan_glgr.hansel_grapher.visualizations.layout.HanselChainLayout.*;
 
 public class HanselChainRenderer extends PanZoomRenderer implements LiveInterviewVisualizer {
@@ -60,22 +64,23 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
     private final int numClasses;
     private final HanselChainLayout layout;
 
-    // Identifies both the node and its position in the layout.
-    private record NodeHit(Node node, int column, int row) {
-    }
-
     // Desired hover state, potentially updated by the AWT event thread.
     private volatile NodeHit hoveredHit;
 
     // Last hover state uploaded to the GPU. Accessed only by the GL thread.
     private NodeHit renderedHoveredHit;
 
-    public HanselChainRenderer(final Interview interview, final int classificationColorShuffleCounter) {
+    private final MainWindow parentWindow;
+    private final Interview interview;
+
+    public HanselChainRenderer(final Interview interview, final int classificationColorShuffleCounter, final MainWindow parentWindow) {
 
         super(classificationColorShuffleCounter);
 
         this.numClasses = interview.numClasses;
+        this.interview = interview;
         this.layout = new HanselChainLayout(interview.hanselChains, interview.lowUnitsByClass, interview.attributeNames);
+        this.parentWindow = parentWindow;
     }
 
     // Called from the compute thread whenever node classifications change.
@@ -491,23 +496,37 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
     // -----------------------------------------------------------------------
     // Mouse events
     // -----------------------------------------------------------------------
-
     @Override
     public void mouseClicked(final MouseEvent e) {
         final NodeHit hit = findNodeAt(e.getX(), e.getY());
 
         if (hit == null) return;
 
-        final Node clickedNode = hit.node();
+        System.out.println("Clicked Node: " + hit);
+        final NodeExplorer.NodeExplorerResult choice = NodeExplorer.createNodeExplorerWindowAndGetResult();
+        System.out.println("User made choice: " + choice);
+        switch  (choice) {
+            case NodeExplorer.NodeExplorerResult.SEE_EXPANSIONS -> {
+                parentWindow.handleVisualizationChange(EXPANSION_VIEW, hit.node());
+            }
 
-        // Eventually open the node details window.
+            // TODO: these two cases need to spawn a little box which asks for the class. then invoke some Node.permeate style method.
+            case ADJUST_WITHOUT_EXPANSION -> {
+//                hit.node().permeateClassification()
+                parentWindow.handleVisualizationChange(HANSEL_CHAIN_VIEW, null);
+            } case ADJUST_WITH_EXPANSION -> {
+//                hit.node()
+                parentWindow.handleVisualizationChange(HANSEL_CHAIN_VIEW, null);
+            }
+            // do nothing, they just closed the thing.
+            case null -> {}
+            default -> throw new UnsupportedOperationException("Invalid node explorer choice");
+        }
     }
 
     @Override
     public void mouseExited(final MouseEvent e) {
         hoveredHit = null;
-
-        // Request redraw.
     }
 
     @Override
