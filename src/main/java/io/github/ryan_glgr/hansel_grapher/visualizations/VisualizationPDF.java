@@ -89,10 +89,11 @@ public class VisualizationPDF {
             final ArrayList<ArrayList<Node>> chains,
             final Map<Integer, Set<LowUnit>> lowUnitsByClass,
             final int numClasses,
-            final int classificationColorShuffleCounter) throws IOException {
+            final int classificationColorShuffleCounter,
+            final String[] attributeNames) throws IOException {
 
         final HanselChainLayout layout =
-                new HanselChainLayout(chains, lowUnitsByClass);
+                new HanselChainLayout(chains, lowUnitsByClass, attributeNames);
 
         new File(OUTPUT_DIRECTORY).mkdirs();
 

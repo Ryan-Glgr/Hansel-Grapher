@@ -26,7 +26,7 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
     // --- Layout constants pulled from HanselChainLayout via static import: NODE_WIDTH, NODE_HEIGHT,
     // SIDE_SPACING, VERTICAL_SPACING, MARGIN, ROW_STEP, COL_STEP
 
-    private static final int FONT_SIZE = 14;
+    private static final int FONT_SIZE = 18;
     private static final float TEXT_PADDING_INSIDE_NODE = 1.5f;
     private static final float BORDER_THICKNESS_FRACTION = 0.15f; // inset of the fill quad within the border quad
     private static final float VERTICAL_INSET_FOR_EXCLUSIVE_UNIT_COLOR = NODE_HEIGHT * BORDER_THICKNESS_FRACTION;
@@ -64,7 +64,7 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
     public HanselChainRenderer(final Interview interview, final int classificationColorShuffleCounter) {
         super(classificationColorShuffleCounter);
         this.numClasses = interview.numClasses;
-        this.layout = new HanselChainLayout(interview.hanselChains, interview.lowUnitsByClass);
+        this.layout = new HanselChainLayout(interview.hanselChains, interview.lowUnitsByClass, interview.attributeNames);
     }
 
     // Called from the compute thread whenever node classifications change.

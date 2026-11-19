@@ -118,9 +118,10 @@ public class VisualizationDOT {
 
     // --- makeHanselChainDOT --- now driven by HanselChainLayout: exact positions, no rank tricks needed.
     public static void makeHanselChainDOT(final ArrayList<ArrayList<Node>> chains,
-                                          final Map<Integer, Set<LowUnit>> lowUnitsByClass) throws IOException {
+                                          final Map<Integer, Set<LowUnit>> lowUnitsByClass,
+                                          final String[] attributeNames) throws IOException {
 
-        final HanselChainLayout layout = new HanselChainLayout(chains, lowUnitsByClass);
+        final HanselChainLayout layout = new HanselChainLayout(chains, lowUnitsByClass, attributeNames);
         final Node[][] nodeGrid = layout.getNodeGrid();
 
         final FileWriter fw = new FileWriter(OUTPUT_DIRECTORY + File.separator + HANSEL_CHAINS_FILE_NAME);

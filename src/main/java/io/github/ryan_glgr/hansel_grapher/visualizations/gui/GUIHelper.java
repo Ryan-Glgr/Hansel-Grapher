@@ -85,33 +85,6 @@ public class GUIHelper {
     // Labels
     // ---------------------------------------------------------------------
 
-    // Same signature as before; now prints JSON-style using default names x0..xn.
-    // Lines are joined with a literal backslash-n for Graphviz.
-    public static String nodeLabel(final Node temp, final boolean isLow) {
-        if (temp == null || temp.values == null) {
-            throw new IllegalArgumentException("Node and its values must not be null.");
-        }
-        return nodeLabel(temp, isLow, defaultAttributeNames(temp.values.length));
-    }
-
-    // New overload: custom attribute names. Throws IllegalArgumentException for unsupported input
-    // (null node/values/names, or names count not matching the number of values).
-    public static String nodeLabel(final Node temp, final boolean isLow, final String[] attributeNames) {
-        validate(temp, attributeNames);
-        final LowUnit.Type type = isLow ? LowUnit.Type.INCLUSIVE : null;
-        final String[] lines = nodeLabelArray(temp, type, attributeNames);
-
-        final StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < lines.length; i++) {
-            if (i > 0) {
-                sb.append("\\n");
-            }
-            // quotes must be escaped inside a Graphviz label="..." string
-            sb.append(lines[i].replace("\"", "\\\""));
-        }
-        return sb.toString();
-    }
-
     // Same signature as before; now returns JSON-style lines using default names x0..xn.
     public static String[] nodeLabelArray(final Node temp, final LowUnit.Type lowUnitType) {
         if (temp == null || temp.values == null) {

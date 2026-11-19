@@ -100,7 +100,7 @@ public class InterviewStatsVisualizer {
                 outputDir.mkdirs();
             }
             // visualize our results
-            VisualizationDOT.makeHanselChainDOT(interview.hanselChains, interview.lowUnitsByClass);
+            VisualizationDOT.makeHanselChainDOT(interview.hanselChains, interview.lowUnitsByClass, interview.attributeNames);
 
             // make the expansions picture
             final Integer[] kValues = interview.kVals;

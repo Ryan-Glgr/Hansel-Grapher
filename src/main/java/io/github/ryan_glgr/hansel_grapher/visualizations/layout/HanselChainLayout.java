@@ -19,8 +19,8 @@ import java.util.stream.Collectors;
 public class HanselChainLayout {
 
     // --- Layout constants, shared by every consumer of this layout ---
-    public static final float NODE_WIDTH = 10.0f;
-    public static final float NODE_HEIGHT = 18.0f;
+    public static final float NODE_WIDTH = 20.0f;
+    public static final float NODE_HEIGHT = 36.0f;
     public static final float SIDE_SPACING = NODE_WIDTH / 10f;
     public static final float VERTICAL_SPACING = NODE_HEIGHT / 6f;
     public static final float MARGIN = SIDE_SPACING + VERTICAL_SPACING;
@@ -48,7 +48,8 @@ public class HanselChainLayout {
 
 
     public HanselChainLayout(final ArrayList<ArrayList<Node>> chains,
-                             final Map<Integer, Set<LowUnit>> lowUnitsByClass) {
+                             final Map<Integer, Set<LowUnit>> lowUnitsByClass,
+                             final String[] attributeNames) {
 
         this.chains = GUIHelper.sortChainsForVisualization(chains);
         this.totalNodes = this.chains.stream().mapToInt(List::size).sum();
@@ -85,7 +86,7 @@ public class HanselChainLayout {
                 final Node node = chain.get(i);
 
                 nodeGrid[c][row]  = node;
-                labelGrid[c][row] = GUIHelper.nodeLabelArray(node, getLowUnitType(node));
+                labelGrid[c][row] = GUIHelper.nodeLabelArray(node, getLowUnitType(node), attributeNames);
 
                 final float cx = columnX[c];
                 final float cy = baseRowY + row * ROW_STEP;

@@ -158,7 +158,12 @@ public class MainWindow {
                     interview.lowUnitsByClass,
                     interview.interviewStats.kValues);
             VisualizationDOT.compileDotAsync("out/Expansions.dot");
-            VisualizationPDF.makeHanselChainPDF(interview.hanselChains, interview.lowUnitsByClass, interview.numClasses, classificationColorShuffleCounter);
+            VisualizationPDF.makeHanselChainPDF(
+                    interview.hanselChains,
+                    interview.lowUnitsByClass,
+                    interview.numClasses,
+                    classificationColorShuffleCounter,
+                    interview.attributeNames);
         } catch (final IOException ex) {
             System.out.println("Making expansion file failed!");
             ex.printStackTrace();
