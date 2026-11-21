@@ -45,14 +45,12 @@ public class HanselChainRenderer extends PanZoomRenderer implements LiveIntervie
     private NodeHit renderedHoveredHit;
 
     private final MainWindow parentWindow;
-    private final Interview interview;
 
     public HanselChainRenderer(final Interview interview, final int classificationColorShuffleCounter, final MainWindow parentWindow) {
 
         super(classificationColorShuffleCounter);
 
         this.numClasses = interview.numClasses;
-        this.interview = interview;
         this.layout = new HanselChainLayout(interview.hanselChains, interview.lowUnitsByClass, interview.attributeNames);
         this.parentWindow = parentWindow;
     }

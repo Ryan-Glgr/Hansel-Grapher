@@ -209,8 +209,6 @@ public class ExpansionRenderer extends PanZoomRenderer {
 
     @Override
     public void init(final GLAutoDrawable drawable) {
-        // first line of init(...)
-        System.out.println("INIT renderer " + System.identityHashCode(this) + " drawable=" + System.identityHashCode(drawable));
         final GL3 gl = GLHelper.getGl3(drawable);
 
         shaderProgram = GLHelper.createShaderProgram(gl);

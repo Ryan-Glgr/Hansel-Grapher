@@ -54,6 +54,7 @@ public class NodeExplorer {
         dialog.pack();
         dialog.setResizable(false);
         dialog.toFront();
+        positionOverMouse();
     }
 
     private void choose(final NodeExplorerResult chosen) {
@@ -68,4 +69,29 @@ public class NodeExplorer {
     public void closeWindow() {
         dialog.dispose();
     }
+
+    // Centers the dialog on the mouse pointer, kept fully on the screen the pointer is on.
+    private void positionOverMouse() {
+        final PointerInfo pointerInfo = MouseInfo.getPointerInfo();
+        if (pointerInfo == null) {
+            dialog.setLocationRelativeTo(null); // no pointer available: center on screen
+            return;
+        }
+
+        final Point mouse = pointerInfo.getLocation();
+        final GraphicsConfiguration config = pointerInfo.getDevice().getDefaultConfiguration();
+        final Rectangle screen = config.getBounds();
+        final Insets insets = Toolkit.getDefaultToolkit().getScreenInsets(config); // taskbars, docks
+
+        final int minX = screen.x + insets.left;
+        final int minY = screen.y + insets.top;
+        final int maxX = screen.x + screen.width - insets.right - dialog.getWidth();
+        final int maxY = screen.y + screen.height - insets.bottom - dialog.getHeight();
+
+        final int x = Math.max(minX, Math.min(maxX, mouse.x - dialog.getWidth() / 2));
+        final int y = Math.max(minY, Math.min(maxY, mouse.y - dialog.getHeight() / 2));
+
+        dialog.setLocation(x, y);
+    }
+
 }

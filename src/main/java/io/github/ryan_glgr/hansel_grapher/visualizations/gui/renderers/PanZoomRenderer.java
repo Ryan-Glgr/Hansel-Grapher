@@ -26,6 +26,9 @@ public abstract class PanZoomRenderer
     private static final long  HOLD_GAP_NANOS    = 50_000_000L; // gap longer than this = a new press, not a hold. This is 50ms
     private static final float ONE_SECOND_IN_NANOS = 1_000_000_000f;
 
+    // How far past the world bounds the view may pan, in world units.
+    private static final float PAN_BUFFER = 50f;
+
     // --- Pan / zoom state (all on the EDT) ---
     private float panX    = 0f;
     private float panY    = 0f;
@@ -81,17 +84,6 @@ public abstract class PanZoomRenderer
         final float[] p = pendingProjection;
         pendingProjection = null;
         return p;
-    }
-
-    // -----------------------------------------------------------------------
-    // Pan / zoom reset (call from subclass if you add a "reset view" button)
-    // -----------------------------------------------------------------------
-
-    protected void resetView() {
-        panX = 0f;
-        panY = 0f;
-        zoom = 1f;
-        rebuildProjection();
     }
 
     // -----------------------------------------------------------------------
@@ -169,11 +161,16 @@ public abstract class PanZoomRenderer
                                   final float halfView,
                                   final float worldMin,
                                   final float worldMax) {
-        if (halfView * 2f >= worldMax - worldMin) {
-            return (worldMin + worldMax) / 2f - center;
+        final float min = worldMin - PAN_BUFFER;
+        final float max = worldMax + PAN_BUFFER;
+
+        // View is larger than the (buffered) world on this axis: center it instead.
+        if (halfView * 2f >= max - min) {
+            return (min + max) / 2f - center;
         }
-        final float newCenter = Math.max(worldMin + halfView,
-                Math.min(worldMax - halfView, center + pan));
+
+        final float newCenter = Math.max(min + halfView,
+                Math.min(max - halfView, center + pan));
         return newCenter - center;
     }
 
