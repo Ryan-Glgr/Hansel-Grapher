@@ -5,6 +5,7 @@ import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GL3;
 import com.jogamp.opengl.util.Animator;
 
+import java.awt.*;
 import java.awt.event.*;
 
 /**
@@ -50,6 +51,8 @@ public abstract class PanZoomRenderer
 
     // used if we want to shuffle the colors of the classifications
     protected int classificationColorShuffleCounter = 0;
+    private Component listenerTarget;
+
     public PanZoomRenderer(final int classificationColorShuffleCounter){
         this.classificationColorShuffleCounter = classificationColorShuffleCounter;
     }
@@ -267,6 +270,7 @@ public abstract class PanZoomRenderer
     @Override
     public void init(final GLAutoDrawable drawable) {
         if (drawable instanceof final java.awt.Component comp) {
+            listenerTarget = comp;
             comp.addMouseListener(this);
             comp.addMouseMotionListener(this);
             comp.addMouseWheelListener(this);
@@ -278,6 +282,16 @@ public abstract class PanZoomRenderer
         }
     }
 
+    @Override
+    public void dispose(final GLAutoDrawable drawable) {
+        if (listenerTarget != null) {
+            listenerTarget.removeMouseListener(this);
+            listenerTarget.removeMouseMotionListener(this);
+            listenerTarget.removeMouseWheelListener(this);
+            listenerTarget.removeKeyListener(this);
+            listenerTarget = null;
+        }
+    }
 
     // -----------------------------------------------------------------------
     // Unused mouse events — override in subclass if needed

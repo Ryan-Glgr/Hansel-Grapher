@@ -5,19 +5,23 @@ import com.jogamp.opengl.GL3;
 import com.jogamp.opengl.GLAutoDrawable;
 import io.github.ryan_glgr.hansel_grapher.functionallogic.Interview.Interview;
 import io.github.ryan_glgr.hansel_grapher.functionallogic.Node;
+import io.github.ryan_glgr.hansel_grapher.functionallogic.lowunits.LowUnit;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.GLHelper;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.GUIHelper;
+import io.github.ryan_glgr.hansel_grapher.visualizations.gui.LabelPainter;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.renderers.hanselchain.NodeHit;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.screens.MainWindow;
 import io.github.ryan_glgr.hansel_grapher.visualizations.gui.screens.NodeExplorer;
 
-import java.awt.Color;
 import java.awt.event.MouseEvent;
 import java.nio.FloatBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static io.github.ryan_glgr.hansel_grapher.visualizations.gui.screens.MainWindow.EXPANSION_VIEW;
 import static io.github.ryan_glgr.hansel_grapher.visualizations.gui.screens.MainWindow.HANSEL_CHAIN_VIEW;
@@ -28,21 +32,10 @@ import static io.github.ryan_glgr.hansel_grapher.visualizations.layout.HanselCha
 
 /**
  * Shows the selected node's up expansions (top row), the selected node (middle row),
- * and its down expansions (bottom row). Hover and click behavior match HanselChainRenderer.
+ * and its down expansions (bottom row). Looks and behaves like HanselChainRenderer;
+ * only the layout differs.
  */
 public class ExpansionRenderer extends PanZoomRenderer {
-
-    private static final int POSITION_COMPONENTS = 2;
-    private static final int COLOR_COMPONENTS = 4;
-    private static final int VERTICES_PER_QUAD = 6;
-
-    private static final int VBO_POSITIONS = 0;
-    private static final int VBO_COLORS = 1;
-
-    private static final int HOVER_BORDER_QUADS = 4;
-    private static final int HOVER_BORDER_VERTICES = HOVER_BORDER_QUADS * VERTICES_PER_QUAD;
-    private static final float HOVER_BORDER_THICKNESS = 0.2f;
-    private static final Color HOVER_BORDER_COLOR = new Color(220, 70, 220);
 
     private static final float WORLD_MARGIN = 2f;
 
@@ -52,22 +45,27 @@ public class ExpansionRenderer extends PanZoomRenderer {
     private static final int ROW_UP = 2;
     private static final int NUM_ROWS = 3;
 
-    // Identifies both the node and its position in the grid.
-
     private final Interview interview;
     private final Node selectedNode;
     private final MainWindow parentWindow;
 
+    // Node -> low unit, built the same way HanselChainLayout builds it.
+    private final Map<Node, LowUnit> lowUnitNodes;
+
     // nodeGrid[row][column]; rows are ragged and each row is centered around x = 0.
     private final Node[][] nodeGrid = new Node[NUM_ROWS][];
+    private final LowUnit.Type[][] lowUnitTypeGrid = new LowUnit.Type[NUM_ROWS][];
+    private final String[][][] labelGrid = new String[NUM_ROWS][][];
     private final float[] rowStartX = new float[NUM_ROWS];
     private int totalNodes;
+    private int numExclusiveLowUnits;
     private float[] worldBounds;
 
     private int vaoId;
     private int shaderProgram;
     private final int[] vboIds = new int[2];
     private int projectionUniformLocation = -1;
+    private LabelPainter labelPainter;
 
     // Written by the AWT thread, read by the GL thread.
     private volatile NodeHit hoveredHit;
@@ -82,7 +80,26 @@ public class ExpansionRenderer extends PanZoomRenderer {
         this.interview = interview;
         this.selectedNode = selectedNode;
         this.parentWindow = parentWindow;
+        this.lowUnitNodes = interview.lowUnitsByClass.values()
+                .stream()
+                .flatMap(Set::stream)
+                .collect(Collectors.toMap(LowUnit::getDatapoint, Function.identity()));
         buildGrid();
+    }
+
+    // -----------------------------------------------------------------------
+    // Per-node info, computed the same way HanselChainLayout does it.
+    // -----------------------------------------------------------------------
+
+    /** Low unit type of this node, or null if it is not a low unit. */
+    private LowUnit.Type lowUnitTypeOf(final Node node) {
+        final LowUnit lowUnit = lowUnitNodes.get(node);
+        return lowUnit == null ? null : lowUnit.getLowUnitType();
+    }
+
+    /** Label lines for this node. */
+    private String[] labelOf(final Node node) {
+        return GUIHelper.nodeLabelArray(node, lowUnitTypeOf(node), interview.attributeNames);
     }
 
     // -----------------------------------------------------------------------
@@ -103,6 +120,19 @@ public class ExpansionRenderer extends PanZoomRenderer {
             rowStartX[row] = -(n - 1) / 2f * COL_STEP;
             totalNodes += n;
             widest = Math.max(widest, n);
+
+            lowUnitTypeGrid[row] = new LowUnit.Type[n];
+            labelGrid[row] = new String[n][];
+
+            for (int c = 0; c < n; c++) {
+                final Node node = nodeGrid[row][c];
+                lowUnitTypeGrid[row][c] = lowUnitTypeOf(node);
+                labelGrid[row][c] = labelOf(node);
+
+                if (LowUnit.Type.EXCLUSIVE.equals(lowUnitTypeGrid[row][c])) {
+                    numExclusiveLowUnits++;
+                }
+            }
         }
 
         final float halfWidth = (widest - 1) * COL_STEP / 2f + NODE_WIDTH / 2f + WORLD_MARGIN;
@@ -135,22 +165,16 @@ public class ExpansionRenderer extends PanZoomRenderer {
 
     private FloatBuffer buildPositionBuffer() {
         final FloatBuffer buffer = Buffers.newDirectFloatBuffer(
-                (totalNodes * VERTICES_PER_QUAD + HOVER_BORDER_VERTICES) * POSITION_COMPONENTS);
+                GLHelper.positionBufferFloats(totalNodes, numExclusiveLowUnits));
 
         for (int row = 0; row < NUM_ROWS; row++) {
             for (int c = 0; c < nodeGrid[row].length; c++) {
-                final float cx = getX(row, c);
-                final float cy = getY(row);
-                GLHelper.emitQuad(buffer,
-                        cx - NODE_WIDTH / 2f, cy - NODE_HEIGHT / 2f,
-                        cx + NODE_WIDTH / 2f, cy + NODE_HEIGHT / 2f);
+                final boolean exclusive = LowUnit.Type.EXCLUSIVE.equals(lowUnitTypeGrid[row][c]);
+                GLHelper.emitNode(buffer, getX(row, c), getY(row), NODE_WIDTH, NODE_HEIGHT, exclusive);
             }
         }
 
-        // Reserved for the hover border; filled in dynamically.
-        for (int i = 0; i < HOVER_BORDER_VERTICES * POSITION_COMPONENTS; i++) {
-            buffer.put(0f);
-        }
+        GLHelper.reserveHoverBorderPositions(buffer);
 
         buffer.flip();
         return buffer;
@@ -159,59 +183,19 @@ public class ExpansionRenderer extends PanZoomRenderer {
     // Must iterate in the same order as buildPositionBuffer.
     private FloatBuffer buildColorBuffer() {
         final FloatBuffer buffer = Buffers.newDirectFloatBuffer(
-                (totalNodes * VERTICES_PER_QUAD + HOVER_BORDER_VERTICES) * COLOR_COMPONENTS);
+                GLHelper.colorBufferFloats(totalNodes, numExclusiveLowUnits));
 
-        for (final Node[] row : nodeGrid) {
-            for (final Node node : row) {
-                final int cls = node.classification.equals(Node.IMPOSSIBLE_CLASSIFICATION)
-                        ? Node.IMPOSSIBLE_CLASSIFICATION
-                        : (node.classification + classificationColorShuffleCounter) % interview.numClasses;
-
-                final Color c = GUIHelper.getColorForClass(cls, false);
-                for (int i = 0; i < VERTICES_PER_QUAD; i++) {
-                    buffer.put(c.getRed() / 255f);
-                    buffer.put(c.getGreen() / 255f);
-                    buffer.put(c.getBlue() / 255f);
-                    buffer.put(c.getAlpha() / 255f);
-                }
+        for (int row = 0; row < NUM_ROWS; row++) {
+            for (int c = 0; c < nodeGrid[row].length; c++) {
+                GLHelper.emitNodeColors(buffer, nodeGrid[row][c], lowUnitTypeGrid[row][c],
+                        interview.numClasses, classificationColorShuffleCounter);
             }
         }
 
-        for (int i = 0; i < HOVER_BORDER_VERTICES; i++) {
-            buffer.put(HOVER_BORDER_COLOR.getRed() / 255f);
-            buffer.put(HOVER_BORDER_COLOR.getGreen() / 255f);
-            buffer.put(HOVER_BORDER_COLOR.getBlue() / 255f);
-            buffer.put(1f);
-        }
+        GLHelper.emitHoverBorderColors(buffer);
 
         buffer.flip();
         return buffer;
-    }
-
-    private void updateHoverBorderVBO(final GL3 gl, final NodeHit hit) {
-        final FloatBuffer buffer = Buffers.newDirectFloatBuffer(HOVER_BORDER_VERTICES * POSITION_COMPONENTS);
-
-        final float cx = getX(hit.row(), hit.column());
-        final float cy = getY(hit.row());
-
-        final float left = cx - NODE_WIDTH / 2f;
-        final float right = cx + NODE_WIDTH / 2f;
-        final float bottom = cy - NODE_HEIGHT / 2f;
-        final float top = cy + NODE_HEIGHT / 2f;
-        final float t = Math.min(NODE_WIDTH, NODE_HEIGHT) * HOVER_BORDER_THICKNESS;
-
-        GLHelper.emitQuad(buffer, left, top - t, right, top);             // top
-        GLHelper.emitQuad(buffer, left, bottom, right, bottom + t);       // bottom
-        GLHelper.emitQuad(buffer, left, bottom + t, left + t, top - t);   // left
-        GLHelper.emitQuad(buffer, right - t, bottom + t, right, top - t); // right
-
-        buffer.flip();
-
-        final long offset = (long) totalNodes * VERTICES_PER_QUAD * POSITION_COMPONENTS * Float.BYTES;
-
-        gl.glBindBuffer(GL3.GL_ARRAY_BUFFER, vboIds[VBO_POSITIONS]);
-        gl.glBufferSubData(GL3.GL_ARRAY_BUFFER, offset, (long) buffer.remaining() * Float.BYTES, buffer);
-        gl.glBindBuffer(GL3.GL_ARRAY_BUFFER, 0);
     }
 
     private static boolean sameHit(final NodeHit a, final NodeHit b) {
@@ -225,9 +209,9 @@ public class ExpansionRenderer extends PanZoomRenderer {
 
     @Override
     public void init(final GLAutoDrawable drawable) {
+        // first line of init(...)
+        System.out.println("INIT renderer " + System.identityHashCode(this) + " drawable=" + System.identityHashCode(drawable));
         final GL3 gl = GLHelper.getGl3(drawable);
-
-        gl.glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
 
         shaderProgram = GLHelper.createShaderProgram(gl);
         projectionUniformLocation = gl.glGetUniformLocation(shaderProgram, "uProjection");
@@ -235,30 +219,9 @@ public class ExpansionRenderer extends PanZoomRenderer {
             throw new RuntimeException("Uniform 'uProjection' not found in shader program.");
         }
 
-        final int[] vaos = new int[1];
-        gl.glGenVertexArrays(1, vaos, 0);
-        vaoId = vaos[0];
-        if (vaoId == 0) {
-            throw new RuntimeException("VAO creation failed");
-        }
+        vaoId = GLHelper.createNodeVao(gl, vboIds, buildPositionBuffer(), buildColorBuffer());
 
-        gl.glBindVertexArray(vaoId);
-        gl.glGenBuffers(2, vboIds, 0);
-
-        gl.glBindBuffer(GL3.GL_ARRAY_BUFFER, vboIds[VBO_POSITIONS]);
-        final FloatBuffer positions = buildPositionBuffer();
-        gl.glBufferData(GL3.GL_ARRAY_BUFFER, (long) positions.capacity() * Float.BYTES, positions, GL3.GL_DYNAMIC_DRAW);
-        gl.glEnableVertexAttribArray(0);
-        gl.glVertexAttribPointer(0, POSITION_COMPONENTS, GL3.GL_FLOAT, false, 0, 0);
-
-        gl.glBindBuffer(GL3.GL_ARRAY_BUFFER, vboIds[VBO_COLORS]);
-        final FloatBuffer colors = buildColorBuffer();
-        gl.glBufferData(GL3.GL_ARRAY_BUFFER, (long) colors.capacity() * Float.BYTES, colors, GL3.GL_STATIC_DRAW);
-        gl.glEnableVertexAttribArray(1);
-        gl.glVertexAttribPointer(1, COLOR_COMPONENTS, GL3.GL_FLOAT, false, 0, 0);
-
-        gl.glBindVertexArray(0);
-        gl.glBindBuffer(GL3.GL_ARRAY_BUFFER, 0);
+        labelPainter = new LabelPainter();
 
         reshape(drawable, 0, 0, drawable.getSurfaceWidth(), drawable.getSurfaceHeight());
 
@@ -278,7 +241,7 @@ public class ExpansionRenderer extends PanZoomRenderer {
 
         gl.glBindVertexArray(vaoId);
 
-        final int nodeVertices = totalNodes * VERTICES_PER_QUAD;
+        final int nodeVertices = GLHelper.nodeVertexCount(totalNodes, numExclusiveLowUnits);
         gl.glDrawArrays(GL3.GL_TRIANGLES, 0, nodeVertices);
 
         // Update the reserved hover geometry only when the hovered node changes.
@@ -286,25 +249,61 @@ public class ExpansionRenderer extends PanZoomRenderer {
 
         if (!sameHit(currentHover, renderedHoveredHit)) {
             if (currentHover != null) {
-                updateHoverBorderVBO(gl, currentHover);
+                GLHelper.uploadHoverBorder(gl, vboIds, nodeVertices,
+                        getX(currentHover.row(), currentHover.column()), getY(currentHover.row()),
+                        NODE_WIDTH, NODE_HEIGHT);
             }
             renderedHoveredHit = currentHover;
         }
 
+        // Hover border goes on top of the nodes.
         if (currentHover != null) {
-            gl.glDrawArrays(GL3.GL_TRIANGLES, nodeVertices, HOVER_BORDER_VERTICES);
+            gl.glDrawArrays(GL3.GL_TRIANGLES, nodeVertices, GLHelper.HOVER_BORDER_VERTICES);
         }
 
         gl.glBindVertexArray(0);
         gl.glUseProgram(0);
+
+        // Labels remain on top of both the nodes and hover border.
+        drawLabels();
+    }
+
+    private void drawLabels() {
+        final String[] sampleLabel = Arrays.stream(labelGrid)
+                .flatMap(Arrays::stream)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+
+        if (sampleLabel == null) return;
+
+        if (!labelPainter.begin(surfaceWidth, surfaceHeight,
+                getLiveLeft(), getLiveRight(), getLiveBottom(), getLiveTop(),
+                NODE_WIDTH, NODE_HEIGHT, sampleLabel)) {
+            return;
+        }
+
+        // Only a handful of nodes, so no culling needed.
+        for (int row = 0; row < NUM_ROWS; row++) {
+            for (int c = 0; c < nodeGrid[row].length; c++) {
+                final String[] lines = labelGrid[row][c];
+                if (lines == null) continue;
+
+                labelPainter.drawLabel(lines, getX(row, c), getY(row));
+            }
+        }
+
+        labelPainter.end();
     }
 
     @Override
     public void dispose(final GLAutoDrawable drawable) {
-        final GL3 gl = drawable.getGL().getGL3();
-        gl.glDeleteBuffers(2, vboIds, 0);
-        gl.glDeleteVertexArrays(1, new int[]{vaoId}, 0);
-        gl.glDeleteProgram(shaderProgram);
+        GLHelper.disposeNodeResources(drawable.getGL().getGL3(), vaoId, vboIds, shaderProgram);
+
+        if (labelPainter != null) {
+            labelPainter.dispose();
+        }
+        super.dispose(drawable);
     }
 
     // -----------------------------------------------------------------------
@@ -332,7 +331,7 @@ public class ExpansionRenderer extends PanZoomRenderer {
         if (hit == null) return;
 
         final NodeExplorer.NodeExplorerResult choice = NodeExplorer.createNodeExplorerWindowAndGetResult();
-        switch  (choice) {
+        switch (choice) {
             case NodeExplorer.NodeExplorerResult.SEE_EXPANSIONS -> {
                 parentWindow.handleVisualizationChange(EXPANSION_VIEW, hit.node());
             }
@@ -341,7 +340,8 @@ public class ExpansionRenderer extends PanZoomRenderer {
             case ADJUST_WITHOUT_EXPANSION -> {
 //                hit.node().permeateClassification()
                 parentWindow.handleVisualizationChange(HANSEL_CHAIN_VIEW, null);
-            } case ADJUST_WITH_EXPANSION -> {
+            }
+            case ADJUST_WITH_EXPANSION -> {
 //                hit.node()
                 parentWindow.handleVisualizationChange(HANSEL_CHAIN_VIEW, null);
             }
@@ -350,7 +350,6 @@ public class ExpansionRenderer extends PanZoomRenderer {
             default -> throw new UnsupportedOperationException("Invalid node explorer choice");
         }
     }
-
 
     private NodeHit findNodeAt(final int mouseX, final int mouseY) {
         final float worldX = getLiveLeft() + mouseX / (float) surfaceWidth * (getLiveRight() - getLiveLeft());

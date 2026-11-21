@@ -63,7 +63,6 @@ public class MainWindow {
 
         // --- OpenGL setup ---
         // change construction:
-        final GLProfile profile = GLProfile.get(GLProfile.GL4bc);
         final GLCapabilities caps = new GLCapabilities(GLProfile.get(GLProfile.GL4bc));
         glPanel = new GLCanvas(caps);
         glPanel.invoke(false, drawable -> {
@@ -195,18 +194,31 @@ public class MainWindow {
                     JOptionPane.WARNING_MESSAGE);
             return;
         }
-        currentView = viewToApply;
 
-        final GLEventListener next = switch (currentView) {
+        final GLEventListener next = switch (viewToApply) {
             case HANSEL_CHAIN_VIEW -> new HanselChainRenderer(interview, classificationColorShuffleCounter, this);
-            case EXPANSION_VIEW -> new ExpansionRenderer(interview, nodeSelected, classificationColorShuffleCounter,this);
+            case EXPANSION_VIEW -> {
+                // if we haven't chosen a node through the GUI
+                if (Objects.isNull(nodeSelected)) {
+                    JOptionPane.showMessageDialog(mainPanel,
+                            "Please select a Node first",
+                            "No Node selected",
+                            JOptionPane.WARNING_MESSAGE);
+                    yield this.currentListener;
+                }
+                yield new ExpansionRenderer(interview, nodeSelected, classificationColorShuffleCounter,this);
+            }
             case RULE_TREE_VIEW -> new RuleTreeRenderer(interview, classificationColorShuffleCounter);
             default -> new BlankRenderer();
         };
 
-        glPanel.removeGLEventListener(currentListener);
-        glPanel.addGLEventListener(next);
-        currentListener = next;
+        if (next != currentListener) {
+            if (currentListener != null) {
+                glPanel.disposeGLEventListener(currentListener, true); // disposes AND removes
+            }
+            glPanel.addGLEventListener(next);
+            this.currentListener = next;
+        }
         glPanel.repaint();
     }
 

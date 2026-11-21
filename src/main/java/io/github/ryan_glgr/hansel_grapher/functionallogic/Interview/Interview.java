@@ -32,17 +32,6 @@ public class Interview {
     // if we set this false, we are going to call upon some ML interviewer instead.
     public final MagicFunctionMode magicFunctionMode;
     public BalanceRatio balanceRatio;
-
-    public InterviewStats interviewStats;
-    public final HashMap<Integer, Node> data;
-    public final HashMap<Integer, Node> allNodesToTheirIDsMap; // all the same nodes, but this way we can look up a node by it's ID as well.
-    public final ArrayList<ArrayList<Node>> hanselChains;
-    public Map<Integer, Set<LowUnit>> lowUnitsByClass;
-    public RuleNode[] ruleTrees;
-
-    // to be used if we are running gui mode. this allows us to tell the GUI when updates have happened.
-    private LiveInterviewVisualizer liveInterviewVisualizer = null;
-
     public final int numClasses;
     public final String[] classificationNames;
     public final Attribute[] attributes;
@@ -51,8 +40,17 @@ public class Interview {
     public final Map<Integer, Set<Node>> knownLowUnitsOfEachClassBeforeInterview; // used for the magic function mode when we know what the low units are already, and we are trying to run the interview.
     public final NormalizedDataset normalizedDataset;
 
-    private final PythonInterpreter pythonInterpreter;
+    public InterviewStats interviewStats;
+    public final HashMap<Integer, Node> data;
+    public final HashMap<Integer, Node> allNodesToTheirIDsMap; // all the same nodes, but this way we can look up a node by it's ID as well, not just the hash value.
+    public final ArrayList<ArrayList<Node>> hanselChains;
+    public Map<Integer, Set<LowUnit>> lowUnitsByClass;
+    public RuleNode[] ruleTrees;
 
+    // to be used if we are running gui mode. this allows us to tell the GUI when updates have happened.
+    private LiveInterviewVisualizer liveInterviewVisualizer = null;
+
+    private final PythonInterpreter pythonInterpreter;
     private Scanner inputScanner;
 
     // used to create an interactive Interview.
